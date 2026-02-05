@@ -1,0 +1,23 @@
+{
+  "$schema": "./config.schema.json",
+  "roots": [
+    "E:/Experimental projects"
+  ],
+  "maxDepth": 6,
+  "targets": {
+    "nodeModules": true,
+    "buildArtifacts": true,
+    "rustArtifacts": true,
+    "goArtifacts": false,
+    "playwrightArtifacts": true
+  },
+  "additionalDirNames": {
+    "buildArtifacts": [".turbo", ".vite"],
+    "rustArtifacts": [".cargo-target"],
+    "goArtifacts": ["bin", "out"]
+  },
+  "excludeAbsPathContains": [
+    "/Windows/",
+    "/Program Files/"
+  ]
+}

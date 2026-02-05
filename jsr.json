@@ -1,0 +1,14 @@
+{
+    "name": "@dendro-x0/deco",
+    "version": "0.1.0",
+    "exports": "./src/cli.ts",
+    "publish": {
+        "exclude": [
+            "node_modules",
+            "dist",
+            ".deco",
+            ".dcos",
+            "*.log"
+        ]
+    }
+}
