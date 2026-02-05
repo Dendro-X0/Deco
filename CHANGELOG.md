@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0] - Dashboard & Safety Update
+
+### Added
+- **Dashboard UI**: Redesigned TUI with real-time scanning progress, summary view, and action menu.
+- **Smart Safety Filters**: Added strict exclusions for `resources/app` (Electron), `Program Files`, `AppData`, `Windows`, and `.vscode` to prevent accidental deletion of installed applications.
+- **Parallel Deletion**: Deletion now runs concurrently (~32 items) for much faster performance.
+- **Robustness**: Permission errors (EPERM/EBUSY) no longer crash the process; locked files are skipped with a warning.
+
+### Changed
+- **Removed**: Generic `bin` folders are no longer targeted as Go artifacts to reduce false positives.
+- **Changed**: Interactive scan now shows a summary first instead of immediately listing all files.
+
 ## [0.1.0] - Milestone 5 Complete
 
 ### Added

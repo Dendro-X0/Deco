@@ -4,50 +4,41 @@ A fast, safe, and interactive disk cleanup CLI for developers. Reclaim space by 
 
 ## Features
 
-- **Interactive TUI**: Easy-to-use interactive mode to select and delete targets.
+- **Dashboard UI**: New structured TUI with real-time scanning progress, categorized summaries, and menu-driven actions.
+- **Smart Safety**: Strictly ignores system directories (`Program Files`, `AppData`, `Windows`) and Electron app runtimes (`resources/app`) to prevent breaking installed tools.
+- **Parallel Deletion**: Deletes files concurrently for significantly faster performance on large folders.
+- **Interactive**: Easy-to-use interactive mode to select and delete targets.
 - **Blazing Fast**: Parallelized scanning and size calculation.
 - **Safe**: Dry-run by default. Deletion requires explicit confirmation.
 - **Configurable**: Persist your preferences in a `.deco/disk-cleanup.json` file.
 - **Broad Support**:
   - **Node.js**: `node_modules`, `dist`, `.next`, `.cache`, etc.
   - **Rust**: `target` directories.
-  - **Go**: `bin`, `dist`, `build` directories, `GOCACHE`, and `GOMODCACHE`.
+  - **Go**: `dist`, `build` directories, `GOCACHE`, and `GOMODCACHE`.
   - **Playwright**: Test results and reports.
 
-## Installation
+## Quick Start (Run Locally)
 
-Install globally via **JSR**:
-
-```bash
-# Using npx
-npx jsr add -g @dendro-x0/deco
-
-# Or using deno
-deno add -g jsr:@dendro-x0/deco
-```
-
-Or install via **npm**:
+You can run the tool directly from this folder without installing anything globally.
 
 ```bash
-npm install -g @dendro-x0/deco
-```
-
-## Usage
-
-### Running Locally
-
-```bash
-# Install dependencies
-pnpm install
-
-# Build the project
+# 1. Build the project
 pnpm build
 
-# Run (Interactive Mode)
-node dist/cli.js --root "E:/Projects"
+# 2. Run it!
+node dist/cli.js --root "C:/"
+```
 
-# Run (Text Report / CI Mode)
-node dist/cli.js --root "E:/Projects" --dry-run
+### Installation (Optional)
+
+If you want to use the command `deco` from any terminal window on your machine:
+
+```bash
+# In this directory:
+npm link
+
+# Now you can just type:
+deco --root "E:/"
 ```
 
 ### Options

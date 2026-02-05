@@ -55,15 +55,13 @@ type ScanState = {
   readonly errors: string[];
   readonly queue: TaskQueue;
   readonly silent?: boolean;
+  readonly onProgress?: ProgressListener;
 };
 
 const DEFAULT_MAX_DEPTH: number = 6;
 const FS_CONCURRENCY = 32;
 
 const BUILD_ARTIFACT_DIR_NAMES: readonly string[] = [
-  'dist',
-  'dist-firefox',
-  'build',
   '.next',
   '.svelte-kit',
   '.astro',
@@ -74,7 +72,22 @@ const PLAYWRIGHT_DIR_NAMES: readonly string[] = ['test-results', 'playwright-rep
 
 const RUST_DIR_NAMES: readonly string[] = ['target', '.cargo-target', 'pkg'] as const;
 
-const GO_DIR_NAMES: readonly string[] = ['bin', 'dist', 'build'] as const;
+const GO_DIR_NAMES: readonly string[] = ['dist', 'build', 'bin-win'] as const;
+
+const SAFE_EXCLUDE_PATTERNS: readonly string[] = [
+  'resources' + path.sep + 'app',
+  'Program Files',
+  'Program Files (x86)',
+  'AppData',
+  '.vscode',
+  '.vscode-insiders',
+  '.cursor',
+  'Windows',
+  'System32',
+  '$Recycle.Bin',
+  'System Volume Information',
+  'Config.Msi',
+] as const;
 
 function parseArgs(argv: readonly string[]): CliOptions {
   const roots: string[] = [];
@@ -222,10 +235,17 @@ async function mergeConfigAndArgs(argv: readonly string[]): Promise<CliOptions> 
 
 function shouldTargetDir(dirName: string, options: CliOptions): TargetDirKind | null {
   if (options.includeNodeModules && dirName === 'node_modules') return 'node_modules';
-  if (options.includeBuildArtifacts && BUILD_ARTIFACT_DIR_NAMES.includes(dirName)) return 'build-artifact';
   if (options.includePlaywrightArtifacts && PLAYWRIGHT_DIR_NAMES.includes(dirName)) return 'playwright-artifact';
   if (options.includeRustArtifacts && RUST_DIR_NAMES.includes(dirName)) return 'rust-artifact';
-  if (options.includeGoArtifacts && GO_DIR_NAMES.includes(dirName)) return 'go-artifact';
+
+  // For dist/build, we check if it's likely a project artifact (dist/build)
+  if (options.includeBuildArtifacts && BUILD_ARTIFACT_DIR_NAMES.includes(dirName)) return 'build-artifact';
+
+  if (dirName === 'dist' || dirName === 'build') {
+    if (options.includeBuildArtifacts) return 'build-artifact';
+    if (options.includeGoArtifacts) return 'go-artifact';
+  }
+
   return null;
 }
 
@@ -253,6 +273,10 @@ async function getDirSizeBytes(absPath: string, state: ScanState): Promise<ByteC
 }
 
 function printProgress(state: ScanState): void {
+  if (state.onProgress) {
+    state.onProgress({ scannedDirs: state.scannedDirs, foundTargets: state.foundTargets });
+    return;
+  }
   if (state.silent || !process.stdout.isTTY) return;
   readline.cursorTo(process.stdout, 0);
   process.stdout.write(`Scanning... ${state.scannedDirs} dirs visited | ${state.foundTargets} targets found`);
@@ -260,6 +284,10 @@ function printProgress(state: ScanState): void {
 
 async function scanDir(absPath: string, depth: number, options: CliOptions, state: ScanState, acc: TargetDir[]): Promise<void> {
   if (depth > options.maxDepth) return;
+  const absPathLower = absPath.toLowerCase();
+  for (const pattern of SAFE_EXCLUDE_PATTERNS) {
+    if (absPathLower.includes(pattern.toLowerCase())) return;
+  }
   for (const pattern of options.excludeAbsPathContains) {
     if (absPath.includes(pattern)) return;
   }
@@ -298,7 +326,14 @@ export function formatBytes(bytes: ByteCount): string {
   return `${value.toFixed(2)} ${units[idx]}`;
 }
 
-export async function buildReport(options: CliOptions): Promise<ScanReport> {
+export type ProgressUpdate = {
+  scannedDirs: number;
+  foundTargets: number;
+};
+
+export type ProgressListener = (update: ProgressUpdate) => void;
+
+export async function buildReport(options: CliOptions, onProgress?: ProgressListener): Promise<ScanReport> {
   const targets: TargetDir[] = [];
   const state: ScanState = {
     scannedDirs: 0,
@@ -306,6 +341,7 @@ export async function buildReport(options: CliOptions): Promise<ScanReport> {
     errors: [],
     queue: new TaskQueue(FS_CONCURRENCY),
     silent: options.silent,
+    onProgress,
   };
   for (const root of options.roots) {
     const absRoot = path.resolve(root);
@@ -343,10 +379,28 @@ export async function buildReport(options: CliOptions): Promise<ScanReport> {
   return { targets, totalBytes, errors: state.errors, scannedDirs: state.scannedDirs };
 }
 
-export async function deleteTargets(targets: readonly TargetDir[]): Promise<void> {
-  for (const target of targets) {
-    await rm(target.absPath, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 });
-  }
+export async function deleteTargets(
+  targets: readonly TargetDir[],
+  onProgress?: (done: number) => void
+): Promise<string[]> {
+  const queue = new TaskQueue(FS_CONCURRENCY);
+  let done = 0;
+  const errors: string[] = [];
+
+  const tasks = targets.map(async (target) => {
+    try {
+      await queue.run(() => rm(target.absPath, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 }));
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? 'unknown';
+      errors.push(`Failed to delete ${target.absPath} (${code})`);
+    } finally {
+      done += 1;
+      onProgress?.(done);
+    }
+  });
+
+  await Promise.all(tasks);
+  return errors;
 }
 
 
