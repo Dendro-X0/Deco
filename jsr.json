@@ -1,5 +1,5 @@
 {
-    "name": "@deco/cli",
+    "name": "@deco-cli/deco",
     "version": "0.1.0",
     "exports": "./src/cli.ts",
     "publish": {
