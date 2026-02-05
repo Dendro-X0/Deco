@@ -14,6 +14,24 @@ A fast, safe, and interactive disk cleanup CLI for developers. Reclaim space by 
   - **Go**: `bin`, `dist`, `build` directories, `GOCACHE`, and `GOMODCACHE`.
   - **Playwright**: Test results and reports.
 
+## Installation
+
+Install globally via **JSR**:
+
+```bash
+# Using npx
+npx jsr add -g @dendro-x0/deco
+
+# Or using deno
+deno add -g jsr:@dendro-x0/deco
+```
+
+Or install via **npm**:
+
+```bash
+npm install -g @dendro-x0/deco
+```
+
 ## Usage
 
 ### Running Locally
