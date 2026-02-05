@@ -1,5 +1,5 @@
 {
-    "name": "@dendro-x0/deco",
+    "name": "@deco/cli",
     "version": "0.1.0",
     "exports": "./src/cli.ts",
     "publish": {

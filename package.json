@@ -1,8 +1,17 @@
 {
-  "name": "@dendro-x0/deco",
+  "name": "@deco/cli",
   "version": "0.1.0",
   "description": "Fast, safe, and interactive disk cleanup CLI for developers",
-  "keywords": ["cleanup", "disk", "node_modules", "build", "rust", "go", "cli", "interactive"],
+  "keywords": [
+    "cleanup",
+    "disk",
+    "node_modules",
+    "build",
+    "rust",
+    "go",
+    "cli",
+    "interactive"
+  ],
   "license": "MIT",
   "author": "Dendro-X0",
   "type": "module",

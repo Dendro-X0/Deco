@@ -20,16 +20,16 @@ Install globally via **JSR**:
 
 ```bash
 # Using npx
-npx jsr add -g @dendro-x0/deco
+npx jsr add -g @deco/cli
 
 # Or using deno
-deno add -g jsr:@dendro-x0/deco
+deno add -g jsr:@deco/cli
 ```
 
 Or install via **npm**:
 
 ```bash
-npm install -g @dendro-x0/deco
+npm install -g @deco/cli
 ```
 
 ## Usage
