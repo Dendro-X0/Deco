@@ -20,16 +20,16 @@ Install globally via **JSR**:
 
 ```bash
 # Using npx
-npx jsr add -g @deco/cli
+npx jsr add -g @deco-cli/deco
 
 # Or using deno
-deno add -g jsr:@deco/cli
+deno add -g jsr:@deco-cli/deco
 ```
 
 Or install via **npm**:
 
 ```bash
-npm install -g @deco/cli
+npm install -g @deco-cli/deco
 ```
 
 ## Usage
