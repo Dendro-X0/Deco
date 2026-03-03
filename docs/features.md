@@ -1,35 +1,48 @@
 # Features
 
-Deco is designed to be a fast, safe, and modern disk cleanup tool for developers.
+Deco v0.3 is designed to be fast, safe, and practical for scanning large developer disks.
 
-## 🚀 Performance
-- **Parallel Scanning**: Uses a custom task queue to scan directories in parallel, making it significantly faster than sequential scanners.
-- **Concurrency**: Defaults to 32 concurrent file system operations.
-- **Skip Size Calculation**: Use the `--no-size` flag to skip expensive directory size calculations for near-instant results.
+## Safety
 
-## 🛡️ Safety
-- **Dry-Run by Default**: Unless you explicitly confirm deletion, Deco will only show you what *would* be deleted.
-- **Interactive Handling**: In interactive mode, you must explicitly confirm your selection before any files are touched.
-- **Timeouts**: Size calculations have a safety timeout (30s) to prevent the tool from hanging on network drives or problematic folders.
+- Risk engine: every candidate is classified as `safe`, `review`, or `blocked`.
+- Protected-path policy: system and app-runtime paths are blocked before deletion.
+- Quarantine-first default: deletion moves targets into quarantine with restore IDs.
+- Node modules guardrails:
+  - must be in a validated project
+  - must pass stale threshold (`--stale-days`, default `45`)
+  - otherwise downgraded to `review` or `blocked`
+- `blocked` targets are never deleted.
 
-## 🛠️ Configuration
-- **Config File**: Deco automatically loads settings from `.deco/disk-cleanup.json` in the current directory.
-- **Ignore Rules**: Use `excludeAbsPathContains` to blacklist specific directories (e.g., monorepo submodules or system folders).
+## Performance
 
-## 📦 Supported Targets
+- Parallel scanning with a bounded task queue.
+- Parallel deletion execution.
+- Optional `--no-size` for fast path-only scans.
+- Early path pruning for protected trees to avoid expensive traversal.
 
-### Node.js
-- `node_modules`
-- `dist`, `build`, `.next`, `.svelte-kit`, `.astro`, `.cache`
+## Profiles
 
-### Rust
-- `target`
-- `.cargo-target`
+- `safe`: conservative defaults.
+- `balanced`: includes configured extra artifact directory names.
+- `aggressive`: broader cache/temp heuristics while keeping hard protections.
 
-### Go
-- `bin`, `dist`, `build`
-- **Global Caches**: Use `--check-go-cache` to scan and clean `GOCACHE` and `GOMODCACHE`.
+## Deletion Modes
 
-### Playwright
-- `test-results`
-- `playwright-report`
+- `quarantine` (default): reversible and safest.
+- `recycle-bin`: currently falls back to quarantine.
+- `hard-delete`: permanent removal.
+
+## CLI UX
+
+- Interactive TUI groups by risk and kind.
+- Safe candidates are selected by default.
+- Review candidates require explicit second confirmation.
+- Blocked candidates are visible but non-selectable.
+- JSON output available for automation (`--json`).
+
+## Quarantine Workflow
+
+1. Delete in quarantine mode.
+2. Capture generated quarantine IDs.
+3. Restore with `--restore <id>`.
+4. Purge old quarantined items with `--purge-quarantine --yes`.

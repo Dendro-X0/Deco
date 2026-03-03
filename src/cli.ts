@@ -1,19 +1,42 @@
 #!/usr/bin/env node
 
-import { stat, readdir, rm } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
-import readline from 'node:readline';
+import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.js';
 import { getGoEnv } from './go-utils.js';
 import { TaskQueue } from './concurrency.js';
+import { discoverTargets, getDirSizeBytes, SCAN_FS_CONCURRENCY, type DiscoveredTarget } from './scan.js';
+import { createPathPolicy } from './path-policy.js';
+import { classifyTargets } from './classifier.js';
+import { deleteCandidates, type DeleteExecutionResult } from './delete.js';
+import { purgeQuarantine, restoreFromQuarantine } from './quarantine.js';
+import type {
+  CleanupCandidate,
+  CleanupMode,
+  CleanupProfile,
+  CliOptions,
+  DeleteMode,
+  ProgressListener,
+  ProgressUpdate,
+  ScanReportV2,
+  TargetDirKind,
+} from './types.js';
 
-type ByteCount = number;
+const DEFAULT_MAX_DEPTH = 6;
+const DEFAULT_PROFILE: CleanupProfile = 'safe';
+const DEFAULT_DELETE_MODE: DeleteMode = 'quarantine';
+const DEFAULT_STALE_DAYS = 45;
+const DEFAULT_QUARANTINE_RETENTION_DAYS = 30;
+const CLI_VERSION = '0.3.0';
 
-export type CleanupMode = 'dry-run' | 'delete';
+export type TargetDir = CleanupCandidate;
+export type ScanReport = ScanReportV2;
+export type { CliOptions, ProgressListener, ProgressUpdate, TargetDirKind, CleanupCandidate, CleanupProfile, DeleteMode };
 
-export type CliOptions = {
+type ParsedArgs = {
   readonly roots: readonly string[];
-  readonly maxDepth: number;
+  readonly maxDepth?: number;
   readonly mode: CleanupMode;
   readonly yes: boolean;
   readonly interactive: boolean;
@@ -24,74 +47,28 @@ export type CliOptions = {
   readonly includeGoArtifacts: boolean;
   readonly includeSize: boolean;
   readonly checkGoCache: boolean;
-  readonly excludeAbsPathContains: readonly string[];
-  readonly silent?: boolean;
+  readonly includeReview: boolean;
+  readonly json: boolean;
+  readonly showBlocked: boolean;
+  readonly profile?: CleanupProfile;
+  readonly deleteMode?: DeleteMode;
+  readonly staleDays?: number;
+  readonly restoreId?: string;
+  readonly purgeQuarantine: boolean;
+  readonly configPath?: string;
 };
 
-export type TargetDirKind =
-  | 'node_modules'
-  | 'build-artifact'
-  | 'rust-artifact'
-  | 'go-artifact'
-  | 'go-global-cache'
-  | 'playwright-artifact';
+function isValidProfile(value: string): value is CleanupProfile {
+  return value === 'safe' || value === 'balanced' || value === 'aggressive';
+}
 
-export type TargetDir = {
-  readonly kind: TargetDirKind;
-  readonly absPath: string;
-  size?: ByteCount;
-};
+function isValidDeleteMode(value: string): value is DeleteMode {
+  return value === 'quarantine' || value === 'recycle-bin' || value === 'hard-delete';
+}
 
-export type ScanReport = {
-  readonly targets: readonly TargetDir[];
-  readonly totalBytes: ByteCount;
-  readonly errors: readonly string[];
-  readonly scannedDirs: number;
-};
-
-type ScanState = {
-  scannedDirs: number;
-  foundTargets: number;
-  readonly errors: string[];
-  readonly queue: TaskQueue;
-  readonly silent?: boolean;
-  readonly onProgress?: ProgressListener;
-};
-
-const DEFAULT_MAX_DEPTH: number = 6;
-const FS_CONCURRENCY = 32;
-
-const BUILD_ARTIFACT_DIR_NAMES: readonly string[] = [
-  '.next',
-  '.svelte-kit',
-  '.astro',
-  '.cache',
-] as const;
-
-const PLAYWRIGHT_DIR_NAMES: readonly string[] = ['test-results', 'playwright-report'] as const;
-
-const RUST_DIR_NAMES: readonly string[] = ['target', '.cargo-target', 'pkg'] as const;
-
-const GO_DIR_NAMES: readonly string[] = ['dist', 'build', 'bin-win'] as const;
-
-const SAFE_EXCLUDE_PATTERNS: readonly string[] = [
-  'resources' + path.sep + 'app',
-  'Program Files',
-  'Program Files (x86)',
-  'AppData',
-  '.vscode',
-  '.vscode-insiders',
-  '.cursor',
-  'Windows',
-  'System32',
-  '$Recycle.Bin',
-  'System Volume Information',
-  'Config.Msi',
-] as const;
-
-function parseArgs(argv: readonly string[]): CliOptions {
+function parseArgsV2(argv: readonly string[]): ParsedArgs {
   const roots: string[] = [];
-  let maxDepth = DEFAULT_MAX_DEPTH;
+  let maxDepth: number | undefined;
   let mode: CleanupMode = 'dry-run';
   let yes = false;
   let interactive = true;
@@ -102,10 +79,19 @@ function parseArgs(argv: readonly string[]): CliOptions {
   let includeGoArtifacts = true;
   let includeSize = true;
   let checkGoCache = false;
+  let includeReview = false;
+  let json = false;
+  let showBlocked = false;
+  let profile: CleanupProfile | undefined;
+  let deleteMode: DeleteMode | undefined;
+  let staleDays: number | undefined;
+  let restoreId: string | undefined;
+  let purgeQuarantine = false;
   let configPath: string | undefined;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
+
     if (arg === '--root') {
       const next = argv[i + 1];
       if (!next) throw new Error('Missing value for --root');
@@ -113,21 +99,7 @@ function parseArgs(argv: readonly string[]): CliOptions {
       i += 1;
       continue;
     }
-    if (arg === '--no-size') {
-      includeSize = false;
-      continue;
-    }
-    if (arg === '--check-go-cache') {
-      checkGoCache = true;
-      continue;
-    }
-    if (arg === '--config') {
-      const next = argv[i + 1];
-      if (!next) throw new Error('Missing value for --config');
-      configPath = next;
-      i += 1;
-      continue;
-    }
+
     if (arg === '--max-depth') {
       const next = argv[i + 1];
       if (!next) throw new Error('Missing value for --max-depth');
@@ -137,52 +109,129 @@ function parseArgs(argv: readonly string[]): CliOptions {
       i += 1;
       continue;
     }
-    if (arg === '--delete') {
-      mode = 'delete';
+
+    if (arg === '--profile') {
+      const next = argv[i + 1];
+      if (!next || !isValidProfile(next)) throw new Error('Invalid --profile. Use safe|balanced|aggressive');
+      profile = next;
+      i += 1;
       continue;
     }
+
+    if (arg === '--delete-mode') {
+      const next = argv[i + 1];
+      if (!next || !isValidDeleteMode(next)) throw new Error('Invalid --delete-mode. Use quarantine|recycle-bin|hard-delete');
+      deleteMode = next;
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--stale-days') {
+      const next = argv[i + 1];
+      if (!next) throw new Error('Missing value for --stale-days');
+      const parsed = Number(next);
+      if (!Number.isFinite(parsed) || parsed < 0) throw new Error('Invalid --stale-days');
+      staleDays = parsed;
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--restore') {
+      const next = argv[i + 1];
+      if (!next) throw new Error('Missing value for --restore');
+      restoreId = next;
+      interactive = false;
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--config') {
+      const next = argv[i + 1];
+      if (!next) throw new Error('Missing value for --config');
+      configPath = next;
+      i += 1;
+      continue;
+    }
+
+    if (arg === '--no-size') {
+      includeSize = false;
+      continue;
+    }
+
+    if (arg === '--check-go-cache') {
+      checkGoCache = true;
+      continue;
+    }
+
+    if (arg === '--delete') {
+      mode = 'delete';
+      interactive = false;
+      continue;
+    }
+
     if (arg === '--yes') {
       yes = true;
       continue;
     }
-    if (arg === '--no-node-modules') {
-      includeNodeModules = false;
-      continue;
-    }
-    if (arg === '--no-build-artifacts') {
-      includeBuildArtifacts = false;
-      continue;
-    }
+
     if (arg === '--dry-run') {
       mode = 'dry-run';
       interactive = false;
       continue;
     }
+
     if (arg === '--interactive') {
       interactive = true;
       continue;
     }
+
+    if (arg === '--no-node-modules') {
+      includeNodeModules = false;
+      continue;
+    }
+
+    if (arg === '--no-build-artifacts') {
+      includeBuildArtifacts = false;
+      continue;
+    }
+
     if (arg === '--no-rust-artifacts') {
       includeRustArtifacts = false;
       continue;
     }
+
     if (arg === '--no-playwright-artifacts') {
       includePlaywrightArtifacts = false;
       continue;
     }
+
     if (arg === '--no-go-artifacts') {
       includeGoArtifacts = false;
       continue;
     }
-    if (arg === '--delete') {
-      mode = 'delete';
-      interactive = false; // --delete implies non-interactive if used with --yes
+
+    if (arg === '--include-review') {
+      includeReview = true;
       continue;
     }
-    if (arg === '--yes') {
-      yes = true;
+
+    if (arg === '--json') {
+      json = true;
+      interactive = false;
       continue;
     }
+
+    if (arg === '--show-blocked') {
+      showBlocked = true;
+      continue;
+    }
+
+    if (arg === '--purge-quarantine') {
+      purgeQuarantine = true;
+      interactive = false;
+      continue;
+    }
+
     throw new Error(`Unknown argument: ${arg}`);
   }
 
@@ -199,123 +248,71 @@ function parseArgs(argv: readonly string[]): CliOptions {
     includeGoArtifacts,
     includeSize,
     checkGoCache,
-    excludeAbsPathContains: [],
+    includeReview,
+    json,
+    showBlocked,
+    profile,
+    deleteMode,
+    staleDays,
+    restoreId,
+    purgeQuarantine,
+    configPath,
   };
 }
 
-async function mergeConfigAndArgs(argv: readonly string[]): Promise<CliOptions> {
-  const args = parseArgs(argv);
-  // Find if --config was passed (we need it here too, or we can refactor parseArgs)
-  // For now, let's just re-parse or extract.
-  let explicitConfigPath: string | undefined;
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '--config') explicitConfigPath = argv[i + 1];
-  }
-  const config = await loadConfig(explicitConfigPath);
-  if (!config) {
-    return { ...args, roots: args.roots.length > 0 ? args.roots : [process.cwd()] };
-  }
-  const finalRoots = args.roots.length > 0 ? args.roots : config.roots;
+export async function mergeConfigAndArgsV2(argv: readonly string[]): Promise<CliOptions> {
+  const args = parseArgsV2(argv);
+  const config = await loadConfig(args.configPath);
+
+  const roots = args.roots.length > 0 ? args.roots : (config?.roots ?? [process.cwd()]);
+  const maxDepth = args.maxDepth ?? config?.maxDepth ?? DEFAULT_MAX_DEPTH;
+  const profile = args.profile ?? config?.profile ?? DEFAULT_PROFILE;
+  const deleteMode = args.deleteMode ?? config?.deleteMode ?? DEFAULT_DELETE_MODE;
+  const staleDays = args.staleDays ?? config?.staleDays ?? DEFAULT_STALE_DAYS;
+
+  const action: CliOptions['action'] = args.restoreId
+    ? 'restore'
+    : args.purgeQuarantine
+      ? 'purge-quarantine'
+      : 'scan';
+
   return {
-    roots: finalRoots,
-    maxDepth: args.maxDepth !== DEFAULT_MAX_DEPTH ? args.maxDepth : config.maxDepth,
+    action,
+    roots,
+    maxDepth,
     mode: args.mode,
     yes: args.yes,
     interactive: args.interactive,
-    includeNodeModules: args.includeNodeModules && (config.targets.nodeModules ?? true),
-    includeBuildArtifacts: args.includeBuildArtifacts && (config.targets.buildArtifacts ?? true),
-    includeRustArtifacts: args.includeRustArtifacts && (config.targets.rustArtifacts ?? true),
-    includePlaywrightArtifacts: args.includePlaywrightArtifacts && (config.targets.playwrightArtifacts ?? true),
-    includeGoArtifacts: args.includeGoArtifacts && (config.targets.goArtifacts ?? true),
+    includeNodeModules: args.includeNodeModules && (config?.targets.nodeModules ?? true),
+    includeBuildArtifacts: args.includeBuildArtifacts && (config?.targets.buildArtifacts ?? true),
+    includeRustArtifacts: args.includeRustArtifacts && (config?.targets.rustArtifacts ?? true),
+    includePlaywrightArtifacts: args.includePlaywrightArtifacts && (config?.targets.playwrightArtifacts ?? true),
+    includeGoArtifacts: args.includeGoArtifacts && (config?.targets.goArtifacts ?? true),
     includeSize: args.includeSize,
     checkGoCache: args.checkGoCache,
-    excludeAbsPathContains: config.excludeAbsPathContains ?? [],
+    excludeAbsPathContains: config?.excludeAbsPathContains ?? [],
+    profile,
+    deleteMode,
+    staleDays,
+    includeReview: args.includeReview,
+    json: args.json,
+    showBlocked: args.showBlocked,
+    restoreId: args.restoreId,
+    purgeQuarantine: args.purgeQuarantine,
+    quarantineRoot: config?.quarantine.root,
+    quarantineRetentionDays: config?.quarantine.retentionDays ?? DEFAULT_QUARANTINE_RETENTION_DAYS,
+    extraProtectedPathContains: config?.safety.extraProtectedPathContains ?? [],
+    allowPathContains: config?.safety.allowPathContains ?? [],
+    additionalDirNames: {
+      buildArtifacts: config?.additionalDirNames.buildArtifacts ?? [],
+      rustArtifacts: config?.additionalDirNames.rustArtifacts ?? [],
+      goArtifacts: config?.additionalDirNames.goArtifacts ?? [],
+      playwrightArtifacts: config?.additionalDirNames.playwrightArtifacts ?? [],
+    },
   };
 }
 
-function shouldTargetDir(dirName: string, options: CliOptions): TargetDirKind | null {
-  if (options.includeNodeModules && dirName === 'node_modules') return 'node_modules';
-  if (options.includePlaywrightArtifacts && PLAYWRIGHT_DIR_NAMES.includes(dirName)) return 'playwright-artifact';
-  if (options.includeRustArtifacts && RUST_DIR_NAMES.includes(dirName)) return 'rust-artifact';
-
-  // For dist/build, we check if it's likely a project artifact (dist/build)
-  if (options.includeBuildArtifacts && BUILD_ARTIFACT_DIR_NAMES.includes(dirName)) return 'build-artifact';
-
-  if (dirName === 'dist' || dirName === 'build') {
-    if (options.includeBuildArtifacts) return 'build-artifact';
-    if (options.includeGoArtifacts) return 'go-artifact';
-  }
-
-  return null;
-}
-
-async function getDirSizeBytes(absPath: string, state: ScanState): Promise<ByteCount> {
-  let total: ByteCount = 0;
-  try {
-    const entries: import('node:fs').Dirent[] = await state.queue.run(() => readdir(absPath, { withFileTypes: true }));
-    const tasks = entries.map(async (entry) => {
-      const entryAbsPath = path.join(absPath, entry.name);
-      if (entry.isDirectory()) {
-        return getDirSizeBytes(entryAbsPath, state);
-      }
-      if (entry.isFile()) {
-        const st: import('node:fs').Stats = await state.queue.run(() => stat(entryAbsPath));
-        return st.size;
-      }
-      return 0;
-    });
-    const results = await Promise.all(tasks);
-    total = results.reduce((a: number, b: number) => a + b, 0);
-  } catch (error: unknown) {
-    state.errors.push(`Size error: ${absPath} (${(error as { code?: string }).code ?? 'unknown'})`);
-  }
-  return total;
-}
-
-function printProgress(state: ScanState): void {
-  if (state.onProgress) {
-    state.onProgress({ scannedDirs: state.scannedDirs, foundTargets: state.foundTargets });
-    return;
-  }
-  if (state.silent || !process.stdout.isTTY) return;
-  readline.cursorTo(process.stdout, 0);
-  process.stdout.write(`Scanning... ${state.scannedDirs} dirs visited | ${state.foundTargets} targets found`);
-}
-
-async function scanDir(absPath: string, depth: number, options: CliOptions, state: ScanState, acc: TargetDir[]): Promise<void> {
-  if (depth > options.maxDepth) return;
-  const absPathLower = absPath.toLowerCase();
-  for (const pattern of SAFE_EXCLUDE_PATTERNS) {
-    if (absPathLower.includes(pattern.toLowerCase())) return;
-  }
-  for (const pattern of options.excludeAbsPathContains) {
-    if (absPath.includes(pattern)) return;
-  }
-  state.scannedDirs += 1;
-  printProgress(state);
-  let entries: readonly import('node:fs').Dirent[];
-  try {
-    entries = await state.queue.run(() => readdir(absPath, { withFileTypes: true }));
-  } catch (error: unknown) {
-    state.errors.push(`Scan error: ${absPath} (${(error as { code?: string }).code ?? 'unknown'})`);
-    return;
-  }
-  const tasks = entries.map(async (entry) => {
-    if (!entry.isDirectory()) return;
-    const kind = shouldTargetDir(entry.name, options);
-    const entryAbsPath = path.join(absPath, entry.name);
-    if (kind) {
-      state.foundTargets += 1;
-      acc.push({ kind, absPath: entryAbsPath });
-      printProgress(state);
-      return;
-    }
-    return scanDir(entryAbsPath, depth + 1, options, state, acc);
-  });
-  await Promise.all(tasks);
-}
-
-export function formatBytes(bytes: ByteCount): string {
+export function formatBytes(bytes: number): string {
   const units: readonly string[] = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
   let value = bytes;
   let idx = 0;
@@ -326,84 +323,121 @@ export function formatBytes(bytes: ByteCount): string {
   return `${value.toFixed(2)} ${units[idx]}`;
 }
 
-export type ProgressUpdate = {
-  scannedDirs: number;
-  foundTargets: number;
-};
+async function discoverGoCachesIfEnabled(options: CliOptions): Promise<DiscoveredTarget[]> {
+  if (!options.checkGoCache) return [];
+  const discovered: DiscoveredTarget[] = [];
+  const goCache = await getGoEnv('GOCACHE');
+  if (goCache) {
+    let mtimeMs: number | undefined;
+    try {
+      mtimeMs = (await stat(goCache)).mtimeMs;
+    } catch {
+      mtimeMs = undefined;
+    }
+    discovered.push({ kind: 'go-global-cache', absPath: goCache, mtimeMs });
+  }
+  const goModCache = await getGoEnv('GOMODCACHE');
+  if (goModCache) {
+    let mtimeMs: number | undefined;
+    try {
+      mtimeMs = (await stat(goModCache)).mtimeMs;
+    } catch {
+      mtimeMs = undefined;
+    }
+    discovered.push({ kind: 'go-global-cache', absPath: goModCache, mtimeMs });
+  }
+  return discovered;
+}
 
-export type ProgressListener = (update: ProgressUpdate) => void;
-
-export async function buildReport(options: CliOptions, onProgress?: ProgressListener): Promise<ScanReport> {
-  const targets: TargetDir[] = [];
-  const state: ScanState = {
-    scannedDirs: 0,
-    foundTargets: 0,
-    errors: [],
-    queue: new TaskQueue(FS_CONCURRENCY),
-    silent: options.silent,
-    onProgress,
+function initializeRiskTotals() {
+  return {
+    safe: { count: 0, bytes: 0 },
+    review: { count: 0, bytes: 0 },
+    blocked: { count: 0, bytes: 0 },
   };
-  for (const root of options.roots) {
-    const absRoot = path.resolve(root);
-    await scanDir(absRoot, 0, options, state, targets);
-  }
-  if (options.checkGoCache) {
-    const goCache = await getGoEnv('GOCACHE');
-    if (goCache) targets.push({ kind: 'go-global-cache', absPath: goCache });
-    const goModCache = await getGoEnv('GOMODCACHE');
-    if (goModCache) targets.push({ kind: 'go-global-cache', absPath: goModCache });
-  }
-  if (process.stdout.isTTY && !options.silent) process.stdout.write('\n');
-  let totalBytes = 0;
+}
+
+export async function buildReport(options: CliOptions, onProgress?: ProgressListener): Promise<ScanReportV2> {
+  const pathPolicy = createPathPolicy({
+    extraProtectedPathContains: options.extraProtectedPathContains,
+    allowPathContains: options.allowPathContains,
+  });
+
+  const discovery = await discoverTargets(options, pathPolicy, onProgress);
+  const extraTargets = await discoverGoCachesIfEnabled(options);
+  const discovered = [...discovery.targets, ...extraTargets];
+
+  const classified = await classifyTargets(discovered, options, pathPolicy);
+  const visibleCandidates = options.showBlocked ? classified : classified.filter((candidate) => candidate.risk !== 'blocked');
+
+  const errors = [...discovery.errors];
+  const queue = new TaskQueue(SCAN_FS_CONCURRENCY);
+
   if (options.includeSize) {
     const SIZE_TIMEOUT_MS = 30000;
-    const results = await Promise.all(targets.map(async (t) => {
-      const timeoutPromise = new Promise<number>((_, reject) => {
-        const timer = setTimeout(() => reject(new Error('TIMEOUT')), SIZE_TIMEOUT_MS);
-        timer.unref(); // Don't block process exit
-      });
-      try {
-        const size = await Promise.race([getDirSizeBytes(t.absPath, state), timeoutPromise]);
-        (t as { size?: number }).size = size;
-        return size;
-      } catch (err: unknown) {
-        if (err instanceof Error && err.message === 'TIMEOUT') {
-          state.errors.push(`Size calculation timed out: ${t.absPath}`);
-          return 0;
+    await Promise.all(
+      visibleCandidates.map(async (candidate) => {
+        const timeoutPromise = new Promise<number>((_, reject) => {
+          const timer = setTimeout(() => reject(new Error('TIMEOUT')), SIZE_TIMEOUT_MS);
+          timer.unref();
+        });
+        try {
+          const size = await Promise.race([getDirSizeBytes(candidate.absPath, queue, errors), timeoutPromise]);
+          (candidate as { size?: number }).size = size;
+        } catch (error: unknown) {
+          if (error instanceof Error && error.message === 'TIMEOUT') {
+            errors.push(`Size calculation timed out: ${candidate.absPath}`);
+          } else {
+            errors.push(`Size calculation failed: ${candidate.absPath}`);
+          }
         }
-        throw err;
-      }
-    }));
-    totalBytes = results.reduce((a: number, b: number) => a + b, 0);
+      })
+    );
   }
-  return { targets, totalBytes, errors: state.errors, scannedDirs: state.scannedDirs };
+
+  const totalsByRisk = initializeRiskTotals();
+  const totalsByKind: Record<string, { count: number; bytes: number }> = {};
+
+  let totalBytes = 0;
+  for (const candidate of visibleCandidates) {
+    const size = candidate.size ?? 0;
+    totalsByRisk[candidate.risk].count += 1;
+    totalsByRisk[candidate.risk].bytes += size;
+
+    if (!totalsByKind[candidate.kind]) {
+      totalsByKind[candidate.kind] = { count: 0, bytes: 0 };
+    }
+    totalsByKind[candidate.kind].count += 1;
+    totalsByKind[candidate.kind].bytes += size;
+
+    totalBytes += size;
+  }
+
+  return {
+    candidates: visibleCandidates,
+    totalsByRisk,
+    totalsByKind,
+    totalBytes,
+    errors,
+    scannedDirs: discovery.scannedDirs,
+  };
+}
+
+export async function executeDeletion(
+  targets: readonly CleanupCandidate[],
+  options: CliOptions,
+  onProgress?: (done: number) => void
+): Promise<DeleteExecutionResult> {
+  return deleteCandidates(targets, { deleteMode: options.deleteMode, quarantineRoot: options.quarantineRoot }, onProgress);
 }
 
 export async function deleteTargets(
   targets: readonly TargetDir[],
   onProgress?: (done: number) => void
 ): Promise<string[]> {
-  const queue = new TaskQueue(FS_CONCURRENCY);
-  let done = 0;
-  const errors: string[] = [];
-
-  const tasks = targets.map(async (target) => {
-    try {
-      await queue.run(() => rm(target.absPath, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 }));
-    } catch (err: unknown) {
-      const code = (err as { code?: string }).code ?? 'unknown';
-      errors.push(`Failed to delete ${target.absPath} (${code})`);
-    } finally {
-      done += 1;
-      onProgress?.(done);
-    }
-  });
-
-  await Promise.all(tasks);
-  return errors;
+  const result = await deleteCandidates(targets, { deleteMode: 'hard-delete' }, onProgress);
+  return [...result.errors];
 }
-
-
 
 function getUsageText(): string {
   return [
@@ -412,33 +446,119 @@ function getUsageText(): string {
     'Usage:',
     '  deco --root "E:/" --max-depth 6',
     '  deco --root "E:/Projects" --delete --yes',
-    '  deco --dry-run             Show report without interative TUI',
+    '  deco --profile safe --delete-mode quarantine',
+    '  deco --restore <id>',
+    '  deco --purge-quarantine --yes',
+    '  deco --help',
+    '  deco --version',
     '',
     'Options:',
-    '  --root <path>              Root folder to scan (repeatable). Default: cwd',
-    '  --config <path>            Explicit config path',
-    '  --max-depth <n>            Max scan depth. Default: 6',
-    '  --no-size                  Skip size calculation (much faster)',
-    '  --interactive              Force interactive mode (default in TTY)',
-    '  --dry-run                  Disable interactive mode and show report',
-    '  --delete                   Actually delete targets (requires --yes)',
-    '  --yes                      Confirm deletion',
-    '  --check-go-cache           Include global Go caches (GOCACHE, GOMODCACHE)',
-    '  --no-node-modules          Skip node_modules',
-    '  --no-build-artifacts       Skip dist/build/.next/etc',
-    '  --no-rust-artifacts        Skip target/.cargo-target/pkg',
-    '  --no-playwright-artifacts  Skip test-results/playwright-report',
-    '  --no-go-artifacts          Skip bin/dist/build in Go projects',
+    '  --root <path>               Root folder to scan (repeatable). Default: cwd',
+    '  --config <path>             Explicit config path',
+    '  --max-depth <n>             Max scan depth. Default: 6',
+    '  --profile <mode>            safe|balanced|aggressive (default: safe)',
+    '  --delete-mode <mode>        quarantine|recycle-bin|hard-delete (default: quarantine)',
+    '  --stale-days <n>            Node_modules stale threshold in days (default: 45)',
+    '  --include-review            Allow deleting review-risk targets (never blocked)',
+    '  --json                      Output scan report as JSON',
+    '  --show-blocked              Include blocked targets in report output',
+    '  --restore <id>              Restore a quarantined target by id',
+    '  --purge-quarantine          Purge expired quarantine entries (requires --yes)',
+    '  --no-size                   Skip size calculation (much faster)',
+    '  --interactive               Force interactive mode (default in TTY)',
+    '  --dry-run                   Disable interactive mode and show report',
+    '  --delete                    Actually delete targets (requires --yes)',
+    '  --yes                       Confirm deletion',
+    '  --check-go-cache            Include global Go caches (GOCACHE, GOMODCACHE)',
+    '  --no-node-modules           Skip node_modules',
+    '  --no-build-artifacts        Skip dist/build/.next/etc',
+    '  --no-rust-artifacts         Skip target/.cargo-target/pkg',
+    '  --no-playwright-artifacts   Skip test-results/playwright-report',
+    '  --no-go-artifacts           Skip bin/dist/build in Go projects',
+    '  -h, --help                  Show usage information',
+    '  -v, --version               Show CLI version',
   ].join('\n');
+}
+
+function printHumanReport(options: CliOptions, report: ScanReportV2): void {
+  process.stdout.write(`Mode: ${options.mode}\n`);
+  process.stdout.write(`Profile: ${options.profile}\n`);
+  process.stdout.write(`Delete mode: ${options.deleteMode}\n`);
+  process.stdout.write(`Roots:\n`);
+  for (const root of options.roots) process.stdout.write(`- ${path.resolve(root)}\n`);
+  process.stdout.write(`Candidates found: ${report.candidates.length}\n`);
+  process.stdout.write(`Estimated reclaimable: ${formatBytes(report.totalBytes)}\n`);
+  process.stdout.write(`Directories scanned: ${report.scannedDirs}\n\n`);
+
+  process.stdout.write('By Risk:\n');
+  for (const risk of ['safe', 'review', 'blocked'] as const) {
+    const totals = report.totalsByRisk[risk];
+    process.stdout.write(`- ${risk}: ${totals.count} (${formatBytes(totals.bytes)})\n`);
+  }
+  process.stdout.write('\nBy Kind:\n');
+  for (const [kind, totals] of Object.entries(report.totalsByKind)) {
+    process.stdout.write(`- ${kind}: ${totals.count} (${formatBytes(totals.bytes)})\n`);
+  }
+
+  process.stdout.write('\nSample Candidates:\n');
+  for (const candidate of report.candidates.slice(0, 50)) {
+    const reasons = candidate.reasonCodes.join(',');
+    process.stdout.write(`- [${candidate.risk}] ${candidate.kind} ${candidate.absPath} (${reasons})\n`);
+  }
+  if (report.candidates.length > 50) {
+    process.stdout.write(`... ${report.candidates.length - 50} more\n`);
+  }
+
+  if (report.errors.length > 0) {
+    process.stdout.write(`\nWarnings (${report.errors.length}):\n`);
+    for (const err of report.errors.slice(0, 10)) process.stdout.write(`  ! ${err}\n`);
+    if (report.errors.length > 10) process.stdout.write(`  ... and ${report.errors.length - 10} more\n`);
+  }
+}
+
+function getDeletableCandidates(candidates: readonly CleanupCandidate[], includeReview: boolean): CleanupCandidate[] {
+  return candidates.filter((candidate) => {
+    if (candidate.risk === 'blocked') return false;
+    if (candidate.risk === 'review') return includeReview;
+    return true;
+  });
 }
 
 import { runInteractive } from './ui.js';
 
 async function main(): Promise<void> {
   try {
-    const options = await mergeConfigAndArgs(process.argv.slice(2));
+    const argv = process.argv.slice(2);
+    if (argv.includes('--help') || argv.includes('-h')) {
+      process.stdout.write(`${getUsageText()}\n`);
+      return;
+    }
+    if (argv.includes('--version') || argv.includes('-v')) {
+      process.stdout.write(`${CLI_VERSION}\n`);
+      return;
+    }
 
-    if (options.interactive && process.stdout.isTTY) {
+    const options = await mergeConfigAndArgsV2(argv);
+
+    if (options.action === 'restore') {
+      if (!options.restoreId) throw new Error('Missing restore id. Use --restore <id>');
+      const restored = await restoreFromQuarantine(options.restoreId, options.roots, options.quarantineRoot);
+      process.stdout.write(`Restored: ${restored}\n`);
+      return;
+    }
+
+    if (options.action === 'purge-quarantine') {
+      if (!options.yes) throw new Error('Refusing to purge quarantine without --yes');
+      const result = await purgeQuarantine(options.roots, options.quarantineRetentionDays, options.quarantineRoot);
+      process.stdout.write(`Purged ${result.purged} quarantined targets.\n`);
+      if (result.errors.length > 0) {
+        process.stdout.write(`Warnings (${result.errors.length}):\n`);
+        for (const err of result.errors) process.stdout.write(`  ! ${err}\n`);
+      }
+      return;
+    }
+
+    if (options.interactive && process.stdout.isTTY && !options.json) {
       await runInteractive(options);
       return;
     }
@@ -449,40 +569,43 @@ async function main(): Promise<void> {
 
     const report = await buildReport(options);
 
-    process.stdout.write(`Mode: ${options.mode}\n`);
-    process.stdout.write(`Roots:\n`);
-    for (const root of options.roots) process.stdout.write(`- ${path.resolve(root)}\n`);
-    process.stdout.write(`Targets found: ${report.targets.length}\n`);
-    process.stdout.write(`Estimated reclaimable: ${formatBytes(report.totalBytes)}\n`);
-    process.stdout.write(`Directories scanned: ${report.scannedDirs}\n\n`);
-    const grouped: Record<TargetDirKind, TargetDir[]> = {
-      'node_modules': [],
-      'build-artifact': [],
-      'rust-artifact': [],
-      'go-artifact': [],
-      'go-global-cache': [],
-      'playwright-artifact': [],
-    };
-    for (const target of report.targets) grouped[target.kind].push(target);
-    for (const kind of Object.keys(grouped) as TargetDirKind[]) {
-      const items = grouped[kind];
-      process.stdout.write(`${kind}: ${items.length}\n`);
-      for (const item of items.slice(0, 50)) process.stdout.write(`  - ${item.absPath}\n`);
-      if (items.length > 50) process.stdout.write(`  ... ${items.length - 50} more\n`);
-      process.stdout.write('\n');
-    }
-    if (report.errors.length > 0) {
-      process.stdout.write(`Warnings (${report.errors.length}):\n`);
-      for (const err of report.errors.slice(0, 10)) process.stdout.write(`  ! ${err}\n`);
-      if (report.errors.length > 10) process.stdout.write(`  ... and ${report.errors.length - 10} more\n`);
-      process.stdout.write('\n');
-    }
-    if (options.mode === 'delete') {
-      process.stdout.write('Deleting...\n');
-      await deleteTargets(report.targets);
-      process.stdout.write('Done.\n');
+    if (options.json) {
+      process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
     } else {
-      process.stdout.write('Dry-run complete. Re-run with --interactive, or --delete --yes to remove targets.\n');
+      printHumanReport(options, report);
+    }
+
+    if (options.mode === 'delete') {
+      if (!options.includeReview && report.totalsByRisk.review.count > 0) {
+        process.stdout.write('Review-risk targets were skipped. Pass --include-review to include them.\n');
+      }
+      const targetsToDelete = getDeletableCandidates(report.candidates, options.includeReview);
+      process.stdout.write(`Deleting ${targetsToDelete.length} candidates using ${options.deleteMode} mode...\n`);
+      const result = await executeDeletion(targetsToDelete, options);
+
+      if (result.warnings.length > 0) {
+        for (const warning of result.warnings) process.stdout.write(`! ${warning}\n`);
+      }
+
+      if (result.quarantined.length > 0) {
+        process.stdout.write(`Quarantined ${result.quarantined.length} targets.\n`);
+        for (const entry of result.quarantined.slice(0, 10)) {
+          process.stdout.write(`- ${entry.id} -> ${entry.originalPath}\n`);
+        }
+        if (result.quarantined.length > 10) {
+          process.stdout.write(`... ${result.quarantined.length - 10} more\n`);
+        }
+      }
+
+      if (result.errors.length > 0) {
+        process.stdout.write(`Deletion finished with ${result.errors.length} errors.\n`);
+        for (const err of result.errors.slice(0, 20)) process.stdout.write(`! ${err}\n`);
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('Deletion completed successfully.\n');
+      }
+    } else if (!options.json) {
+      process.stdout.write('Dry-run complete. Re-run with --delete --yes to remove safe targets.\n');
     }
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
@@ -492,4 +615,14 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+const isMainModule = (() => {
+  try {
+    return path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (isMainModule) {
+  void main();
+}

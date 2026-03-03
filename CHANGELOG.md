@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.3.0] - Safety-First Redesign
+
+### Added
+- Risk-based cleanup pipeline: discovery, classification, scoring, and execution.
+- New risk levels (`safe`, `review`, `blocked`) with reason codes in reports.
+- Safer `node_modules` policy: only safe when project markers exist and directory is stale.
+- New CLI options:
+  - `--profile <safe|balanced|aggressive>`
+  - `--delete-mode <quarantine|recycle-bin|hard-delete>`
+  - `--stale-days <n>`
+  - `--include-review`
+  - `--json`
+  - `--show-blocked`
+  - `--restore <id>`
+  - `--purge-quarantine`
+- Quarantine workflow with manifest and restore support.
+- New config fields: `profile`, `deleteMode`, `staleDays`, `quarantine`, `safety`.
+- Test suite using Vitest for policy, classifier, config merge, integration scan, delete, and quarantine flows.
+
+### Changed
+- Default deletion mode is now `quarantine`.
+- Non-interactive deletion deletes only `safe` targets unless `--include-review` is provided.
+- Interactive dashboard groups by risk and prevents selecting blocked targets.
+- Scanning logic moved to dedicated modules (`scan`, `path-policy`, `classifier`, `project-detection`).
+
 ## [0.2.0] - Dashboard & Safety Update
 
 ### Added

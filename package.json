@@ -1,6 +1,6 @@
 {
   "name": "@dendro-x0/deco",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Fast, safe, and interactive disk cleanup CLI for developers",
   "keywords": [
     "cleanup",
@@ -18,13 +18,25 @@
   "bin": {
     "deco": "dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "config.schema.json",
+    "config.example.json",
+    "docs"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "vitest": "^2.1.9"
   },
   "dependencies": {
     "@clack/prompts": "^1.0.0",

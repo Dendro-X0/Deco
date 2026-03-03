@@ -11,6 +11,9 @@
     "goArtifacts": false,
     "playwrightArtifacts": true
   },
+  "profile": "safe",
+  "deleteMode": "quarantine",
+  "staleDays": 45,
   "additionalDirNames": {
     "buildArtifacts": [".turbo", ".vite"],
     "rustArtifacts": [".cargo-target"],
@@ -19,5 +22,17 @@
   "excludeAbsPathContains": [
     "/Windows/",
     "/Program Files/"
-  ]
+  ],
+  "quarantine": {
+    "root": "E:/.deco-quarantine",
+    "retentionDays": 30
+  },
+  "safety": {
+    "extraProtectedPathContains": [
+      "/tools/ide-runtime/"
+    ],
+    "allowPathContains": [
+      "/sandbox/test-fixtures/"
+    ]
+  }
 }

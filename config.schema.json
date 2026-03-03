@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "dcos-disk-cleanup config",
+  "title": "deco disk cleanup config",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -37,6 +37,40 @@
     "excludeAbsPathContains": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "profile": {
+      "type": "string",
+      "enum": ["safe", "balanced", "aggressive"]
+    },
+    "deleteMode": {
+      "type": "string",
+      "enum": ["quarantine", "recycle-bin", "hard-delete"]
+    },
+    "staleDays": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "quarantine": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root": { "type": "string" },
+        "retentionDays": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "safety": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extraProtectedPathContains": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "allowPathContains": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
     }
   },
   "required": ["roots", "maxDepth", "targets"]
