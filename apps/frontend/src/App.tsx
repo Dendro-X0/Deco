@@ -667,32 +667,36 @@ export default function App() {
         </div>
       </Tabs>
 
-      <CleanupWizard
-        open={wizardOpen}
-        step={wizardStep}
-        onClose={() => setWizardOpen(false)}
-        onStepChange={setWizardStep}
-        onStartScan={() => scan()}
-        onOpenPreview={() => {
-          setWizardOpen(false);
-          openCleanupPreview();
-        }}
-        busy={busy}
-        progress={progress}
-        summary={summary}
-        selectedCount={selectedIds.size}
-        safeBytes={summary?.totals_by_risk.safe.bytes ?? 0}
-      />
+      {wizardOpen && (
+        <CleanupWizard
+          open
+          step={wizardStep}
+          onClose={() => setWizardOpen(false)}
+          onStepChange={setWizardStep}
+          onStartScan={() => scan()}
+          onOpenPreview={() => {
+            setWizardOpen(false);
+            openCleanupPreview();
+          }}
+          busy={busy}
+          progress={progress}
+          summary={summary}
+          selectedCount={selectedIds.size}
+          safeBytes={summary?.totals_by_risk.safe.bytes ?? 0}
+        />
+      )}
 
-      <CleanupPreviewModal
-        open={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        selectedIds={selectedIds}
-        candidates={candidates}
-        preview={preview}
-        loading={previewLoading}
-        onConfirm={confirmCleanup}
-      />
+      {previewOpen && (
+        <CleanupPreviewModal
+          open
+          onClose={() => setPreviewOpen(false)}
+          selectedIds={selectedIds}
+          candidates={candidates}
+          preview={preview}
+          loading={previewLoading}
+          onConfirm={confirmCleanup}
+        />
+      )}
 
       {error && (
         <div className="fixed bottom-20 right-8 max-w-md bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl animate-in fade-in slide-in-from-bottom-5 border-2 border-white/10 z-50">

@@ -4,8 +4,10 @@
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml):
 
+- `pnpm typecheck` (CLI + frontend TypeScript)
+- `pnpm lint` (frontend ESLint)
 - `pnpm test:cli` (Vitest in `apps/cli`)
-- `pnpm test:rust` (`cargo test` in `apps/desktop/src-tauri`)
+- `pnpm test:rust` (`cargo test` in `apps/desktop/src-tauri`, after Linux Tauri apt deps)
 
 Triggered on PRs and pushes to `main` / `master`.
 
@@ -20,4 +22,4 @@ Details: [Distribution — GitHub Releases](../distribution/github-releases.md),
 
 ## Local parity
 
-Always run `pnpm test:all` before opening a PR. Desktop UI changes: also run `pnpm exec tsc --noEmit` in `apps/frontend`.
+Always run `pnpm check` before opening a PR (typecheck + lint + `test:all`).

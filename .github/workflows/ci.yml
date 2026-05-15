@@ -31,8 +31,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
       - name: CLI tests
         run: pnpm test:cli
+
+      - name: Linux Tauri dependencies
+        uses: ./.github/actions/linux-tauri-deps
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

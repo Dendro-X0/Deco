@@ -42,10 +42,6 @@ export function CleanupWizard({
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    if (!open) setStarted(false);
-  }, [open]);
-
-  useEffect(() => {
     if (step === 'scanning' && !busy && summary && started) {
       onStepChange('results');
     }

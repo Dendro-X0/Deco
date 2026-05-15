@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -41,13 +41,6 @@ export function CleanupPreviewModal({
     preview.blocked_count === 0 &&
     phraseOk &&
     (!includeReview || hasReviewSelected);
-
-  useEffect(() => {
-    if (!open) {
-      setIncludeReview(false);
-      setPhrase('');
-    }
-  }, [open]);
 
   if (!open) return null;
 
