@@ -2,5 +2,10 @@ node_modules
 dist
 .deco
 .dcos
+.artifacts
 *.log
 .DS_Store
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
+.tmp-rust-tests
+.tmp-tests

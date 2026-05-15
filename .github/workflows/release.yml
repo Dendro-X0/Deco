@@ -1,0 +1,87 @@
+# Deco release pipeline
+# - test job: ubuntu-latest (pnpm test:cli + test:rust) — no installers
+# - build-windows: MSI + NSIS + deco-cli-win-x64.zip
+# Linux/macOS desktop bundles: NOT in this workflow (Windows-only icons/targets).
+# See docs/distribution/ci-and-release-platforms.md
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:cli
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - run: pnpm test:rust
+
+  build-windows:
+    name: Windows installers + CLI bundle
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build frontend + desktop bundles
+        run: |
+          pnpm build:frontend
+          pnpm -F @dendro-x0/deco-desktop build
+
+      - name: Build and package CLI
+        run: |
+          pnpm build:cli
+          node scripts/package-cli.mjs
+          powershell Compress-Archive -Path .artifacts/deco-cli -DestinationPath .artifacts/deco-cli-win-x64.zip -Force
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          generate_release_notes: true
+          files: |
+            apps/desktop/src-tauri/target/release/bundle/msi/*.msi
+            apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+            .artifacts/deco-cli-win-x64.zip

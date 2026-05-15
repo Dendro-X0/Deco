@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 4%;
+    --foreground: 210 20% 98%;
+    --card: 210 20% 6%;
+    --card-foreground: 210 20% 98%;
+    --popover: 210 20% 6%;
+    --popover-foreground: 210 20% 98%;
+    --primary: 167 80% 55%;
+    --primary-foreground: 210 20% 4%;
+    --secondary: 210 20% 12%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 210 10% 20%;
+    --muted-foreground: 210 10% 70%;
+    --accent: 167 80% 55%;
+    --accent-foreground: 210 20% 4%;
+    --destructive: 345 80% 65%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 210 20% 12%;
+    --input: 210 20% 12%;
+    --ring: 167 80% 55%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    @apply h-full overflow-hidden;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/* Frameless window: keep controls clickable (not part of drag region) */
+header button {
+  -webkit-app-region: no-drag;
+}
+
+.bg-dot-pattern {
+  background-image: radial-gradient(circle, #1a252b 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.shimmer-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  from { left: -100%; }
+  to { left: 100%; }
+}

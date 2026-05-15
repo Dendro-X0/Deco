@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://deco.local/schemas/scan-report.schema.json",
+  "title": "Deco ScanReport",
+  "description": "Wire JSON for scan_roots (desktop) and deco --json (CLI). Version with schema_version.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scan_id",
+    "scanned_dirs",
+    "total_bytes",
+    "candidates",
+    "totals_by_risk",
+    "totals_by_kind",
+    "warnings"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Bump per docs/contract/changelog.md"
+    },
+    "scan_id": { "type": "string", "minLength": 1 },
+    "scanned_dirs": { "type": "integer", "minimum": 0 },
+    "total_bytes": { "type": "integer", "minimum": 0 },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "totals_by_risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["safe", "review", "blocked"],
+      "properties": {
+        "safe": { "$ref": "#/$defs/totals" },
+        "review": { "$ref": "#/$defs/totals" },
+        "blocked": { "$ref": "#/$defs/totals" }
+      }
+    },
+    "totals_by_kind": {
+      "type": "object",
+      "description": "Keys are kind wire strings, e.g. node_modules, build_artifact",
+      "additionalProperties": { "$ref": "#/$defs/totals" }
+    },
+    "candidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "scan_options": {
+      "type": "object",
+      "description": "Optional; CLI includes by default",
+      "additionalProperties": false,
+      "required": [
+        "roots",
+        "profile",
+        "max_depth",
+        "stale_days",
+        "include_size",
+        "show_blocked",
+        "check_go_cache"
+      ],
+      "properties": {
+        "roots": { "type": "array", "items": { "type": "string" } },
+        "profile": { "type": "string" },
+        "max_depth": { "type": "integer", "minimum": 0 },
+        "stale_days": { "type": "integer", "minimum": 0 },
+        "include_size": { "type": "boolean" },
+        "show_blocked": { "type": "boolean" },
+        "check_go_cache": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["count", "bytes"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "abs_path",
+        "size_bytes",
+        "mtime_ms",
+        "risk",
+        "safety_class",
+        "reason_codes",
+        "display_reason_summary",
+        "can_delete",
+        "project_root",
+        "stale_days"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "node_modules",
+            "build_artifact",
+            "rust_artifact",
+            "go_artifact",
+            "go_global_cache",
+            "playwright_artifact",
+            "unknown_artifact",
+            "python_artifact",
+            "python_venv",
+            "jvm_artifact",
+            "jvm_global_cache",
+            "dotnet_artifact",
+            "ide_global_cache"
+          ]
+        },
+        "abs_path": { "type": "string", "minLength": 1 },
+        "size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "mtime_ms": { "type": ["integer", "null"] },
+        "risk": { "type": "string", "enum": ["safe", "review", "blocked"] },
+        "safety_class": {
+          "type": "string",
+          "enum": ["project_artifact", "global_cache", "app_runtime", "system", "unknown"]
+        },
+        "reason_codes": { "type": "array", "items": { "type": "string" } },
+        "display_reason_summary": { "type": "string" },
+        "can_delete": { "type": "boolean" },
+        "project_root": { "type": ["string", "null"] },
+        "stale_days": { "type": ["integer", "null"], "minimum": 0 }
+      }
+    }
+  }
+}

@@ -1,109 +1,86 @@
 # Deco (Developer Compact)
 
-A fast, safety-first disk cleanup CLI for developer workstations.
+Deco is a **desktop-first** cleanup app for developer machines, with a **CLI** for automation. Both use a **native Rust** engine in the desktop app and a parallel TypeScript implementation in the CLI today—see `ROADMAP.md` Milestone 2 for long-term contract alignment.
 
-Deco v0.3 uses a risk engine (`discover -> classify -> score -> plan -> execute`) instead of deleting by directory name alone.
+Goals: **safe defaults** (scan → review → quarantine-first cleanup → restore/purge), **low learning curve**, and **broad dev-artifact** coverage—not a general-purpose “every file” browser.
 
-## Highlights
+## Repository layout
 
-- Risk-based cleanup: every candidate is scored as `safe`, `review`, or `blocked`.
-- Quarantine-first deletion: default delete mode moves targets to quarantine with restore support.
-- Safer `node_modules` cleanup: only considered safe when inside a validated project and stale.
-- Root-drive scanning support: can scan partition roots like `E:/` while protecting system/app-runtime paths.
-- Interactive dashboard: grouped by risk and kind with explicit confirmation for review-risk deletions.
-- JSON output: machine-readable report with risk and reason codes.
+| Path | Role |
+|------|------|
+| `apps/cli` | Node/TypeScript CLI (`deco` binary via `dist/cli.js`) |
+| `apps/desktop` | Tauri shell + Rust backend |
+| `apps/frontend` | Vite + React UI served to the WebView |
+| `docs/` | [Documentation encyclopedia](docs/README.md) (getting started, product, CLI, distribution, milestones) |
 
-## Quick Start
+## Quick start (Milestone 0 baseline)
+
+Prerequisites: **Node 20+**, **pnpm**, **Rust** (for desktop/tests), **WebView2** on Windows for the desktop UI.
 
 ```bash
-# Build
-pnpm build
-
-# Dry-run scan
-node dist/cli.js --root "E:/" --profile safe
-
-# Delete safe targets only (quarantine mode by default)
-node dist/cli.js --root "E:/" --delete --yes
-
-# Include review-risk targets explicitly
-node dist/cli.js --root "E:/" --delete --yes --include-review
-
-# Restore a quarantined item
-node dist/cli.js --restore <quarantine-id>
+pnpm install
+pnpm test:all    # CLI (Vitest) + Rust engine (cargo test)
 ```
 
-## Safety Model
+### CLI
 
-1. Hard path protection (system and app runtime locations) is applied before cleanup decisions.
-2. Every target receives a risk level:
-   - `safe`: eligible for deletion by default.
-   - `review`: excluded unless `--include-review` is provided.
-   - `blocked`: never deletable.
-3. Default delete mode is `quarantine`, not hard delete.
-
-## Profiles
-
-- `safe` (default): conservative targeting and strict project evidence.
-- `balanced`: includes additional configured artifact names.
-- `aggressive`: broader candidate heuristics, still blocks protected paths.
-
-## CLI Options
-
-| Flag | Description |
-|------|-------------|
-| `--root <path>` | Root to scan (repeatable). Default: CWD |
-| `--config <path>` | Config file override |
-| `--max-depth <n>` | Scan depth limit (default `6`) |
-| `--profile <safe\|balanced\|aggressive>` | Detection profile (default `safe`) |
-| `--delete-mode <quarantine\|recycle-bin\|hard-delete>` | Deletion mode (default `quarantine`) |
-| `--stale-days <n>` | Node modules stale threshold (default `45`) |
-| `--delete` | Execute deletion (requires `--yes`) |
-| `--include-review` | Include `review` risk candidates in deletion |
-| `--yes` | Confirmation for destructive operations |
-| `--restore <id>` | Restore quarantined item by ID |
-| `--purge-quarantine` | Purge expired quarantine items (requires `--yes`) |
-| `--json` | JSON report output |
-| `--show-blocked` | Include blocked candidates in report |
-| `--dry-run` | Non-interactive reporting mode |
-| `--interactive` | Force TUI mode |
-| `--no-size` | Skip size calculation |
-| `--check-go-cache` | Include `GOCACHE` and `GOMODCACHE` |
-| `--no-node-modules` | Disable node_modules targeting |
-| `--no-build-artifacts` | Disable build artifact targeting |
-| `--no-rust-artifacts` | Disable Rust artifact targeting |
-| `--no-playwright-artifacts` | Disable Playwright artifact targeting |
-| `--no-go-artifacts` | Disable Go artifact targeting |
-| `-h`, `--help` | Show usage information |
-| `-v`, `--version` | Show CLI version |
-
-## Configuration
-
-Default config path: `.deco/disk-cleanup.json`
-
-```json
-{
-  "roots": ["E:/Projects"],
-  "maxDepth": 6,
-  "profile": "safe",
-  "deleteMode": "quarantine",
-  "staleDays": 45,
-  "targets": {
-    "nodeModules": true,
-    "buildArtifacts": true,
-    "rustArtifacts": true,
-    "goArtifacts": false,
-    "playwrightArtifacts": true
-  },
-  "excludeAbsPathContains": ["/monorepo/submodule"],
-  "quarantine": {
-    "root": "E:/.deco-quarantine",
-    "retentionDays": 30
-  },
-  "safety": {
-    "extraProtectedPathContains": ["/custom/runtime"],
-    "allowPathContains": ["/test-fixtures/"]
-  }
-}
+```bash
+pnpm build:cli
+pnpm dev:cli -- --dry-run --root . --max-depth 4 --no-size
 ```
 
-For more details, see [docs/features.md](docs/features.md).
+Scan only (default dry-run in non-interactive mode): omit `--delete`. Deletion requires **`--delete --yes`**.
+
+### Desktop (development)
+
+Uses the Tauri CLI from npm (`pnpm -F @dendro-x0/deco-desktop tauri`). Frontend dev server: **`http://localhost:5173`** (configured in `apps/desktop/src-tauri/tauri.conf.json`).
+
+```bash
+pnpm dev:desktop
+```
+
+### Desktop (release installer)
+
+```bash
+pnpm build:desktop
+```
+
+Artifacts (typical): `apps/desktop/src-tauri/target/release/bundle/msi/`, `nsis/`.
+
+### Rust tests (engine + commands)
+
+```bash
+cd apps/desktop/src-tauri && cargo test
+```
+
+## Distribution
+
+Install from **GitHub Releases** (tag `v*`): Windows `.msi` / NSIS desktop installers and `deco-cli-win-x64.zip` for the CLI. No npm token required for end users.
+
+| Artifact | Use |
+|----------|-----|
+| `.msi` / NSIS `.exe` | Desktop app (Windows) |
+| `deco-cli-win-x64.zip` | Portable CLI (`deco.cmd`; requires Node 20+) |
+
+Full guide: [`docs/distribution/github-releases.md`](docs/distribution/github-releases.md) · Install: [`docs/getting-started/install.md`](docs/getting-started/install.md)
+
+## Documentation
+
+**[docs/README.md](docs/README.md)** — navigation hub (encyclopedia)
+
+| Category | Entry |
+|----------|--------|
+| Getting started | [Overview](docs/getting-started/overview.md) · [Install](docs/getting-started/install.md) · [Quickstart](docs/getting-started/quickstart.md) |
+| Product | [Features](docs/product/features.md) · [Status](docs/product/status.md) · [Safety](docs/product/safety.md) |
+| Desktop / CLI | [User guide](docs/desktop/user-guide.md) · [CLI usage](docs/cli/usage.md) |
+| Distribution | [GitHub Releases](docs/distribution/github-releases.md) · [Release process](docs/distribution/release-process.md) |
+| Contract | [Scan contract](docs/contract/scan-contract.md) · [Changelog](docs/contract/changelog.md) |
+| Development | [Contributing](docs/development/contributing.md) · [CI](docs/development/ci-and-testing.md) |
+| Milestones M0–M8 | [Index](docs/milestones/README.md) |
+
+Also: [`PROJECT.md`](PROJECT.md) · [`ROADMAP.md`](ROADMAP.md) · [`CHANGELOG.md`](CHANGELOG.md)
+
+## CI
+
+- Pull requests / `main`: [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`pnpm test:all`).
+- Tagged releases: [`.github/workflows/release.yml`](.github/workflows/release.yml).

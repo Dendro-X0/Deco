@@ -1,0 +1,50 @@
+# Features
+
+Deco desktop is a native, safety-first cleanup app for developer machines.
+
+Current implementation progress and handoff details: [status.md](status.md).
+
+## Core UX
+
+- Non-terminal UI for scanning and cleanup.
+- Risk-first workflow (`safe`, `review`, `blocked`).
+- Quarantine-first delete with restore and purge operations.
+- Cleanup preview gate before execution with selected count/size, risk breakdown, and mode display.
+- Live scan progress updates from native backend events.
+  - phases: `discover`, `classify`, `size`, `done`
+- Incremental candidate streaming via `scan-candidate-batch` for large scans.
+- Scan cancellation via `cancel_scan`.
+- Candidate table tools: search, risk filtering, and sorting.
+- Persistent selection state across filters/sorting.
+- Selection actions: `Select Only Safe` and `Select Visible`.
+- Candidate detail panel showing reason, full path, project root, stale-days, and reason codes.
+- Review-risk deletion requires a stronger two-step modal confirmation with explicit target details.
+  - final step requires typing `DELETE REVIEW`.
+- Scan history panel with quick rerun using prior roots/profile/stale-days.
+- Free-space planner (`Free X GB`) with safe-first selection and optional review inclusion.
+
+## Safety
+
+- Protected path policy blocks system and app runtime directories.
+- `blocked` targets are never deletable.
+- `review` targets require explicit confirmation.
+- `hard-delete` is blocked unless `advanced_mode=true` in settings.
+
+## Native Engine
+
+- Rust scanner/classifier/executor under `src-tauri/src/engine`.
+- Tauri commands bridge native logic to desktop UI.
+- SQLite persistence for scans, candidates, quarantine, and settings.
+- Added command APIs:
+  - `preview_execute`
+  - `cancel_scan`
+  - `scan_history`
+  - `restore_quarantine_bulk`
+  - `list_quarantine_filtered`
+  - `plan_free_space`
+
+## Distribution
+
+- Desktop installer artifacts built via Tauri.
+- GitHub Actions workflow builds release artifacts on `v*` tags.
+- No npm publication requirement for end users.

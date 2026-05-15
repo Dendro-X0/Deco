@@ -1,45 +1,25 @@
 {
-  "name": "@dendro-x0/deco",
-  "version": "0.3.0",
-  "description": "Fast, safe, and interactive disk cleanup CLI for developers",
-  "keywords": [
-    "cleanup",
-    "disk",
-    "node_modules",
-    "build",
-    "rust",
-    "go",
-    "cli",
-    "interactive"
-  ],
-  "license": "MIT",
-  "author": "Dendro-X0",
-  "type": "module",
-  "bin": {
-    "deco": "dist/cli.js"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md",
-    "config.schema.json",
-    "config.example.json",
-    "docs"
-  ],
+  "name": "@dendro-x0/deco-monorepo",
+  "private": true,
+  "version": "0.4.0",
+  "description": "Monorepo for Deco: Disk Cleanup for Developers",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/cli.js",
-    "test": "vitest run",
-    "prepack": "npm run build"
+    "dev:cli": "pnpm -F @dendro-x0/deco-cli start",
+    "build:cli": "pnpm -F @dendro-x0/deco-cli build",
+    "dev:desktop": "pnpm -F @dendro-x0/deco-desktop dev",
+    "build:desktop": "pnpm build:frontend && pnpm -F @dendro-x0/deco-desktop build",
+    "dev:frontend": "pnpm -F @dendro-x0/deco-frontend dev",
+    "build:frontend": "pnpm -F @dendro-x0/deco-frontend build",
+    "test": "pnpm test:cli",
+    "test:cli": "pnpm -F @dendro-x0/deco-cli test",
+    "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
+    "test:all": "pnpm test:cli && pnpm test:rust",
+    "package:cli": "pnpm build:cli && node scripts/package-cli.mjs",
+    "icons:generate": "python scripts/generate-deco-icon.py && pnpm -F @dendro-x0/deco-desktop exec tauri icon src-tauri/icons/app-icon.png",
+    "install:all": "pnpm install",
+    "clean": "pnpm -r exec rm -rf dist node_modules"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
-    "typescript": "~5.9.3",
-    "vitest": "^2.1.9"
-  },
-  "dependencies": {
-    "@clack/prompts": "^1.0.0",
-    "picocolors": "^1.1.1"
+    "pnpm": "^9.0.0"
   }
 }

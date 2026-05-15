@@ -1,0 +1,69 @@
+mod commands;
+mod db;
+mod engine;
+mod state;
+
+use crate::engine::types::Settings;
+use crate::state::AppState;
+use db::init_db;
+use std::collections::HashMap;
+use std::sync::atomic::AtomicBool;
+use std::sync::Arc;
+use std::sync::Mutex;
+use tauri::image::Image;
+use tauri::path::BaseDirectory;
+use tauri::Manager;
+
+fn main() {
+    tauri::Builder::default()
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                for name in ["icons/32x32.png", "icons/icon.ico", "icons/icon.png"] {
+                    if let Ok(path) = app.path().resolve(name, BaseDirectory::Resource) {
+                        if let Ok(icon) = Image::from_path(&path) {
+                            let _ = window.set_icon(icon);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            let data_dir = app
+                .path()
+                .app_data_dir()
+                .map_err(|e| format!("failed resolving app data directory: {e}"))?;
+            std::fs::create_dir_all(&data_dir)
+                .map_err(|e| format!("failed creating app data directory: {e}"))?;
+
+            let db_path = data_dir.join("deco.db");
+            let conn = init_db(&db_path)?;
+
+            app.manage(AppState {
+                db: Mutex::new(conn),
+                data_dir,
+                scans: Mutex::new(HashMap::new()),
+                scan_cancels: Mutex::new(HashMap::<String, Arc<AtomicBool>>::new()),
+                settings: Mutex::new(Settings::default()),
+            });
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            commands::scan::scan_roots,
+            commands::scan::cancel_scan,
+            commands::scan::scan_history,
+            commands::execute::execute_cleanup_command,
+            commands::execute::preview_execute,
+            commands::execute::plan_free_space,
+            commands::quarantine::list_quarantine,
+            commands::quarantine::list_quarantine_filtered,
+            commands::quarantine::restore_quarantine,
+            commands::quarantine::restore_quarantine_bulk,
+            commands::quarantine::purge_quarantine,
+            commands::settings::get_settings,
+            commands::settings::save_settings,
+            commands::classify::classify_targets_preview,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
