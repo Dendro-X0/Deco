@@ -35,6 +35,9 @@ function createOptions(root: string): CliOptions {
     checkIdeGlobalCache: false,
     checkNpmCache: false,
     checkPnpmStore: false,
+    checkYarnCache: false,
+    checkPipCache: false,
+    checkUvCache: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',
@@ -137,6 +140,31 @@ describe('integration scan behavior', () => {
     } finally {
       if (prev === undefined) delete process.env.NPM_CONFIG_CACHE;
       else process.env.NPM_CONFIG_CACHE = prev;
+    }
+  });
+
+  it('discovers pip cache only with --check-pip-cache and wheels/http marker', async () => {
+    const root = await createTmpRoot('deco-pip-cache-flag-');
+    tmpRoots.push(root);
+    const cacheDir = path.join(path.dirname(root), `pip-cache-${path.basename(root)}`);
+    tmpRoots.push(cacheDir);
+    await mkdir(path.join(cacheDir, 'wheels'), { recursive: true });
+    const prev = process.env.PIP_CACHE_DIR;
+    process.env.PIP_CACHE_DIR = cacheDir;
+    try {
+      const without = await buildReport(createOptions(root));
+      expect(without.candidates.some((c) => c.kind === 'pip-global-cache')).toBe(false);
+
+      const withFlag = await buildReport({ ...createOptions(root), checkPipCache: true });
+      const pipCaches = withFlag.candidates.filter((c) => c.kind === 'pip-global-cache');
+      expect(pipCaches.some((c) => c.absPath === cacheDir)).toBe(true);
+      for (const c of pipCaches) {
+        expect(c.risk).toBe('review');
+        expect(c.reasonCodes).toContain('GLOBAL_CACHE_REQUIRES_OPT_IN');
+      }
+    } finally {
+      if (prev === undefined) delete process.env.PIP_CACHE_DIR;
+      else process.env.PIP_CACHE_DIR = prev;
     }
   });
 

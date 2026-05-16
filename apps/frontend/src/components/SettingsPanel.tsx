@@ -323,6 +323,27 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
               disabled={scanning || saving}
             />
             <ToggleRow
+              label="Yarn cache"
+              description="Yarn Classic (v6) or Berry global cache; uses yarn cache dir when available."
+              checked={draft.check_yarn_cache}
+              onCheckedChange={(v) => patch({ check_yarn_cache: v })}
+              disabled={scanning || saving}
+            />
+            <ToggleRow
+              label="pip cache"
+              description="pip download cache (wheels/http); regen with pip cache purge."
+              checked={draft.check_pip_cache}
+              onCheckedChange={(v) => patch({ check_pip_cache: v })}
+              disabled={scanning || saving}
+            />
+            <ToggleRow
+              label="uv cache"
+              description="uv package cache; respects UV_CACHE_DIR / uv cache dir."
+              checked={draft.check_uv_cache}
+              onCheckedChange={(v) => patch({ check_uv_cache: v })}
+              disabled={scanning || saving}
+            />
+            <ToggleRow
               label="Include Python venv"
               description="venv / .venv when a Python project is detected (high risk)."
               checked={draft.include_python_venv}

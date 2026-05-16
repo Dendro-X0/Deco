@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Yarn global cache** (`check_yarn_cache` / `--check-yarn-cache`) — Classic `v6` or Berry `berry/cache` markers; `yarn cache dir` when on PATH.
+- **pip cache** (`check_pip_cache` / `--check-pip-cache`) — `PIP_CACHE_DIR` or defaults; requires `wheels` or `http` subdir.
+- **uv cache** (`check_uv_cache` / `--check-uv-cache`) — `UV_CACHE_DIR` / `uv cache dir`; requires `archive-v0` or `downloads-v0`.
+- **Desktop Settings**: Discovery toggles for Yarn, pip, and uv caches.
+- **Scan contract** `2.3.0`: kinds `yarn_global_cache`, `pip_global_cache`, `uv_global_cache`.
+
 ## [0.5.0] - 2026-05-16
 
 ### Added

@@ -123,7 +123,7 @@ Follow [scanning philosophy](../../PROJECT.md#scanning-philosophy-whitelist--lay
 | Version | Scope |
 |---------|--------|
 | `v0.5.0` | npm + pnpm cache discovery, settings flags, docs, review-tier execute guard | Shipped |
-| `v0.5.1` | Yarn + pip/uv global caches | In progress |
+| `v0.5.1` | Yarn + pip/uv global caches | Shipped (unreleased tag) |
 | `v0.5.1` | Yarn + pip/uv caches |
 | `v0.5.2` | Conda/Miniconda paths (opt-in wizard copy), regeneration hints |
 | `v0.5.3+` | Cargo global, NuGet global, C++ build-dir rules, community `.deco` policy examples |

@@ -54,7 +54,10 @@ export async function classifyTargets(
         target.kind === 'jvm-global-cache' ||
         target.kind === 'ide-global-cache' ||
         target.kind === 'npm-global-cache' ||
-        target.kind === 'pnpm-global-store'
+        target.kind === 'pnpm-global-store' ||
+        target.kind === 'yarn-global-cache' ||
+        target.kind === 'pip-global-cache' ||
+        target.kind === 'uv-global-cache'
       ) {
         return baseCandidate(target, 'review', 'global_cache', [
           'GLOBAL_CACHE_TARGET',

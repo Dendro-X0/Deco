@@ -89,6 +89,9 @@ export interface Settings {
   check_ide_global_cache: boolean;
   check_npm_cache: boolean;
   check_pnpm_store: boolean;
+  check_yarn_cache: boolean;
+  check_pip_cache: boolean;
+  check_uv_cache: boolean;
   delete_mode: string;
   quarantine_retention_days: number;
   advanced_mode: boolean;

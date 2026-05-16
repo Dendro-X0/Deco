@@ -100,7 +100,7 @@ These refine risk **inside** the whitelist; they never invent new delete targets
 - `node_modules/`
 - Build outputs: `dist/`, `build/`, `dist-firefox/`, `.next/`, `.svelte-kit/`, `.astro/`, `.cache/`
 - Test artifacts: `test-results/`, `playwright-report/`
-- Global caches (opt-in, review): **npm** cache (`_cacache`), **pnpm** store (`v3`); roadmap: Yarn, bun, deno
+- Global caches (opt-in, review): **npm** (`_cacache`), **pnpm** (`v3`), **Yarn** (`v6` / Berry), **pip**, **uv**; roadmap: bun, deno
 
 ### Rust
 

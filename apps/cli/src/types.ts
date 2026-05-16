@@ -23,7 +23,10 @@ export type TargetDirKind =
   | 'dotnet-artifact'
   | 'ide-global-cache'
   | 'npm-global-cache'
-  | 'pnpm-global-store';
+  | 'pnpm-global-store'
+  | 'yarn-global-cache'
+  | 'pip-global-cache'
+  | 'uv-global-cache';
 
 export type SafetyClass = 'project_artifact' | 'global_cache' | 'app_runtime' | 'system' | 'unknown';
 
@@ -106,6 +109,9 @@ export type CliOptions = {
   readonly checkIdeGlobalCache: boolean;
   readonly checkNpmCache: boolean;
   readonly checkPnpmStore: boolean;
+  readonly checkYarnCache: boolean;
+  readonly checkPipCache: boolean;
+  readonly checkUvCache: boolean;
   readonly excludeAbsPathContains: readonly string[];
   readonly profile: CleanupProfile;
   readonly deleteMode: DeleteMode;

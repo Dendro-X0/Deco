@@ -61,6 +61,27 @@ pub fn execute_cleanup(
             ));
             continue;
         }
+        if candidate.kind == Kind::YarnGlobalCache && !allow_global.yarn {
+            errors.push(format!(
+                "Refused Yarn cache (enable “Check Yarn cache” in settings and re-scan): {}",
+                candidate.abs_path
+            ));
+            continue;
+        }
+        if candidate.kind == Kind::PipGlobalCache && !allow_global.pip {
+            errors.push(format!(
+                "Refused pip cache (enable “Check pip cache” in settings and re-scan): {}",
+                candidate.abs_path
+            ));
+            continue;
+        }
+        if candidate.kind == Kind::UvGlobalCache && !allow_global.uv {
+            errors.push(format!(
+                "Refused uv cache (enable “Check uv cache” in settings and re-scan): {}",
+                candidate.abs_path
+            ));
+            continue;
+        }
         if candidate.kind == Kind::PythonVenv && !allow_python_venv {
             errors.push(format!(
                 "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {}",

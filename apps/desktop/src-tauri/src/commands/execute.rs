@@ -59,6 +59,9 @@ pub(crate) fn execute_cleanup_core(
                 ide: settings.check_ide_global_cache,
                 npm: settings.check_npm_cache,
                 pnpm: settings.check_pnpm_store,
+                yarn: settings.check_yarn_cache,
+                pip: settings.check_pip_cache,
+                uv: settings.check_uv_cache,
             },
             settings.include_python_venv,
         )

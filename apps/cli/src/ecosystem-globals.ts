@@ -105,6 +105,110 @@ export async function discoverPnpmGlobalStoreIfEnabled(enabled: boolean): Promis
   return out;
 }
 
+async function commandStdoutPath(bin: string, args: string[]): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync(bin, args, { windowsHide: true });
+    const value = stdout.trim();
+    return value || null;
+  } catch {
+    return null;
+  }
+}
+
+function yarnCacheCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.YARN_CACHE_FOLDER?.trim()) {
+    paths.push(process.env.YARN_CACHE_FOLDER.trim());
+  }
+  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
+    paths.push(path.join(process.env.LOCALAPPDATA, 'Yarn', 'Cache'));
+  } else if (process.platform === 'darwin') {
+    paths.push(path.join(os.homedir(), 'Library', 'Caches', 'Yarn'));
+  } else {
+    paths.push(path.join(os.homedir(), '.cache', 'yarn'));
+  }
+  return dedupePaths(paths);
+}
+
+function pipCacheCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.PIP_CACHE_DIR?.trim()) {
+    paths.push(process.env.PIP_CACHE_DIR.trim());
+  }
+  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
+    paths.push(path.join(process.env.LOCALAPPDATA, 'pip', 'Cache'));
+  } else {
+    paths.push(path.join(os.homedir(), '.cache', 'pip'));
+  }
+  return dedupePaths(paths);
+}
+
+async function uvCacheCandidatePaths(): Promise<string[]> {
+  const paths: string[] = [];
+  if (process.env.UV_CACHE_DIR?.trim()) {
+    paths.push(process.env.UV_CACHE_DIR.trim());
+  }
+  const fromCli = await commandStdoutPath('uv', ['cache', 'dir']);
+  if (fromCli) paths.push(fromCli);
+  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
+    paths.push(path.join(process.env.LOCALAPPDATA, 'uv', 'cache'));
+  } else {
+    paths.push(path.join(os.homedir(), '.cache', 'uv'));
+  }
+  return dedupePaths(paths);
+}
+
+async function isYarnCacheRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  if (await hasSubdir(dir, 'v6')) return true;
+  return pathExists(path.join(dir, 'berry', 'cache'));
+}
+
+async function isPipCacheRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  return (await hasSubdir(dir, 'wheels')) || (await hasSubdir(dir, 'http'));
+}
+
+async function isUvCacheRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  return (await hasSubdir(dir, 'archive-v0')) || (await hasSubdir(dir, 'downloads-v0'));
+}
+
+export async function discoverYarnGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  const fromCli = await commandStdoutPath('yarn', ['cache', 'dir']);
+  const candidates = dedupePaths(fromCli ? [...yarnCacheCandidatePaths(), fromCli] : yarnCacheCandidatePaths());
+  for (const candidate of candidates) {
+    if (await isYarnCacheRoot(candidate)) {
+      await pushDir(out, candidate, 'yarn-global-cache');
+    }
+  }
+  return out;
+}
+
+export async function discoverPipGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of pipCacheCandidatePaths()) {
+    if (await isPipCacheRoot(candidate)) {
+      await pushDir(out, candidate, 'pip-global-cache');
+    }
+  }
+  return out;
+}
+
+export async function discoverUvGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of await uvCacheCandidatePaths()) {
+    if (await isUvCacheRoot(candidate)) {
+      await pushDir(out, candidate, 'uv-global-cache');
+    }
+  }
+  return out;
+}
+
 export async function discoverJvmGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
   if (!enabled) return [];
   const home = os.homedir();

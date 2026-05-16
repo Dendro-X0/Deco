@@ -23,6 +23,9 @@ pub fn classify_targets(
                     | Kind::IdeGlobalCache
                     | Kind::NpmGlobalCache
                     | Kind::PnpmGlobalStore
+                    | Kind::YarnGlobalCache
+                    | Kind::PipGlobalCache
+                    | Kind::UvGlobalCache
             ) {
                 let reason_codes = vec![
                     "GLOBAL_CACHE_TARGET".to_string(),

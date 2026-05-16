@@ -36,6 +36,9 @@ function baseOptions(root: string): CliOptions {
     checkIdeGlobalCache: false,
     checkNpmCache: false,
     checkPnpmStore: false,
+    checkYarnCache: false,
+    checkPipCache: false,
+    checkUvCache: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',
@@ -128,11 +131,14 @@ describe('classifier global package-manager caches', () => {
     const discovered: DiscoveredTarget[] = [
       { kind: 'npm-global-cache', absPath: path.join(root, 'npm-cache'), mtimeMs: Date.now() },
       { kind: 'pnpm-global-store', absPath: path.join(root, 'pnpm-store'), mtimeMs: Date.now() },
+      { kind: 'yarn-global-cache', absPath: path.join(root, 'yarn-cache'), mtimeMs: Date.now() },
+      { kind: 'pip-global-cache', absPath: path.join(root, 'pip-cache'), mtimeMs: Date.now() },
+      { kind: 'uv-global-cache', absPath: path.join(root, 'uv-cache'), mtimeMs: Date.now() },
     ];
     const options = baseOptions(root);
     const policy = createPathPolicy({ extraProtectedPathContains: [], allowPathContains: [] });
     const classified = await classifyTargets(discovered, options, policy);
-    expect(classified).toHaveLength(2);
+    expect(classified).toHaveLength(5);
     for (const c of classified) {
       expect(c.risk).toBe('review');
       expect(c.safetyClass).toBe('global_cache');

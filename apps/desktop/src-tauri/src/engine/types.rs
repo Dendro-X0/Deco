@@ -37,6 +37,9 @@ pub enum Kind {
     IdeGlobalCache,
     NpmGlobalCache,
     PnpmGlobalStore,
+    YarnGlobalCache,
+    PipGlobalCache,
+    UvGlobalCache,
 }
 
 impl Kind {
@@ -58,6 +61,9 @@ impl Kind {
             Kind::IdeGlobalCache => "ide_global_cache",
             Kind::NpmGlobalCache => "npm_global_cache",
             Kind::PnpmGlobalStore => "pnpm_global_store",
+            Kind::YarnGlobalCache => "yarn_global_cache",
+            Kind::PipGlobalCache => "pip_global_cache",
+            Kind::UvGlobalCache => "uv_global_cache",
         }
     }
 }
@@ -81,6 +87,9 @@ pub struct EcosystemScanOptions {
     pub check_ide_global_cache: bool,
     pub check_npm_cache: bool,
     pub check_pnpm_store: bool,
+    pub check_yarn_cache: bool,
+    pub check_pip_cache: bool,
+    pub check_uv_cache: bool,
 }
 
 impl Default for EcosystemScanOptions {
@@ -94,6 +103,9 @@ impl Default for EcosystemScanOptions {
             check_ide_global_cache: false,
             check_npm_cache: false,
             check_pnpm_store: false,
+            check_yarn_cache: false,
+            check_pip_cache: false,
+            check_uv_cache: false,
         }
     }
 }
@@ -109,6 +121,9 @@ impl From<&ScanRequest> for EcosystemScanOptions {
             check_ide_global_cache: req.check_ide_global_cache,
             check_npm_cache: req.check_npm_cache,
             check_pnpm_store: req.check_pnpm_store,
+            check_yarn_cache: req.check_yarn_cache,
+            check_pip_cache: req.check_pip_cache,
+            check_uv_cache: req.check_uv_cache,
         }
     }
 }
@@ -120,6 +135,9 @@ pub struct GlobalCacheAllow {
     pub ide: bool,
     pub npm: bool,
     pub pnpm: bool,
+    pub yarn: bool,
+    pub pip: bool,
+    pub uv: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -187,6 +205,12 @@ pub struct ScanRequest {
     #[serde(default)]
     pub check_pnpm_store: bool,
     #[serde(default)]
+    pub check_yarn_cache: bool,
+    #[serde(default)]
+    pub check_pip_cache: bool,
+    #[serde(default)]
+    pub check_uv_cache: bool,
+    #[serde(default)]
     pub exclude_abs_path_contains: Vec<String>,
     #[serde(default)]
     pub extra_protected_path_contains: Vec<String>,
@@ -195,7 +219,7 @@ pub struct ScanRequest {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.2.0";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.3.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {
@@ -361,6 +385,12 @@ pub struct Settings {
     pub check_npm_cache: bool,
     #[serde(default)]
     pub check_pnpm_store: bool,
+    #[serde(default)]
+    pub check_yarn_cache: bool,
+    #[serde(default)]
+    pub check_pip_cache: bool,
+    #[serde(default)]
+    pub check_uv_cache: bool,
     pub delete_mode: String,
     pub quarantine_retention_days: u32,
     pub advanced_mode: bool,
@@ -392,6 +422,9 @@ impl Default for Settings {
             check_ide_global_cache: false,
             check_npm_cache: false,
             check_pnpm_store: false,
+            check_yarn_cache: false,
+            check_pip_cache: false,
+            check_uv_cache: false,
             delete_mode: "quarantine".to_string(),
             quarantine_retention_days: 30,
             advanced_mode: false,

@@ -155,6 +155,147 @@ pub fn discover_pnpm_global_store() -> (Vec<DiscoveredTarget>, Vec<String>) {
     (targets, warnings)
 }
 
+fn command_stdout_path(bin: &str, args: &[&str]) -> Option<PathBuf> {
+    let out = Command::new(bin).args(args).output().ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let value = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if value.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(value))
+    }
+}
+
+fn is_yarn_cache_root(path: &Path) -> bool {
+    path.is_dir()
+        && (path.join("v6").is_dir() || path.join("berry").join("cache").is_dir())
+}
+
+fn is_pip_cache_root(path: &Path) -> bool {
+    path.is_dir() && (path.join("wheels").is_dir() || path.join("http").is_dir())
+}
+
+fn is_uv_cache_root(path: &Path) -> bool {
+    path.is_dir()
+        && (path.join("archive-v0").is_dir() || path.join("downloads-v0").is_dir())
+}
+
+fn yarn_cache_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("YARN_CACHE_FOLDER") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(p) = command_stdout_path("yarn", &["cache", "dir"]) {
+        paths.push(p);
+    }
+    #[cfg(windows)]
+    {
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            paths.push(PathBuf::from(local).join("Yarn").join("Cache"));
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if let Some(home) = user_home() {
+            paths.push(home.join("Library").join("Caches").join("Yarn"));
+        }
+    }
+    #[cfg(all(not(windows), not(target_os = "macos")))]
+    {
+        if let Some(home) = user_home() {
+            paths.push(home.join(".cache").join("yarn"));
+        }
+    }
+    paths
+}
+
+fn pip_cache_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("PIP_CACHE_DIR") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    #[cfg(windows)]
+    {
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            paths.push(PathBuf::from(local).join("pip").join("Cache"));
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        if let Some(home) = user_home() {
+            paths.push(home.join(".cache").join("pip"));
+        }
+    }
+    paths
+}
+
+fn uv_cache_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("UV_CACHE_DIR") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(p) = command_stdout_path("uv", &["cache", "dir"]) {
+        paths.push(p);
+    }
+    #[cfg(windows)]
+    {
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            paths.push(PathBuf::from(local).join("uv").join("cache"));
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        if let Some(home) = user_home() {
+            paths.push(home.join(".cache").join("uv"));
+        }
+    }
+    paths
+}
+
+pub fn discover_yarn_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(yarn_cache_candidate_paths()) {
+        if is_yarn_cache_root(&path) {
+            push_global_cache(&mut targets, path, Kind::YarnGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
+pub fn discover_pip_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(pip_cache_candidate_paths()) {
+        if is_pip_cache_root(&path) {
+            push_global_cache(&mut targets, path, Kind::PipGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
+pub fn discover_uv_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(uv_cache_candidate_paths()) {
+        if is_uv_cache_root(&path) {
+            push_global_cache(&mut targets, path, Kind::UvGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
 fn push_dir_target(targets: &mut Vec<DiscoveredTarget>, path: PathBuf, kind: Kind) {
     push_global_cache(targets, path, kind);
 }
@@ -244,5 +385,32 @@ mod tests {
         create_dir_all(store.join("v3")).expect("v3");
         assert!(is_pnpm_store_root(&store));
         assert!(!is_pnpm_store_root(&root));
+    }
+
+    #[test]
+    fn yarn_cache_accepts_classic_or_berry_markers() {
+        let root = temp_root("yarn");
+        let classic = root.join("classic");
+        create_dir_all(classic.join("v6")).expect("v6");
+        assert!(is_yarn_cache_root(&classic));
+        let berry = root.join("berry-root");
+        create_dir_all(berry.join("berry").join("cache")).expect("berry cache");
+        assert!(is_yarn_cache_root(&berry));
+    }
+
+    #[test]
+    fn pip_cache_requires_wheels_or_http() {
+        let root = temp_root("pip");
+        let cache = root.join("pip-cache");
+        create_dir_all(cache.join("wheels")).expect("wheels");
+        assert!(is_pip_cache_root(&cache));
+    }
+
+    #[test]
+    fn uv_cache_requires_archive_or_downloads() {
+        let root = temp_root("uv");
+        let cache = root.join("uv-cache");
+        create_dir_all(cache.join("downloads-v0")).expect("downloads");
+        assert!(is_uv_cache_root(&cache));
     }
 }

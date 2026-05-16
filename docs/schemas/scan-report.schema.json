@@ -117,7 +117,10 @@
             "dotnet_artifact",
             "ide_global_cache",
             "npm_global_cache",
-            "pnpm_global_store"
+            "pnpm_global_store",
+            "yarn_global_cache",
+            "pip_global_cache",
+            "uv_global_cache"
           ]
         },
         "abs_path": { "type": "string", "minLength": 1 },

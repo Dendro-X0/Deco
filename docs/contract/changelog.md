@@ -9,6 +9,12 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.3.0 — 2026-05-16
+
+- **Added** candidate kinds: `yarn_global_cache`, `pip_global_cache`, `uv_global_cache`.
+- **Added** scan/settings flags: `check_yarn_cache`, `check_pip_cache`, `check_uv_cache` (default `false`, review tier + execute guard).
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.3.0`.
+
 ## 2.2.0 — 2026-05-16
 
 - **Added** candidate kinds: `npm_global_cache`, `pnpm_global_store`.

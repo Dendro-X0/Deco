@@ -2,7 +2,8 @@ use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
 use super::ecosystem_globals::{
     discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
-    discover_pnpm_global_store,
+    discover_pip_global_caches, discover_pnpm_global_store, discover_uv_global_caches,
+    discover_yarn_global_caches,
 };
 use super::path_policy::PathPolicy;
 use super::types::{EcosystemScanOptions, Kind};
@@ -468,6 +469,21 @@ pub fn discover_targets(
         let (pnpm_targets, pnpm_warnings) = discover_pnpm_global_store();
         all_targets.extend(pnpm_targets);
         warnings.extend(pnpm_warnings);
+    }
+    if eco.check_yarn_cache && !canceled {
+        let (yarn_targets, yarn_warnings) = discover_yarn_global_caches();
+        all_targets.extend(yarn_targets);
+        warnings.extend(yarn_warnings);
+    }
+    if eco.check_pip_cache && !canceled {
+        let (pip_targets, pip_warnings) = discover_pip_global_caches();
+        all_targets.extend(pip_targets);
+        warnings.extend(pip_warnings);
+    }
+    if eco.check_uv_cache && !canceled {
+        let (uv_targets, uv_warnings) = discover_uv_global_caches();
+        all_targets.extend(uv_targets);
+        warnings.extend(uv_warnings);
     }
 
     let targets = dedupe_targets_by_canonical_path(all_targets, &mut warnings);

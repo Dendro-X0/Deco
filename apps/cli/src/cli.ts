@@ -9,7 +9,10 @@ import {
   discoverIdeGlobalCachesIfEnabled,
   discoverJvmGlobalCachesIfEnabled,
   discoverNpmGlobalCachesIfEnabled,
+  discoverPipGlobalCachesIfEnabled,
   discoverPnpmGlobalStoreIfEnabled,
+  discoverUvGlobalCachesIfEnabled,
+  discoverYarnGlobalCachesIfEnabled,
 } from './ecosystem-globals.js';
 import { getGoEnv } from './go-utils.js';
 import { TaskQueue } from './concurrency.js';
@@ -71,6 +74,9 @@ type ParsedArgs = {
   readonly checkIdeGlobalCache: boolean;
   readonly checkNpmCache: boolean;
   readonly checkPnpmStore: boolean;
+  readonly checkYarnCache: boolean;
+  readonly checkPipCache: boolean;
+  readonly checkUvCache: boolean;
   readonly includeReview: boolean;
   readonly json: boolean;
   readonly showBlocked: boolean;
@@ -111,6 +117,9 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
   let checkIdeGlobalCache = false;
   let checkNpmCache = false;
   let checkPnpmStore = false;
+  let checkYarnCache = false;
+  let checkPipCache = false;
+  let checkUvCache = false;
   let includeReview = false;
   let json = false;
   let showBlocked = false;
@@ -212,6 +221,21 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
 
     if (arg === '--check-pnpm-store') {
       checkPnpmStore = true;
+      continue;
+    }
+
+    if (arg === '--check-yarn-cache') {
+      checkYarnCache = true;
+      continue;
+    }
+
+    if (arg === '--check-pip-cache') {
+      checkPipCache = true;
+      continue;
+    }
+
+    if (arg === '--check-uv-cache') {
+      checkUvCache = true;
       continue;
     }
 
@@ -328,6 +352,9 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
     checkIdeGlobalCache,
     checkNpmCache,
     checkPnpmStore,
+    checkYarnCache,
+    checkPipCache,
+    checkUvCache,
     includeReview,
     json,
     showBlocked,
@@ -383,6 +410,9 @@ export async function mergeConfigAndArgsV2(argv: readonly string[]): Promise<Cli
     checkIdeGlobalCache: args.checkIdeGlobalCache,
     checkNpmCache: args.checkNpmCache,
     checkPnpmStore: args.checkPnpmStore,
+    checkYarnCache: args.checkYarnCache,
+    checkPipCache: args.checkPipCache,
+    checkUvCache: args.checkUvCache,
     excludeAbsPathContains: config?.excludeAbsPathContains ?? [],
     profile,
     deleteMode,
@@ -463,6 +493,9 @@ export async function buildReport(options: CliOptions, onProgress?: ProgressList
     ...(await discoverIdeGlobalCachesIfEnabled(options.checkIdeGlobalCache)),
     ...(await discoverNpmGlobalCachesIfEnabled(options.checkNpmCache)),
     ...(await discoverPnpmGlobalStoreIfEnabled(options.checkPnpmStore)),
+    ...(await discoverYarnGlobalCachesIfEnabled(options.checkYarnCache)),
+    ...(await discoverPipGlobalCachesIfEnabled(options.checkPipCache)),
+    ...(await discoverUvGlobalCachesIfEnabled(options.checkUvCache)),
   ];
   const errors = [...discovery.errors];
   if (discovery.skippedSymlinkDirTraversal > 0) {
@@ -598,6 +631,9 @@ function getUsageText(): string {
     '  --check-ide-global-cache    Include Xcode DerivedData (macOS / Windows path)',
     '  --check-npm-cache           Include npm cache dir (_cacache marker; review tier)',
     '  --check-pnpm-store          Include pnpm content store (v3 marker; review tier)',
+    '  --check-yarn-cache          Include Yarn cache (v6 or Berry cache marker; review tier)',
+    '  --check-pip-cache           Include pip cache (wheels/http marker; review tier)',
+    '  --check-uv-cache            Include uv cache (archive/downloads marker; review tier)',
     '  --include-python-venv       Include venv/.venv (review tier; opt-in)',
     '  --no-python-artifacts       Skip Python caches/build dirs when pyproject present',
     '  --no-jvm-artifacts          Skip JVM build/ when Gradle/Maven markers present',
@@ -658,6 +694,9 @@ function getDeletableCandidates(
     | 'checkIdeGlobalCache'
     | 'checkNpmCache'
     | 'checkPnpmStore'
+    | 'checkYarnCache'
+    | 'checkPipCache'
+    | 'checkUvCache'
     | 'includePythonVenv'
   >
 ): CleanupCandidate[] {
@@ -668,6 +707,9 @@ function getDeletableCandidates(
     if (candidate.kind === 'ide-global-cache' && !options.checkIdeGlobalCache) return false;
     if (candidate.kind === 'npm-global-cache' && !options.checkNpmCache) return false;
     if (candidate.kind === 'pnpm-global-store' && !options.checkPnpmStore) return false;
+    if (candidate.kind === 'yarn-global-cache' && !options.checkYarnCache) return false;
+    if (candidate.kind === 'pip-global-cache' && !options.checkPipCache) return false;
+    if (candidate.kind === 'uv-global-cache' && !options.checkUvCache) return false;
     if (candidate.kind === 'python-venv' && !options.includePythonVenv) return false;
     if (candidate.risk === 'review') return includeReview;
     return true;
