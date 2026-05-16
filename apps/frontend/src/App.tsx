@@ -29,11 +29,14 @@ import { DecoLogo } from './components/DecoLogo';
 import {
   candidateSizeIsKnown,
   formatBytes,
+  formatDurationMs,
 } from './lib/format';
 import {
-  compareCandidates,
+  compareCandidatesMulti,
+  cycleSortRules,
+  DEFAULT_SORT_RULES,
   type CandidateSortColumn,
-  type SortDirection,
+  type CandidateSortRule,
 } from './lib/candidate-sort';
 import { volumesFromRoots } from './lib/scan-report';
 import { normalizeSettings } from './lib/settings-normalize';
@@ -72,36 +75,40 @@ import {
 
 function SortHeading({
   column,
-  activeColumn,
-  sortDir,
+  sortRules,
   onCycleSort,
   children,
   className,
   alignEnd,
 }: {
   column: CandidateSortColumn;
-  activeColumn: CandidateSortColumn;
-  sortDir: SortDirection;
-  onCycleSort: (column: CandidateSortColumn) => void;
+  sortRules: CandidateSortRule[];
+  onCycleSort: (column: CandidateSortColumn, additive: boolean) => void;
   children: ReactNode;
   className?: string;
   alignEnd?: boolean;
 }) {
-  const active = activeColumn === column;
+  const idx = sortRules.findIndex((r) => r.column === column);
+  const active = idx >= 0;
+  const dir = active ? sortRules[idx].dir : null;
   return (
     <TableHead className={className}>
       <button
         type="button"
-        title="Sort column"
-        onClick={() => onCycleSort(column)}
+        title="Click to sort. Shift+click to add another sort column."
+        onClick={(e) => onCycleSort(column, e.shiftKey)}
         className={cn(
           'inline-flex items-center gap-1.5 font-semibold tracking-tight text-foreground hover:text-primary transition-colors select-none rounded-sm leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
           alignEnd && 'w-full justify-end',
+          active && 'text-primary',
         )}
       >
         <span>{children}</span>
-        {active ? (
-          sortDir === 'asc' ? (
+        {active && sortRules.length > 1 ? (
+          <span className="text-[9px] font-black tabular-nums text-primary/80">{idx + 1}</span>
+        ) : null}
+        {active && dir ? (
+          dir === 'asc' ? (
             <ArrowUp className="h-3.5 w-3.5 shrink-0 opacity-70" />
           ) : (
             <ArrowDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -122,6 +129,7 @@ export default function App() {
     setSelectedIds,
     scanning,
     busy,
+    elapsedMs,
     progress,
     status,
     summary,
@@ -148,8 +156,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState('all');
-  const [sortColumn, setSortColumn] = useState<CandidateSortColumn>('size');
-  const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [sortRules, setSortRules] = useState<CandidateSortRule[]>(DEFAULT_SORT_RULES);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStep>('intro');
@@ -205,7 +212,7 @@ export default function App() {
       const matchesRisk = riskFilter === 'all' || c.risk === riskFilter;
       return matchesSearch && matchesRisk;
     })
-    .sort((a, b) => compareCandidates(a, b, sortColumn, sortDir));
+    .sort((a, b) => compareCandidatesMulti(a, b, sortRules));
 
   const selectedCandidate = candidates.find((c) => c.id === selectedCandidateId);
 
@@ -217,13 +224,8 @@ export default function App() {
   const countByRisk = (risk: string) =>
     candidates.filter((c) => c.risk === risk).length;
 
-  const cycleSortHeader = (col: CandidateSortColumn) => {
-    if (sortColumn !== col) {
-      setSortColumn(col);
-      setSortDir(col === 'size' ? 'desc' : 'asc');
-      return;
-    }
-    setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+  const cycleSortHeader = (col: CandidateSortColumn, additive: boolean) => {
+    setSortRules((rules) => cycleSortRules(rules, col, additive));
   };
 
   const handleSelectAll = (checked: boolean | string) => {
@@ -512,8 +514,13 @@ export default function App() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="text-sm font-medium text-primary">
-                        {selectedIds.size} selected
+                      <div className="flex flex-col items-end gap-0.5">
+                        <span className="text-sm font-medium text-primary">
+                          {selectedIds.size} selected
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          Shift+click headers to sort by multiple columns
+                        </span>
                       </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -528,8 +535,7 @@ export default function App() {
                             </TableHead>
                             <SortHeading
                               column="risk"
-                              activeColumn={sortColumn}
-                              sortDir={sortDir}
+                              sortRules={sortRules}
                               onCycleSort={cycleSortHeader}
                               className="w-24"
                             >
@@ -537,8 +543,7 @@ export default function App() {
                             </SortHeading>
                             <SortHeading
                               column="kind"
-                              activeColumn={sortColumn}
-                              sortDir={sortDir}
+                              sortRules={sortRules}
                               onCycleSort={cycleSortHeader}
                               className="min-w-[9rem]"
                             >
@@ -546,16 +551,14 @@ export default function App() {
                             </SortHeading>
                             <SortHeading
                               column="path"
-                              activeColumn={sortColumn}
-                              sortDir={sortDir}
+                              sortRules={sortRules}
                               onCycleSort={cycleSortHeader}
                             >
                               Path
                             </SortHeading>
                             <SortHeading
                               column="size"
-                              activeColumn={sortColumn}
-                              sortDir={sortDir}
+                              sortRules={sortRules}
                               onCycleSort={cycleSortHeader}
                               alignEnd
                               className="text-right w-[7.5rem]"
@@ -967,13 +970,26 @@ export default function App() {
                </span>
              </div>
              <div className="flex-1 relative">
-               <Progress value={progress.percent} className={`h-2 overflow-hidden ${scanning ? 'shimmer-progress' : ''}`} />
+               <Progress
+                 value={progress.percent}
+                 className={`h-2 overflow-hidden ${scanning || busy ? 'shimmer-progress' : ''}`}
+               />
              </div>
-             <div className="min-w-[40px] text-right">
-               <span className="text-xs font-mono font-bold tracking-tighter">{progress.percent.toFixed(0)}%</span>
+             <div className="flex items-center gap-3 min-w-[7rem] justify-end">
+               {(scanning || busy) && elapsedMs > 0 ? (
+                 <span
+                   className="text-xs font-mono font-semibold tabular-nums text-primary"
+                   title="Elapsed time"
+                 >
+                   {formatDurationMs(elapsedMs)}
+                 </span>
+               ) : null}
+               <span className="text-xs font-mono font-bold tracking-tighter tabular-nums">
+                 {progress.percent.toFixed(0)}%
+               </span>
              </div>
              <span className="text-[9px] text-muted-foreground/50 font-mono" title="Frontend build marker">
-               ui-2026-05-16a
+               ui-2026-05-16b
              </span>
           </footer>
         </div>

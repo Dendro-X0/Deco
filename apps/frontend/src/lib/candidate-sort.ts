@@ -3,6 +3,13 @@ import type { Candidate, RiskLevel } from '../types';
 export type CandidateSortColumn = 'size' | 'kind' | 'risk' | 'path';
 export type SortDirection = 'asc' | 'desc';
 
+export type CandidateSortRule = {
+  column: CandidateSortColumn;
+  dir: SortDirection;
+};
+
+export const DEFAULT_SORT_RULES: CandidateSortRule[] = [{ column: 'size', dir: 'desc' }];
+
 const RISK_RANK: Record<RiskLevel, number> = {
   blocked: 0,
   review: 1,
@@ -58,4 +65,44 @@ export function compareCandidates(
       break;
   }
   return String(a.id).localeCompare(String(b.id));
+}
+
+/** Apply sort rules in order (e.g. Risk then Size when both selected with Shift+click). */
+export function compareCandidatesMulti(
+  a: Candidate,
+  b: Candidate,
+  rules: readonly CandidateSortRule[],
+): number {
+  for (const rule of rules) {
+    const cmp = compareCandidates(a, b, rule.column, rule.dir);
+    if (cmp !== 0) return cmp;
+  }
+  return String(a.id).localeCompare(String(b.id));
+}
+
+export function defaultDirForColumn(column: CandidateSortColumn): SortDirection {
+  return column === 'size' ? 'desc' : 'asc';
+}
+
+/** Click toggles direction; Shift+click adds or updates a secondary sort key. */
+export function cycleSortRules(
+  rules: readonly CandidateSortRule[],
+  column: CandidateSortColumn,
+  additive: boolean,
+): CandidateSortRule[] {
+  const idx = rules.findIndex((r) => r.column === column);
+  if (additive) {
+    if (idx >= 0) {
+      const next = [...rules];
+      const cur = next[idx];
+      next[idx] = { ...cur, dir: cur.dir === 'asc' ? 'desc' : 'asc' };
+      return next;
+    }
+    return [...rules, { column, dir: defaultDirForColumn(column) }];
+  }
+  if (idx >= 0 && rules.length === 1) {
+    const cur = rules[0];
+    return [{ column, dir: cur.dir === 'asc' ? 'desc' : 'asc' }];
+  }
+  return [{ column, dir: defaultDirForColumn(column) }];
 }

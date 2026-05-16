@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.5] - 2026-05-16
+
+### Added
+
+- **Desktop**: Live elapsed timer in the footer during scan and cleanup.
+- **Desktop**: Multi-column table sort (Shift+click column headers, e.g. Risk then Size).
+- **Desktop**: Bottom-right toasts when scan/cleanup starts and when stop is requested.
+
+### Fixed
+
+- **CLI**: Quarantine purge with `retentionDays <= 0` on macOS (no longer skips items due to fresh `mtime`).
+
 ## [0.4.3] - 2026-05-16
 
 ### Added

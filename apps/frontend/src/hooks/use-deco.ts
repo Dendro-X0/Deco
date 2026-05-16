@@ -16,6 +16,7 @@ import type {
 import { normalizeCandidate, normalizeScanReport } from '../lib/scan-report';
 import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normalize';
 import { formatBytes, formatDurationMs } from '../lib/format';
+import { toast } from '../lib/toast';
 
 export function useDeco() {
   const [scanId, setScanId] = useState<string | null>(null);
@@ -34,7 +35,8 @@ export function useDeco() {
   const [includeProjectFolders, setIncludeProjectFolders] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const activeScanIdRef = useRef<string | null>(null);
-  const scanStartedAtRef = useRef<number | null>(null);
+  const operationStartedAtRef = useRef<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
 
   const tauriInvoke = async (command: string, payload: Record<string, unknown> = {}) => {
     try {
@@ -100,7 +102,8 @@ export function useDeco() {
   const finishScan = useCallback(() => {
     setScanning(false);
     activeScanIdRef.current = null;
-    scanStartedAtRef.current = null;
+    operationStartedAtRef.current = null;
+    setElapsedMs(0);
   }, []);
 
   const cancelScan = async () => {
@@ -113,6 +116,11 @@ export function useDeco() {
     try {
       await invoke('cancel_scan', { scanId: id });
       setStatus({ text: 'Cancel requested…', type: 'active' });
+      toast({
+        title: 'Scan stop requested',
+        description: 'Finishing the current step, then returning partial results.',
+        variant: 'info',
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
@@ -146,6 +154,8 @@ export function useDeco() {
     };
 
     setScanning(true);
+    operationStartedAtRef.current = Date.now();
+    setElapsedMs(0);
     setError(null);
     setCandidates([]);
     setCandidateMap(new Map());
@@ -189,8 +199,12 @@ export function useDeco() {
         return null;
       }
       activeScanIdRef.current = id;
-      scanStartedAtRef.current = Date.now();
       setScanId(id);
+      toast({
+        title: 'Scan started',
+        description: 'This may take a few minutes on large drives. You can stop anytime.',
+        variant: 'info',
+      });
       return { scan_id: id };
     } catch {
       finishScan();
@@ -229,6 +243,13 @@ export function useDeco() {
   ): Promise<ExecuteResponse | null> => {
     if (!summary?.scan_id) return null;
     setBusy(true);
+    operationStartedAtRef.current = Date.now();
+    setElapsedMs(0);
+    toast({
+      title: 'Cleanup started',
+      description: 'Quarantining selected items. This may take a few minutes.',
+      variant: 'info',
+    });
     try {
       const result = (await tauriInvoke('execute_cleanup_command', {
         req: {
@@ -250,6 +271,8 @@ export function useDeco() {
       return null;
     } finally {
       setBusy(false);
+      operationStartedAtRef.current = null;
+      setElapsedMs(0);
     }
   };
 
@@ -376,9 +399,9 @@ export function useDeco() {
         const canceled = (report.warnings ?? []).some((w) => w.toLowerCase().includes('cancel'));
         const bytes = report.total_bytes ?? 0;
         const sizeHint = bytes > 0 ? ` · ${formatBytes(bytes)}` : '';
-        const startedAt = scanStartedAtRef.current;
-        const elapsedMs = startedAt != null ? Date.now() - startedAt : null;
-        const timeHint = elapsedMs != null ? ` · ${formatDurationMs(elapsedMs)}` : '';
+        const startedAt = operationStartedAtRef.current;
+        const doneMs = startedAt != null ? Date.now() - startedAt : null;
+        const timeHint = doneMs != null ? ` · ${formatDurationMs(doneMs)}` : '';
         setStatus({
           text: canceled
             ? `Scan canceled: ${list.length} partial items${sizeHint}${timeHint}.`
@@ -418,6 +441,17 @@ export function useDeco() {
     setCandidates(Array.from(candidateMap.values()));
   }, [candidateMap]);
 
+  useEffect(() => {
+    if (!scanning && !busy) return;
+    const tick = () => {
+      const start = operationStartedAtRef.current;
+      if (start != null) setElapsedMs(Date.now() - start);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [scanning, busy]);
+
   return {
     scanId,
     scanning,
@@ -425,6 +459,7 @@ export function useDeco() {
     selectedIds,
     setSelectedIds,
     busy,
+    elapsedMs,
     progress,
     status,
     summary,
