@@ -135,15 +135,23 @@ pub fn suggest_scan_roots(scope: ScanScope) -> Vec<String> {
 
 /// True when `path` is a drive mount (e.g. `C:\` or `D:`) — not a project subfolder.
 pub fn is_volume_mount(path: &str) -> bool {
-    let trimmed = path.trim().trim_end_matches(['\\', '/']);
+    let trimmed = path.trim();
     #[cfg(windows)]
     {
+        let trimmed = trimmed.trim_end_matches(['\\', '/']);
         let bytes = trimmed.as_bytes();
-        return bytes.len() == 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':';
+        bytes.len() == 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':'
     }
     #[cfg(not(windows))]
     {
-        trimmed == "/" || trimmed.starts_with("/mnt/") || trimmed.starts_with("/media/")
+        // Do not trim trailing `/` before comparing to `/` — `"/".trim_end_matches('/')` is empty.
+        if trimmed == "/" {
+            return true;
+        }
+        let base = trimmed.trim_end_matches('/');
+        base == "/"
+            || base.starts_with("/mnt/")
+            || base.starts_with("/media/")
     }
 }
 
@@ -302,7 +310,9 @@ fn dedupe_existing_roots(roots: Vec<String>) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(windows)]
     use crate::engine::types::Settings;
+    #[cfg(windows)]
     use std::path::Path;
 
     fn resolve_scan_roots(
