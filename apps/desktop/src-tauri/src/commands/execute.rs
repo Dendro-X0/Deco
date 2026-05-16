@@ -5,27 +5,28 @@ use crate::engine::types::{
 };
 use crate::state::AppState;
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 use tauri::State;
 
 #[tauri::command]
 pub fn execute_cleanup_command(
     req: ExecuteRequest,
-    state: State<AppState>,
+    state: State<Arc<AppState>>,
 ) -> Result<ExecuteResponse, String> {
-    execute_cleanup_core(req, &state)
+    execute_cleanup_core(req, state.inner())
 }
 
 #[tauri::command]
 pub fn preview_execute(
     req: ExecuteRequest,
-    state: State<AppState>,
+    state: State<Arc<AppState>>,
 ) -> Result<ExecutePreviewResponse, String> {
-    preview_execute_core(req, &state)
+    preview_execute_core(req, state.inner())
 }
 
 #[tauri::command]
-pub fn plan_free_space(req: PlanRequest, state: State<AppState>) -> Result<PlanResponse, String> {
-    plan_free_space_core(req, &state)
+pub fn plan_free_space(req: PlanRequest, state: State<Arc<AppState>>) -> Result<PlanResponse, String> {
+    plan_free_space_core(req, state.inner())
 }
 
 pub(crate) fn execute_cleanup_core(

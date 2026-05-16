@@ -62,6 +62,10 @@ fn default_true() -> bool {
     true
 }
 
+fn default_scan_scope() -> String {
+    "projects".to_string()
+}
+
 /// Per-ecosystem discovery toggles (M7). Global caches stay opt-in via `check_*_global_cache` on scan request.
 #[derive(Debug, Clone, Copy)]
 pub struct EcosystemScanOptions {
@@ -297,6 +301,15 @@ pub struct PlanResponse {
 #[serde(default)]
 pub struct Settings {
     pub roots: Vec<String>,
+    /// `projects` | `drives` | `all` — used when roots is empty to suggest scan paths.
+    #[serde(default = "default_scan_scope")]
+    pub scan_scope: String,
+    /// Drive mount points selected for scanning (e.g. `C:\`, `D:\`).
+    #[serde(default)]
+    pub selected_volumes: Vec<String>,
+    /// Also scan common dev folders under the user profile.
+    #[serde(default = "default_true")]
+    pub include_project_folders: bool,
     pub max_depth: u32,
     pub profile: String,
     pub stale_days: u32,
@@ -328,7 +341,10 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             roots: vec![],
-            max_depth: 6,
+            scan_scope: default_scan_scope(),
+            selected_volumes: vec![],
+            include_project_folders: true,
+            max_depth: 8,
             profile: "safe".to_string(),
             stale_days: 45,
             include_size: true,

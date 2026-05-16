@@ -74,13 +74,13 @@ export function CleanupPreviewModal({
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="rounded-lg bg-primary/10 p-3">
                   <p className="text-[10px] font-bold uppercase text-muted-foreground">Safe</p>
-                  <p className="text-sm font-black text-primary">{preview.totals_by_risk.safe.count}</p>
-                  <p className="text-[10px] text-muted-foreground">{formatBytes(preview.totals_by_risk.safe.bytes)}</p>
+                  <p className="text-sm font-black text-primary">{preview.totals_by_risk?.safe?.count ?? 0}</p>
+                  <p className="text-[10px] text-muted-foreground">{formatBytes(preview.totals_by_risk?.safe?.bytes)}</p>
                 </div>
                 <div className="rounded-lg bg-amber-500/10 p-3">
                   <p className="text-[10px] font-bold uppercase text-muted-foreground">Review</p>
-                  <p className="text-sm font-black text-amber-600">{preview.totals_by_risk.review.count}</p>
-                  <p className="text-[10px] text-muted-foreground">{formatBytes(preview.totals_by_risk.review.bytes)}</p>
+                  <p className="text-sm font-black text-amber-600">{preview.totals_by_risk?.review?.count ?? 0}</p>
+                  <p className="text-[10px] text-muted-foreground">{formatBytes(preview.totals_by_risk?.review?.bytes)}</p>
                 </div>
                 <div className="rounded-lg bg-muted/30 p-3">
                   <p className="text-[10px] font-bold uppercase text-muted-foreground">Total</p>

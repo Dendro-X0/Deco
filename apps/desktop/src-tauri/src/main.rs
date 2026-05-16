@@ -2,6 +2,7 @@ mod commands;
 mod db;
 mod engine;
 mod state;
+mod util;
 
 use crate::engine::types::Settings;
 use crate::state::AppState;
@@ -38,18 +39,18 @@ fn main() {
             let db_path = data_dir.join("deco.db");
             let conn = init_db(&db_path)?;
 
-            app.manage(AppState {
+            app.manage(Arc::new(AppState {
                 db: Mutex::new(conn),
                 data_dir,
                 scans: Mutex::new(HashMap::new()),
                 scan_cancels: Mutex::new(HashMap::<String, Arc<AtomicBool>>::new()),
                 settings: Mutex::new(Settings::default()),
-            });
+            }));
 
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            commands::scan::scan_roots,
+            commands::scan::start_scan,
             commands::scan::cancel_scan,
             commands::scan::scan_history,
             commands::execute::execute_cleanup_command,
@@ -62,6 +63,8 @@ fn main() {
             commands::quarantine::purge_quarantine,
             commands::settings::get_settings,
             commands::settings::save_settings,
+            commands::settings::suggest_scan_roots_command,
+            commands::settings::list_storage_volumes_command,
             commands::classify::classify_targets_preview,
         ])
         .run(tauri::generate_context!())

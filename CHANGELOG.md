@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.1] - 2026-05-15
+
+### Fixed
+
+- **Desktop**: Candidate sizes and scan totals always computed on scan (no more all-zero byte rows from stale `include_size` off).
+- **Desktop**: Status line shows scan wall-clock duration; sidebar status wraps instead of truncating long summaries.
+
+### Changed
+
+- **Desktop (Rust)**: Removed unused util modules and `thiserror` dependency; silenced `dead_code` warnings from orphan helpers.
+
 ## [0.4.0] - 2026-05-15
 
 Monorepo desktop + CLI release (Milestones 4–8). Install from [GitHub Releases](https://github.com/Dendro-X0/Deco/releases) (Windows MSI/NSIS + CLI zip).

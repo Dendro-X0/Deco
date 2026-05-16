@@ -12,11 +12,14 @@ type Props = {
   onStepChange: (step: WizardStep) => void;
   onStartScan: () => void;
   onOpenPreview: () => void;
-  busy: boolean;
+  onConfigurePaths: () => void;
+  scanning: boolean;
   progress: { percent: number; text: string };
   summary: ScanReport | null;
   selectedCount: number;
   safeBytes: number;
+  scanRootCount: number;
+  scanScopeLabel: string;
 };
 
 const STEPS: { id: WizardStep; label: string }[] = [
@@ -33,19 +36,22 @@ export function CleanupWizard({
   onStepChange,
   onStartScan,
   onOpenPreview,
-  busy,
+  onConfigurePaths,
+  scanning,
   progress,
   summary,
   selectedCount,
   safeBytes,
+  scanRootCount,
+  scanScopeLabel,
 }: Props) {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    if (step === 'scanning' && !busy && summary && started) {
+    if (step === 'scanning' && !scanning && summary && started) {
       onStepChange('results');
     }
-  }, [step, busy, summary, started, onStepChange]);
+  }, [step, scanning, summary, started, onStepChange]);
 
   if (!open) return null;
 
@@ -85,20 +91,28 @@ export function CleanupWizard({
                 , build folders, and caches — and moves them to <strong>quarantine</strong> so you can undo later.
               </p>
               <ol className="text-sm space-y-2 list-decimal list-inside text-muted-foreground">
-                <li>Scan your project folders</li>
+                <li>Scan dev folders and local drives for reclaimable clutter</li>
                 <li>Review what is safe vs needs caution</li>
                 <li>Preview and quarantine selected items</li>
               </ol>
-              <Button
-                className="w-full gap-2 font-semibold"
-                onClick={() => {
-                  setStarted(true);
-                  onStepChange('scanning');
-                  onStartScan();
-                }}
-              >
-                <Play size={16} fill="currentColor" /> Start scan
-              </Button>
+              <p className="text-xs text-muted-foreground rounded-lg border bg-muted/20 p-3">
+                <strong className="text-foreground">{scanRootCount}</strong> scan root
+                {scanRootCount === 1 ? '' : 's'} ({scanScopeLabel}). Adjust paths in Settings if needed.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={onConfigurePaths}>
+                  Configure paths
+                </Button>
+                <Button
+                  className="flex-1 gap-2 font-semibold"
+                  onClick={() => {
+                    setStarted(true);
+                    onStartScan();
+                  }}
+                >
+                  <Play size={16} fill="currentColor" /> Start scan
+                </Button>
+              </div>
             </div>
           )}
 
@@ -107,9 +121,9 @@ export function CleanupWizard({
               <p className="text-sm text-muted-foreground">{progress.text}</p>
               <Progress value={progress.percent} className="h-2" />
               <p className="text-xs text-center text-muted-foreground">{progress.percent.toFixed(0)}%</p>
-              {busy && (
+              {scanning && (
                 <Button variant="outline" className="w-full" onClick={onClose}>
-                  Run in background
+                  Continue in background
                 </Button>
               )}
             </div>
@@ -121,14 +135,14 @@ export function CleanupWizard({
                 <div className="rounded-lg border p-3 bg-primary/5">
                   <p className="text-[10px] font-bold uppercase text-muted-foreground">Safe to clean</p>
                   <p className="text-xl font-black text-primary">{formatBytes(safeBytes)}</p>
-                  <p className="text-xs text-muted-foreground">{summary.totals_by_risk.safe.count} folders</p>
+                  <p className="text-xs text-muted-foreground">{summary.totals_by_risk?.safe?.count ?? 0} folders</p>
                 </div>
                 <div className="rounded-lg border p-3">
                   <p className="text-[10px] font-bold uppercase text-muted-foreground">Needs review</p>
                   <p className="text-xl font-black text-amber-600">
-                    {formatBytes(summary.totals_by_risk.review.bytes)}
+                    {formatBytes(summary.totals_by_risk?.review?.bytes ?? 0)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{summary.totals_by_risk.review.count} folders</p>
+                  <p className="text-xs text-muted-foreground">{summary.totals_by_risk?.review?.count ?? 0} folders</p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">

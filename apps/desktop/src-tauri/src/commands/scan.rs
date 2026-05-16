@@ -1,7 +1,7 @@
 use crate::engine::classifier::classify_targets;
 use crate::engine::path_policy::PathPolicy;
 use crate::engine::disk_cleanup_config::merge_disk_cleanup_layers;
-use crate::engine::scanner::discover_targets;
+use crate::engine::scanner::{discover_targets, DiscoverProgressCallback};
 use crate::engine::sizer::dir_size_bytes;
 use rayon::prelude::*;
 use crate::engine::types::{
@@ -9,14 +9,27 @@ use crate::engine::types::{
     ScanResponse, Totals, SCAN_REPORT_SCHEMA_VERSION,
 };
 use crate::state::AppState;
+use crate::util::scan_roots::effective_scan_roots;
 use rusqlite::params;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread;
 use tauri::{AppHandle, Emitter, State};
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StartScanResponse {
+    pub scan_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ScanErrorEvent {
+    scan_id: String,
+    message: String,
+}
 
 #[derive(Debug, Clone, Serialize)]
 struct ScanProgressEvent {
@@ -38,11 +51,13 @@ struct ScanCandidateBatchEvent {
 }
 
 #[tauri::command]
-pub fn scan_roots(
+pub fn start_scan(
     req: ScanRequest,
-    state: State<AppState>,
+    state: State<Arc<AppState>>,
     app: AppHandle,
-) -> Result<ScanResponse, String> {
+) -> Result<StartScanResponse, String> {
+    let state = state.inner().clone();
+
     let scan_id = Uuid::new_v4().to_string();
     let cancel_token = Arc::new(AtomicBool::new(false));
     {
@@ -53,14 +68,59 @@ pub fn scan_roots(
         cancels.insert(scan_id.clone(), Arc::clone(&cancel_token));
     }
 
-    let roots = if req.roots.is_empty() {
-        vec![std::env::current_dir()
-            .map_err(|e| format!("failed reading current dir: {e}"))?
-            .to_string_lossy()
-            .to_string()]
-    } else {
-        req.roots.clone()
+    let app_handle = app.clone();
+    let scan_id_spawn = scan_id.clone();
+    thread::Builder::new()
+        .name(format!("deco-scan-{}", &scan_id_spawn[..8.min(scan_id_spawn.len())]))
+        .spawn(move || {
+            match run_scan(scan_id_spawn.clone(), req, state, app_handle.clone(), cancel_token) {
+                Ok(response) => {
+                    let _ = app_handle.emit("scan-complete", response);
+                }
+                Err(message) => {
+                    let _ = app_handle.emit(
+                        "scan-error",
+                        ScanErrorEvent {
+                            scan_id: scan_id_spawn,
+                            message,
+                        },
+                    );
+                }
+            }
+        })
+        .map_err(|e| format!("failed to start scan thread: {e}"))?;
+
+    Ok(StartScanResponse { scan_id })
+}
+
+pub(crate) fn run_scan(
+    scan_id: String,
+    req: ScanRequest,
+    state: Arc<AppState>,
+    app: AppHandle,
+    cancel_token: Arc<AtomicBool>,
+) -> Result<ScanResponse, String> {
+    let roots = {
+        let guard = state
+            .settings
+            .lock()
+            .map_err(|_| "settings mutex poisoned".to_string())?;
+        if guard.selected_volumes.is_empty() {
+            cleanup_cancel_token_arc(&state, &scan_id);
+            return Err(
+                "Select at least one partition to scan.".to_string(),
+            );
+        }
+        effective_scan_roots(&guard)
     };
+
+    if roots.is_empty() {
+        cleanup_cancel_token_arc(&state, &scan_id);
+        return Err(
+            "No valid scan roots. Select at least one partition on the dashboard."
+                .to_string(),
+        );
+    }
 
     let disk = merge_disk_cleanup_layers(&roots)?;
 
@@ -107,6 +167,29 @@ pub fn scan_roots(
         },
     );
 
+    let scan_id_discover = scan_id.clone();
+    let app_discover = app.clone();
+    let progress: DiscoverProgressCallback = Arc::new(move |scanned_dirs, discovered, root| {
+        let short_root = if root.len() > 48 {
+            format!("…{}", &root[root.len().saturating_sub(45)..])
+        } else {
+            root.to_string()
+        };
+        emit_progress(
+            &app_discover,
+            ScanProgressEvent {
+                scan_id: scan_id_discover.clone(),
+                phase: "discover".to_string(),
+                scanned_dirs,
+                discovered_targets: discovered as u64,
+                classified_targets: 0,
+                processed_sizes: 0,
+                total_size_candidates: 0,
+                message: format!("Scanning {short_root} ({scanned_dirs} dirs, {discovered} found)"),
+            },
+        );
+    });
+
     let discovery = discover_targets(
         &roots,
         req.max_depth,
@@ -117,6 +200,7 @@ pub fn scan_roots(
         req.check_go_cache,
         &disk.extra_names,
         Some(&cancel_token),
+        Some(progress),
     );
 
     let mut warnings = discovery.warnings;
@@ -216,7 +300,7 @@ pub fn scan_roots(
         &req,
         discovery.scanned_dirs,
         &candidates,
-        &state,
+        state.as_ref(),
     )?;
 
     {
@@ -243,7 +327,7 @@ pub fn scan_roots(
         },
     );
 
-    cleanup_cancel_token(&state, &scan_id);
+    cleanup_cancel_token_arc(&state, &scan_id);
 
     Ok(ScanResponse {
         schema_version: SCAN_REPORT_SCHEMA_VERSION.to_string(),
@@ -258,8 +342,8 @@ pub fn scan_roots(
 }
 
 #[tauri::command]
-pub fn cancel_scan(scan_id: String, state: State<AppState>) -> Result<(), String> {
-    cancel_scan_core(scan_id, &state)
+pub fn cancel_scan(scan_id: String, state: State<Arc<AppState>>) -> Result<(), String> {
+    cancel_scan_core(scan_id, state.inner())
 }
 
 pub(crate) fn cancel_scan_core(scan_id: String, state: &AppState) -> Result<(), String> {
@@ -278,8 +362,8 @@ pub(crate) fn cancel_scan_core(scan_id: String, state: &AppState) -> Result<(), 
 }
 
 #[tauri::command]
-pub fn scan_history(limit: u32, state: State<AppState>) -> Result<ScanHistoryResponse, String> {
-    scan_history_core(limit, &state)
+pub fn scan_history(limit: u32, state: State<Arc<AppState>>) -> Result<ScanHistoryResponse, String> {
+    scan_history_core(limit, state.inner())
 }
 
 pub(crate) fn scan_history_core(
@@ -367,7 +451,7 @@ fn emit_candidate_batches(
     }
 }
 
-fn cleanup_cancel_token(state: &State<AppState>, scan_id: &str) {
+fn cleanup_cancel_token_arc(state: &Arc<AppState>, scan_id: &str) {
     if let Ok(mut cancels) = state.scan_cancels.lock() {
         cancels.remove(scan_id);
     }
@@ -416,7 +500,7 @@ fn persist_scan(
     req: &ScanRequest,
     scanned_dirs: u64,
     candidates: &[CleanupCandidate],
-    state: &State<AppState>,
+    state: &AppState,
 ) -> Result<(), String> {
     let total_bytes: u64 = candidates.iter().map(|c| c.size_bytes.unwrap_or(0)).sum();
     let roots_json =

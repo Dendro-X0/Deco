@@ -54,8 +54,21 @@ export interface HistoryItem {
   stale_days: number;
 }
 
+export interface StorageVolume {
+  mount_point: string;
+  name: string;
+  total_bytes: number;
+  available_bytes: number;
+  used_bytes: number;
+  volume_kind: string;
+}
+
 export interface Settings {
   roots: string[];
+  /** projects | drives | all — used when roots is empty */
+  scan_scope?: string;
+  selected_volumes?: string[];
+  include_project_folders?: boolean;
   max_depth: number;
   profile: string;
   stale_days: number;

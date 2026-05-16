@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type {
@@ -13,9 +13,13 @@ import type {
   Settings,
   HistoryItem,
 } from '../types';
+import { normalizeCandidate, normalizeScanReport } from '../lib/scan-report';
+import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normalize';
+import { formatBytes, formatDurationMs } from '../lib/format';
 
 export function useDeco() {
   const [scanId, setScanId] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidateMap, setCandidateMap] = useState<Map<string, Candidate>>(new Map());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -26,7 +30,11 @@ export function useDeco() {
   const [quarantine, setQuarantine] = useState<QuarantineEntry[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [selectedVolumes, setSelectedVolumes] = useState<string[]>([]);
+  const [includeProjectFolders, setIncludeProjectFolders] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const activeScanIdRef = useRef<string | null>(null);
+  const scanStartedAtRef = useRef<number | null>(null);
 
   const tauriInvoke = async (command: string, payload: Record<string, unknown> = {}) => {
     try {
@@ -73,42 +81,89 @@ export function useDeco() {
     [settings],
   );
 
+  const applySettings = useCallback((raw: unknown) => {
+    const s = normalizeSettings(raw);
+    setSettings(s);
+    setSelectedVolumes(s.selected_volumes ?? []);
+    setIncludeProjectFolders(s.include_project_folders ?? true);
+  }, []);
+
   const loadSettings = useCallback(async () => {
     try {
-      const s = (await tauriInvoke('get_settings')) as Settings;
-      setSettings(s);
+      const s = await tauriInvoke('get_settings');
+      applySettings(s);
     } catch {
       /* surfaced via tauriInvoke */
     }
+  }, [applySettings]);
+
+  const finishScan = useCallback(() => {
+    setScanning(false);
+    activeScanIdRef.current = null;
+    scanStartedAtRef.current = null;
   }, []);
 
   const cancelScan = async () => {
-    if (!scanId) return;
+    const id = activeScanIdRef.current ?? scanId;
+    if (!id) {
+      finishScan();
+      setProgress({ percent: 0, text: 'Ready' });
+      return;
+    }
     try {
-      await tauriInvoke('cancel_scan', { scan_id: scanId });
+      await invoke('cancel_scan', { scanId: id });
       setStatus({ text: 'Cancel requested…', type: 'active' });
-    } catch {
-      /* surfaced via tauriInvoke */
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+      finishScan();
+      setProgress({ percent: 0, text: 'Scan stopped' });
     }
   };
 
   const scan = async (scanSettings?: Partial<Settings>) => {
-    if (busy) return;
-    setBusy(true);
+    if (scanning) return null;
+    if (!settings) {
+      setError('Settings are still loading. Try again in a moment.');
+      return null;
+    }
+
+    const volumes = readSelectedVolumes({
+      selected_volumes: scanSettings?.selected_volumes ?? selectedVolumes,
+    });
+    if (volumes.length === 0) {
+      setError('Select at least one partition to scan.');
+      setStatus({ text: 'No partition selected', type: 'error' });
+      return null;
+    }
+
+    const activeSettings: Settings = {
+      ...normalizeSettings(settings),
+      ...scanSettings,
+      selected_volumes: volumes,
+      include_project_folders:
+        scanSettings?.include_project_folders ?? includeProjectFolders,
+    };
+
+    setScanning(true);
     setError(null);
     setCandidates([]);
     setCandidateMap(new Map());
     setSelectedIds(new Set());
-    setProgress({ percent: 2, text: 'Initializing...' });
-    setStatus({ text: 'Preparing Scan...', type: 'active' });
+    setSummary(null);
+    setProgress({ percent: 2, text: 'Starting scan…' });
+    setStatus({ text: 'Scan running in background', type: 'active' });
 
     try {
-      const activeSettings = { ...settings, ...scanSettings } as Settings;
+      await invoke('save_settings', { settings: activeSettings });
+      applySettings(activeSettings);
+
       const req = {
-        roots: activeSettings.roots,
+        roots: [] as string[],
         max_depth: Number(activeSettings.max_depth),
         profile: activeSettings.profile,
-        include_size: activeSettings.include_size,
+        // Always compute directory sizes on desktop so candidates and summary show real bytes.
+        include_size: true,
         stale_days: Number(activeSettings.stale_days),
         show_blocked: activeSettings.show_blocked,
         check_go_cache: activeSettings.check_go_cache,
@@ -123,26 +178,24 @@ export function useDeco() {
         allow_path_contains: activeSettings.allow_path_contains ?? [],
       };
 
-      const report = (await tauriInvoke('scan_roots', { req })) as ScanReport;
-      setScanId(report.scan_id);
-      setCandidates(report.candidates);
-      setCandidateMap(new Map(report.candidates.map((c) => [c.id, c])));
-      setSelectedIds(new Set(report.candidates.filter((c) => c.risk === 'safe').map((c) => c.id)));
-      setSummary(report);
-      setProgress({ percent: 100, text: 'Done' });
-      const canceled = (report.warnings ?? []).some((w) => w.toLowerCase().includes('canceled'));
-      setStatus({
-        text: canceled
-          ? `Scan canceled: ${report.candidates.length} partial items.`
-          : `Scan complete: ${report.candidates.length} items.`,
-        type: 'done',
-      });
-      await refreshHistory();
-      return report;
+      const started = (await invoke('start_scan', { req })) as {
+        scan_id?: string;
+        scanId?: string;
+      };
+      const id = started.scanId ?? started.scan_id ?? '';
+      if (!id) {
+        setScanning(false);
+        setError('Scan failed to start (no scan id returned).');
+        return null;
+      }
+      activeScanIdRef.current = id;
+      scanStartedAtRef.current = Date.now();
+      setScanId(id);
+      return { scan_id: id };
     } catch {
+      finishScan();
+      setProgress({ percent: 0, text: 'Ready' });
       return null;
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -152,6 +205,7 @@ export function useDeco() {
     deleteMode = 'quarantine',
   ): Promise<ExecutePreviewResponse | null> => {
     if (!summary?.scan_id) return null;
+    setBusy(true);
     try {
       return (await tauriInvoke('preview_execute', {
         req: {
@@ -163,6 +217,8 @@ export function useDeco() {
       })) as ExecutePreviewResponse;
     } catch {
       return null;
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -172,6 +228,7 @@ export function useDeco() {
     deleteMode = 'quarantine',
   ): Promise<ExecuteResponse | null> => {
     if (!summary?.scan_id) return null;
+    setBusy(true);
     try {
       const result = (await tauriInvoke('execute_cleanup_command', {
         req: {
@@ -191,6 +248,8 @@ export function useDeco() {
       return result;
     } catch {
       return null;
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -214,12 +273,15 @@ export function useDeco() {
 
   const bulkRestoreQuarantine = async (ids: string[]): Promise<BulkRestoreResponse | null> => {
     if (ids.length === 0) return null;
+    setBusy(true);
     try {
       const result = (await tauriInvoke('restore_quarantine_bulk', { ids })) as BulkRestoreResponse;
       await refreshQuarantine();
       return result;
     } catch {
       return null;
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -246,12 +308,26 @@ export function useDeco() {
   useEffect(() => {
     const unlistenProgress = listen('scan-progress', (event) => {
       const payload = (event.payload || {}) as Record<string, unknown>;
+      const eventScanId = (payload.scan_id ?? payload.scanId) as string | undefined;
+      if (eventScanId && activeScanIdRef.current && eventScanId !== activeScanIdRef.current) return;
+
       const phase = payload.phase as string | undefined;
       let percent = 0;
       const text = (payload.message as string) || 'Scanning...';
 
-      if (phase === 'discover') percent = 5;
-      else if (phase === 'classify') percent = 20;
+      if (phase === 'discover') {
+        const scanned = Number(payload.scanned_dirs ?? 0);
+        const found = Number(payload.discovered_targets ?? 0);
+        percent = Math.min(18, 5 + Math.log10(scanned + 10) * 3);
+        if (!payload.message) {
+          setProgress({
+            percent,
+            text: `Scanning directories… ${scanned} scanned, ${found} found`,
+          });
+          setStatus({ text: `Scanning… ${scanned} dirs`, type: 'active' });
+          return;
+        }
+      } else if (phase === 'classify') percent = 20;
       else if (phase === 'size') {
         const total = Number(payload.total_size_candidates || 0);
         const done = Number(payload.processed_sizes || 0);
@@ -263,20 +339,80 @@ export function useDeco() {
     });
 
     const unlistenBatch = listen('scan-candidate-batch', (event) => {
-      const payload = (event.payload || {}) as { candidates?: Candidate[] };
-      const batch = payload.candidates || [];
+      const payload = (event.payload || {}) as {
+        scan_id?: string;
+        scanId?: string;
+        candidates?: Candidate[];
+      };
+      const eventScanId = payload.scan_id ?? payload.scanId;
+      if (eventScanId && activeScanIdRef.current && eventScanId !== activeScanIdRef.current) return;
+      const batch = (payload.candidates || []).map(normalizeCandidate);
       setCandidateMap((prev) => {
         const next = new Map(prev);
-        batch.forEach((c) => next.set(c.id, c));
+        batch.forEach((c) => {
+          if (c.id) next.set(c.id, c);
+        });
         return next;
       });
+    });
+
+    const unlistenComplete = listen('scan-complete', (event) => {
+      try {
+        const report = normalizeScanReport(event.payload);
+        if (!report.scan_id) {
+          finishScan();
+          setProgress({ percent: 0, text: 'Ready' });
+          return;
+        }
+        if (activeScanIdRef.current && report.scan_id !== activeScanIdRef.current) return;
+
+        const list = report.candidates ?? [];
+        setScanId(report.scan_id);
+        setCandidates(list);
+        setCandidateMap(new Map(list.filter((c) => c.id).map((c) => [c.id, c])));
+        setSelectedIds(new Set(list.filter((c) => c.risk === 'safe' && c.id).map((c) => c.id)));
+        setSummary(report);
+        setProgress({ percent: 100, text: 'Done' });
+        const canceled = (report.warnings ?? []).some((w) => w.toLowerCase().includes('cancel'));
+        const bytes = report.total_bytes ?? 0;
+        const sizeHint = bytes > 0 ? ` · ${formatBytes(bytes)}` : '';
+        const startedAt = scanStartedAtRef.current;
+        const elapsedMs = startedAt != null ? Date.now() - startedAt : null;
+        const timeHint = elapsedMs != null ? ` · ${formatDurationMs(elapsedMs)}` : '';
+        setStatus({
+          text: canceled
+            ? `Scan canceled: ${list.length} partial items${sizeHint}${timeHint}.`
+            : `Scan complete: ${list.length} items${sizeHint}${timeHint}.`,
+          type: 'done',
+        });
+        finishScan();
+        void refreshHistory();
+      } catch (err) {
+        console.error('[Deco] scan-complete handler failed', err);
+        setError(err instanceof Error ? err.message : 'Failed to process scan results.');
+        finishScan();
+        setProgress({ percent: 0, text: 'Ready' });
+      }
+    });
+
+    const unlistenError = listen('scan-error', (event) => {
+      const payload = event.payload as { scan_id?: string; scanId?: string; message?: string };
+      const eventScanId = payload.scan_id ?? payload.scanId;
+      if (eventScanId && activeScanIdRef.current && eventScanId !== activeScanIdRef.current) return;
+      const msg = payload.message || 'Scan failed';
+      setError(msg);
+      setStatus({ text: `Error: ${msg}`, type: 'error' });
+      finishScan();
+      setProgress({ percent: 0, text: 'Ready' });
     });
 
     return () => {
       unlistenProgress.then((u) => u());
       unlistenBatch.then((u) => u());
+      unlistenComplete.then((u) => u());
+      unlistenError.then((u) => u());
     };
-  }, []);
+  }, [refreshHistory, finishScan]);
 
   useEffect(() => {
     setCandidates(Array.from(candidateMap.values()));
@@ -284,6 +420,7 @@ export function useDeco() {
 
   return {
     scanId,
+    scanning,
     candidates,
     selectedIds,
     setSelectedIds,
@@ -294,6 +431,10 @@ export function useDeco() {
     quarantine,
     history,
     settings,
+    selectedVolumes,
+    setSelectedVolumes,
+    includeProjectFolders,
+    setIncludeProjectFolders,
     error,
     setError,
     scan,

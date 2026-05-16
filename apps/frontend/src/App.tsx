@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 import {
   LayoutDashboard,
   ShieldAlert,
@@ -17,10 +18,14 @@ import {
 import { useDeco } from './hooks/use-deco';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
+import { PartitionPicker } from './components/PartitionPicker';
+import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
 import { TitleBar } from './components/TitleBar';
 import { DecoLogo } from './components/DecoLogo';
 import { formatBytes } from './lib/format';
+import { volumesFromRoots } from './lib/scan-report';
+import { normalizeSettings } from './lib/settings-normalize';
 import type { ExecutePreviewResponse, WizardStep } from './types';
 import { 
   Card, 
@@ -59,6 +64,7 @@ export default function App() {
     candidates,
     selectedIds,
     setSelectedIds,
+    scanning,
     busy,
     progress,
     status,
@@ -69,6 +75,10 @@ export default function App() {
     error,
     setError,
     loadSettings,
+    selectedVolumes,
+    setSelectedVolumes,
+    includeProjectFolders,
+    setIncludeProjectFolders,
     refreshQuarantine,
     previewCleanup,
     executeCleanup,
@@ -77,7 +87,6 @@ export default function App() {
     purgeQuarantine,
     tauriInvoke,
     cancelScan,
-    scanId,
   } = useDeco();
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -92,11 +101,50 @@ export default function App() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [plannerGb, setPlannerGb] = useState(settings?.default_target_gb ?? 10);
   const [plannerMessage, setPlannerMessage] = useState<string | null>(null);
+  const [scanTargetsModalOpen, setScanTargetsModalOpen] = useState(false);
+  const [scanTargetsAfterWizard, setScanTargetsAfterWizard] = useState(false);
+
+  const hasPartitionsSelected = selectedVolumes.length > 0;
+
+  const runScan = async (afterWizard = false) => {
+    const started = await scan({
+      selected_volumes: selectedVolumes,
+      include_project_folders: includeProjectFolders,
+    });
+    if (started && afterWizard) {
+      setWizardOpen(true);
+      setWizardStep('scanning');
+    }
+  };
+
+  const requestScan = (opts?: { wizard?: boolean }) => {
+    if (scanning) return;
+    if (!hasPartitionsSelected) {
+      setScanTargetsAfterWizard(!!opts?.wizard);
+      if (opts?.wizard) setWizardOpen(true);
+      setScanTargetsModalOpen(true);
+      return;
+    }
+    if (opts?.wizard) {
+      setWizardOpen(true);
+      setWizardStep('scanning');
+    }
+    void runScan(!!opts?.wizard);
+  };
+
+  const scanScopeLabel =
+    settings?.scan_scope === 'projects'
+      ? 'project folders'
+      : settings?.scan_scope === 'drives'
+        ? 'local drives'
+        : 'projects + drives';
 
   const filteredCandidates = candidates
     .filter(c => {
-      const matchesSearch = c.abs_path.toLowerCase().includes(search.toLowerCase()) || 
-                             c.kind.toLowerCase().includes(search.toLowerCase());
+      const path = (c.abs_path ?? '').toLowerCase();
+      const kind = String(c.kind ?? '').toLowerCase();
+      const q = search.toLowerCase();
+      const matchesSearch = path.includes(q) || kind.includes(q);
       const matchesRisk = riskFilter === 'all' || c.risk === riskFilter;
       return matchesSearch && matchesRisk;
     })
@@ -127,7 +175,7 @@ export default function App() {
   };
 
   const openCleanupPreview = async () => {
-    if (busy || !summary?.scan_id || selectedIds.size === 0) return;
+    if (scanning || busy || !summary?.scan_id || selectedIds.size === 0) return;
     setPreviewOpen(true);
     setPreviewLoading(true);
     setPreview(null);
@@ -210,7 +258,12 @@ export default function App() {
               }`} />
               <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Status</span>
             </div>
-            <p className="text-xs truncate font-medium">{status.text}</p>
+            <p
+              className="text-xs font-medium min-w-0 break-words leading-snug"
+              title={status.text}
+            >
+              {status.text}
+            </p>
           </div>
         </aside>
 
@@ -233,19 +286,19 @@ export default function App() {
               >
                 <Sparkles size={16} /> Free up space
               </Button>
-              {busy ? (
-                <Button variant="destructive" className="gap-2" onClick={() => cancelScan()} disabled={!scanId}>
-                  <X size={16} /> Cancel
+              {scanning ? (
+                <Button variant="destructive" className="gap-2" onClick={() => cancelScan()}>
+                  <X size={16} /> Stop scan
                 </Button>
               ) : (
-                <Button variant="default" className="gap-2 font-semibold px-6" onClick={() => scan()}>
+                <Button variant="default" className="gap-2 font-semibold px-6" onClick={() => requestScan()}>
                   <Play size={16} fill="currentColor" /> Scan Now
                 </Button>
               )}
               <Button
                 variant="outline"
                 className="gap-2 border-primary/20 hover:border-primary/50 text-primary"
-                disabled={selectedIds.size === 0 || busy}
+                disabled={selectedIds.size === 0 || scanning || busy}
                 onClick={openCleanupPreview}
               >
                 <Trash2 size={16} /> Clean selected…
@@ -256,7 +309,37 @@ export default function App() {
           <ScrollArea className="flex-1">
             <div className="px-8 py-6 max-w-7xl mx-auto space-y-6 pb-12">
               <TabsContent value="dashboard" className="m-0 space-y-6">
-                {!summary && !busy && (
+                <PartitionPicker
+                  selectedVolumes={selectedVolumes}
+                  includeProjectFolders={includeProjectFolders}
+                  onSelectedVolumesChange={(mounts) => {
+                    setSelectedVolumes(mounts);
+                    if (settings && !scanning) {
+                      void invoke('save_settings', {
+                        settings: {
+                          ...normalizeSettings(settings),
+                          selected_volumes: mounts,
+                          include_project_folders: includeProjectFolders,
+                        },
+                      }).catch(() => undefined);
+                    }
+                  }}
+                  onIncludeProjectFoldersChange={(value) => {
+                    setIncludeProjectFolders(value);
+                    if (settings && !scanning) {
+                      void invoke('save_settings', {
+                        settings: {
+                          ...normalizeSettings(settings),
+                          selected_volumes: selectedVolumes,
+                          include_project_folders: value,
+                        },
+                      }).catch(() => undefined);
+                    }
+                  }}
+                  disabled={scanning}
+                />
+
+                {!summary && !scanning && (
                   <Card className="border-primary/20 bg-primary/5">
                     <CardContent className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
@@ -280,9 +363,9 @@ export default function App() {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <StatCard label="Safe" value={formatBytes(summary?.totals_by_risk.safe.bytes)} count={summary?.totals_by_risk.safe.count} color="text-primary" />
-                  <StatCard label="Review" value={formatBytes(summary?.totals_by_risk.review.bytes)} count={summary?.totals_by_risk.review.count} color="text-amber-500" />
-                  <StatCard label="Blocked" value={formatBytes(summary?.totals_by_risk.blocked.bytes)} count={summary?.totals_by_risk.blocked.count} color="text-destructive" />
+                  <StatCard label="Safe" value={formatBytes(summary?.totals_by_risk?.safe?.bytes)} count={summary?.totals_by_risk?.safe?.count} color="text-primary" />
+                  <StatCard label="Review" value={formatBytes(summary?.totals_by_risk?.review?.bytes)} count={summary?.totals_by_risk?.review?.count} color="text-amber-500" />
+                  <StatCard label="Blocked" value={formatBytes(summary?.totals_by_risk?.blocked?.bytes)} count={summary?.totals_by_risk?.blocked?.count} color="text-destructive" />
                   <StatCard label="Total Reclaimable" value={formatBytes(summary?.total_bytes)} count={candidates.length} color="text-foreground" />
                 </div>
 
@@ -494,7 +577,16 @@ export default function App() {
                                   className="h-8 font-semibold"
                                   onClick={() => {
                                     setActiveTab('dashboard');
-                                    scan({ roots: item.roots, profile: item.profile, stale_days: item.stale_days });
+                                    const volumes = volumesFromRoots(item.roots);
+                                    if (volumes.length === 0) {
+                                      setError('Could not map history roots to drive letters.');
+                                      return;
+                                    }
+                                    void scan({
+                                      selected_volumes: volumes,
+                                      profile: item.profile,
+                                      stale_days: item.stale_days,
+                                    });
                                   }}
                                 >
                                   Reuse Config
@@ -524,12 +616,53 @@ export default function App() {
                     <CardContent className="space-y-8">
                       <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scanning Roots (paths/line)</label>
-                          <textarea 
+                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scan scope</label>
+                          <Select
+                            defaultValue={settings?.scan_scope || 'all'}
+                            onValueChange={(v) => {
+                              const el = document.getElementById('scanScopeSelect');
+                              if (el) el.setAttribute('data-scope', v);
+                            }}
+                          >
+                            <SelectTrigger className="bg-background/50" id="scanScopeSelect" data-scope={settings?.scan_scope || 'all'}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All — dev folders + drives (recommended)</SelectItem>
+                              <SelectItem value="projects">Projects — profile folders only</SelectItem>
+                              <SelectItem value="drives">Drives — partition roots (C:\, D:\, …)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-4 block">
+                            Scanning roots (one path per line)
+                          </label>
+                          <textarea
+                            key={settings?.roots.join('|') ?? 'empty'}
                             className="w-full h-32 bg-background/50 border rounded-md p-3 font-mono text-xs focus:ring-1 focus:ring-primary outline-none resize-none"
                             defaultValue={settings?.roots.join('\n')}
                             id="rootsInput"
                           />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={async () => {
+                              const el = document.getElementById('scanScopeSelect');
+                              const scope = el?.getAttribute('data-scope') ?? settings?.scan_scope ?? 'all';
+                              const roots = (await tauriInvoke('suggest_scan_roots_command', {
+                                scope,
+                              })) as string[];
+                              const rootsInput = document.getElementById('rootsInput') as HTMLTextAreaElement;
+                              if (rootsInput) rootsInput.value = roots.join('\n');
+                            }}
+                          >
+                            Reset to suggested paths
+                          </Button>
+                          <p className="text-[10px] text-muted-foreground">
+                            Partition-wide scans skip into heavy folders (node_modules, target, …) for speed. Turn off
+                            size calculation below for faster discovery.
+                          </p>
                         </div>
                         <div className="space-y-6">
                           <div className="space-y-2">
@@ -616,8 +749,12 @@ export default function App() {
                         <Button variant="ghost" onClick={() => loadSettings()}>Discard Changes</Button>
                         <Button
                           className="font-bold px-8"
-                          onClick={() => {
+                          onClick={async () => {
                             const rootsInput = document.getElementById('rootsInput') as HTMLTextAreaElement;
+                            const scanScope =
+                              document.getElementById('scanScopeSelect')?.getAttribute('data-scope') ??
+                              settings?.scan_scope ??
+                              'all';
                             const checkGoCache =
                               (document.getElementById('checkGoCache') as HTMLInputElement)?.checked ?? false;
                             const includeSize =
@@ -628,10 +765,11 @@ export default function App() {
                               (document.getElementById('checkIdeGlobalCache') as HTMLInputElement)?.checked ?? false;
                             const includePythonVenv =
                               (document.getElementById('includePythonVenv') as HTMLInputElement)?.checked ?? false;
-                            tauriInvoke('save_settings', {
+                            await tauriInvoke('save_settings', {
                               settings: {
                                 ...settings,
                                 roots: rootsInput.value.split('\n').filter(Boolean),
+                                scan_scope: scanScope,
                                 check_go_cache: checkGoCache,
                                 include_size: includeSize,
                                 check_jvm_global_cache: checkJvmGlobalCache,
@@ -639,6 +777,7 @@ export default function App() {
                                 include_python_venv: includePythonVenv,
                               },
                             });
+                            await loadSettings();
                           }}
                         >
                           Save Changes
@@ -652,17 +791,20 @@ export default function App() {
 
           <footer className="h-14 border-t px-8 flex items-center gap-6 bg-background/80 backdrop-blur-md">
              <div className="flex items-center gap-2 min-w-[120px]">
-               <Play size={12} className={busy ? 'animate-spin text-primary' : 'text-muted-foreground'} />
+               <Play size={12} className={scanning ? 'animate-spin text-primary' : 'text-muted-foreground'} />
                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition-all duration-300">
                  {progress.text}
                </span>
              </div>
              <div className="flex-1 relative">
-               <Progress value={progress.percent} className={`h-2 overflow-hidden ${busy ? 'shimmer-progress' : ''}`} />
+               <Progress value={progress.percent} className={`h-2 overflow-hidden ${scanning ? 'shimmer-progress' : ''}`} />
              </div>
              <div className="min-w-[40px] text-right">
                <span className="text-xs font-mono font-bold tracking-tighter">{progress.percent.toFixed(0)}%</span>
              </div>
+             <span className="text-[9px] text-muted-foreground/50 font-mono" title="Frontend build marker">
+               ui-2026-05-15h
+             </span>
           </footer>
         </div>
       </Tabs>
@@ -673,16 +815,24 @@ export default function App() {
           step={wizardStep}
           onClose={() => setWizardOpen(false)}
           onStepChange={setWizardStep}
-          onStartScan={() => scan()}
+          onStartScan={() => requestScan({ wizard: true })}
           onOpenPreview={() => {
             setWizardOpen(false);
             openCleanupPreview();
           }}
-          busy={busy}
+          onConfigurePaths={() => {
+            setWizardOpen(false);
+            setActiveTab('settings');
+          }}
+          scanning={scanning}
           progress={progress}
           summary={summary}
           selectedCount={selectedIds.size}
-          safeBytes={summary?.totals_by_risk.safe.bytes ?? 0}
+          safeBytes={summary?.totals_by_risk?.safe?.bytes ?? 0}
+          scanRootCount={
+            selectedVolumes.length + (includeProjectFolders ? 1 : 0)
+          }
+          scanScopeLabel={scanScopeLabel}
         />
       )}
 
@@ -697,6 +847,25 @@ export default function App() {
           onConfirm={confirmCleanup}
         />
       )}
+
+      <ScanTargetsModal
+        open={scanTargetsModalOpen}
+        onClose={() => setScanTargetsModalOpen(false)}
+        selectedVolumes={selectedVolumes}
+        includeProjectFolders={includeProjectFolders}
+        onSelectedVolumesChange={setSelectedVolumes}
+        onIncludeProjectFoldersChange={setIncludeProjectFolders}
+        onConfirm={() => {
+          if (selectedVolumes.length === 0) return;
+          setScanTargetsModalOpen(false);
+          if (scanTargetsAfterWizard) {
+            setWizardOpen(true);
+            setWizardStep('scanning');
+          }
+          void runScan(scanTargetsAfterWizard);
+          setScanTargetsAfterWizard(false);
+        }}
+      />
 
       {error && (
         <div className="fixed bottom-20 right-8 max-w-md bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl animate-in fade-in slide-in-from-bottom-5 border-2 border-white/10 z-50">

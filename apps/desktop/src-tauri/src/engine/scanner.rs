@@ -10,8 +10,47 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Arc;
 use walkdir::WalkDir;
+
+/// Directory names skipped during discovery (saves walking Program Files, Windows, etc.).
+const VOLUME_SKIP_DIR_NAMES: &[&str] = &[
+    "Windows",
+    "Program Files",
+    "Program Files (x86)",
+    "$Recycle.Bin",
+    "System Volume Information",
+    "Recovery",
+    "PerfLogs",
+    "Config.Msi",
+    "MSOCache",
+    "Boot",
+    "efi",
+    "OneDriveTemp",
+    "Intel",
+    "AMD",
+    "NVIDIA",
+    "WindowsApps",
+];
+
+pub type DiscoverProgressCallback = Arc<dyn Fn(u64, usize, &str) + Send + Sync>;
+
+fn should_skip_volume_system_dir(dir_name: &str) -> bool {
+    let lower = dir_name.to_lowercase();
+    VOLUME_SKIP_DIR_NAMES
+        .iter()
+        .any(|n| lower == n.to_lowercase())
+}
+
+fn path_dedupe_key(p: &Path) -> String {
+    let s = p.to_string_lossy().replace('/', "\\");
+    if cfg!(windows) {
+        s.to_lowercase()
+    } else {
+        s
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveredTarget {
@@ -177,11 +216,10 @@ fn dedupe_targets_by_canonical_path(
     targets: Vec<DiscoveredTarget>,
     warnings: &mut Vec<String>,
 ) -> Vec<DiscoveredTarget> {
-    let mut seen: HashSet<PathBuf> = HashSet::new();
+    let mut seen: HashSet<String> = HashSet::new();
     let mut out = Vec::with_capacity(targets.len());
     for t in targets {
-        let p = Path::new(&t.abs_path);
-        let key = std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+        let key = path_dedupe_key(Path::new(&t.abs_path));
         if seen.insert(key) {
             out.push(t);
         } else {
@@ -194,6 +232,128 @@ fn dedupe_targets_by_canonical_path(
     out
 }
 
+struct RootDiscovery {
+    targets: Vec<DiscoveredTarget>,
+    scanned_dirs: u64,
+    warnings: Vec<String>,
+    canceled: bool,
+}
+
+fn discover_under_root(
+    root: &str,
+    max_depth: u32,
+    profile: &str,
+    excludes: &[String],
+    policy: &PathPolicy,
+    eco: EcosystemScanOptions,
+    extra_names: &ExtraDiscoverNames,
+    cancel: Option<&AtomicBool>,
+    progress: Option<&DiscoverProgressCallback>,
+    total_scanned: &AtomicU64,
+) -> RootDiscovery {
+    let mut warnings = vec![];
+    let mut scanned_dirs = 0u64;
+    let mut targets = vec![];
+    let mut canceled = false;
+
+    let root_path = PathBuf::from(root);
+    if !root_path.exists() {
+        warnings.push(format!("Root does not exist: {root}"));
+        return RootDiscovery {
+            targets,
+            scanned_dirs,
+            warnings,
+            canceled,
+        };
+    }
+
+    let mut walker = WalkDir::new(&root_path)
+        .max_depth((max_depth + 1) as usize)
+        .follow_links(false)
+        .into_iter();
+
+    const PROGRESS_EVERY: u64 = 800;
+
+    while let Some(entry_result) = walker.next() {
+        if cancel.is_some_and(|t| t.load(Ordering::Relaxed)) {
+            canceled = true;
+            warnings.push("Scan canceled during discovery.".to_string());
+            break;
+        }
+
+        let entry = match entry_result {
+            Ok(entry) => entry,
+            Err(err) => {
+                warnings.push(format!(
+                    "Walk error under {}: {}",
+                    err.path()
+                        .map(|p| p.display().to_string())
+                        .unwrap_or_else(|| "?".into()),
+                    err
+                ));
+                continue;
+            }
+        };
+
+        if entry.file_type().is_dir() {
+            let abs = entry.path().to_string_lossy().to_string();
+            if policy.should_prune(&abs) {
+                walker.skip_current_dir();
+                continue;
+            }
+            if excludes.iter().any(|pattern| abs.contains(pattern)) {
+                walker.skip_current_dir();
+                continue;
+            }
+        }
+
+        if !entry.file_type().is_dir() {
+            continue;
+        }
+
+        let dir_name = entry.file_name().to_string_lossy().to_string();
+
+        if should_skip_volume_system_dir(&dir_name) {
+            walker.skip_current_dir();
+            continue;
+        }
+
+        scanned_dirs += 1;
+        let total = total_scanned.fetch_add(1, Ordering::Relaxed) + 1;
+
+        if let Some(kind) = detect_kind(entry.path(), &dir_name, profile, extra_names, eco) {
+            let abs = entry.path().to_string_lossy().to_string();
+            let mtime_ms = std::fs::metadata(entry.path())
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|d| d.as_millis() as i64);
+            targets.push(DiscoveredTarget {
+                kind,
+                abs_path: abs,
+                mtime_ms,
+            });
+        }
+
+        if should_skip_descent(&dir_name) {
+            walker.skip_current_dir();
+        }
+
+        if total % PROGRESS_EVERY == 0 {
+            if let Some(cb) = progress {
+                cb(total, targets.len(), root);
+            }
+        }
+    }
+
+    RootDiscovery {
+        targets,
+        scanned_dirs,
+        warnings,
+        canceled,
+    }
+}
+
 pub fn discover_targets(
     roots: &[String],
     max_depth: u32,
@@ -204,6 +364,7 @@ pub fn discover_targets(
     check_go_cache: bool,
     extra_names: &ExtraDiscoverNames,
     cancel: Option<&AtomicBool>,
+    progress: Option<DiscoverProgressCallback>,
 ) -> DiscoveryResult {
     let mut warnings = vec![];
     let mut scanned_dirs = 0u64;
@@ -211,81 +372,50 @@ pub fn discover_targets(
     let mut canceled = false;
 
     let roots_only = dedupe_roots(roots);
+    let total_scanned = AtomicU64::new(0);
 
-    for root in roots_only {
-        let root_path = PathBuf::from(&root);
-        if !root_path.exists() {
-            warnings.push(format!("Root does not exist: {root}"));
-            continue;
+    if roots_only.len() > 1 {
+        use rayon::prelude::*;
+        let partials: Vec<RootDiscovery> = roots_only
+            .par_iter()
+            .map(|root| {
+                discover_under_root(
+                    root,
+                    max_depth,
+                    profile,
+                    excludes,
+                    policy,
+                    eco,
+                    extra_names,
+                    cancel,
+                    progress.as_ref(),
+                    &total_scanned,
+                )
+            })
+            .collect();
+        for part in partials {
+            scanned_dirs += part.scanned_dirs;
+            all_targets.extend(part.targets);
+            warnings.extend(part.warnings);
+            canceled |= part.canceled;
         }
-
-        let mut walker = WalkDir::new(&root_path)
-            .max_depth((max_depth + 1) as usize)
-            .follow_links(false)
-            .into_iter();
-
-        while let Some(entry_result) = walker.next() {
-            if cancel.is_some_and(|t| t.load(Ordering::Relaxed)) {
-                canceled = true;
-                warnings.push("Scan canceled during discovery.".to_string());
-                break;
-            }
-
-            let entry = match entry_result {
-                Ok(entry) => entry,
-                Err(err) => {
-                    warnings.push(format!(
-                        "Walk error under {}: {}",
-                        err.path()
-                            .map(|p| p.display().to_string())
-                            .unwrap_or_else(|| "?".into()),
-                        err
-                    ));
-                    continue;
-                }
-            };
-
-            if entry.file_type().is_dir() {
-                let abs = entry.path().to_string_lossy().to_string();
-                if policy.should_prune(&abs) {
-                    walker.skip_current_dir();
-                    continue;
-                }
-                if excludes.iter().any(|pattern| abs.contains(pattern)) {
-                    walker.skip_current_dir();
-                    continue;
-                }
-            }
-
-            if !entry.file_type().is_dir() {
-                continue;
-            }
-
-            scanned_dirs += 1;
-            let dir_name = entry.file_name().to_string_lossy().to_string();
-
-            if let Some(kind) = detect_kind(entry.path(), &dir_name, profile, extra_names, eco) {
-                let abs = entry.path().to_string_lossy().to_string();
-                let mtime_ms = std::fs::metadata(entry.path())
-                    .ok()
-                    .and_then(|m| m.modified().ok())
-                    .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-                    .map(|d| d.as_millis() as i64);
-                all_targets.push(DiscoveredTarget {
-                    kind,
-                    abs_path: abs,
-                    mtime_ms,
-                });
-            }
-
-            if should_skip_descent(&dir_name) {
-                walker.skip_current_dir();
-            }
-        }
-
-        if canceled {
-            break;
-        }
+    } else if let Some(root) = roots_only.first() {
+        let part = discover_under_root(
+            root,
+            max_depth,
+            profile,
+            excludes,
+            policy,
+            eco,
+            extra_names,
+            cancel,
+            progress.as_ref(),
+            &total_scanned,
+        );
+        scanned_dirs = part.scanned_dirs;
+        all_targets = part.targets;
+        warnings = part.warnings;
+        canceled = part.canceled;
     }
 
     if check_go_cache && !canceled {
@@ -390,6 +520,7 @@ mod tests {
             false,
             &ExtraDiscoverNames::default(),
             None,
+            None,
         );
 
         assert!(result
@@ -421,6 +552,7 @@ mod tests {
             false,
             &ExtraDiscoverNames::default(),
             None,
+            None,
         );
 
         assert!(result.targets.iter().any(|t| {
@@ -449,6 +581,7 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            None,
             None,
         );
 
@@ -490,6 +623,7 @@ mod tests {
             false,
             &ExtraDiscoverNames::default(),
             None,
+            None,
         );
 
         assert!(result.targets.iter().any(|t| t.kind == Kind::NodeModules));
@@ -520,6 +654,7 @@ mod tests {
             false,
             &ExtraDiscoverNames::default(),
             Some(&cancel),
+            None,
         );
 
         assert!(result.canceled);
@@ -539,6 +674,7 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            None,
             None,
         );
         assert!(!result
@@ -562,6 +698,7 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            None,
             None,
         );
 
@@ -594,6 +731,7 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            None,
             None,
         );
 
@@ -630,6 +768,7 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            None,
             None,
         );
 

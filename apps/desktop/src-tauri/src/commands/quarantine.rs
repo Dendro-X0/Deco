@@ -7,19 +7,20 @@ use crate::engine::types::{
 use crate::state::AppState;
 use chrono::{Duration, Utc};
 use std::path::Path;
+use std::sync::Arc;
 use tauri::State;
 
 #[tauri::command]
-pub fn list_quarantine(state: State<AppState>) -> Result<Vec<QuarantineEntry>, String> {
-    list_quarantine_core(&state)
+pub fn list_quarantine(state: State<Arc<AppState>>) -> Result<Vec<QuarantineEntry>, String> {
+    list_quarantine_core(state.inner())
 }
 
 #[tauri::command]
 pub fn list_quarantine_filtered(
     filter: QuarantineFilterRequest,
-    state: State<AppState>,
+    state: State<Arc<AppState>>,
 ) -> Result<Vec<QuarantineEntry>, String> {
-    let entries = list_quarantine_core(&state)?;
+    let entries = list_quarantine_core(state.inner())?;
     let now = Utc::now();
     let query = filter.query.unwrap_or_default().to_lowercase();
     let from = filter
@@ -81,16 +82,16 @@ pub(crate) fn list_quarantine_core(state: &AppState) -> Result<Vec<QuarantineEnt
 }
 
 #[tauri::command]
-pub fn restore_quarantine(id: String, state: State<AppState>) -> Result<String, String> {
-    restore_quarantine_core(id, &state)
+pub fn restore_quarantine(id: String, state: State<Arc<AppState>>) -> Result<String, String> {
+    restore_quarantine_core(id, state.inner())
 }
 
 #[tauri::command]
 pub fn restore_quarantine_bulk(
     ids: Vec<String>,
-    state: State<AppState>,
+    state: State<Arc<AppState>>,
 ) -> Result<BulkRestoreResponse, String> {
-    restore_quarantine_bulk_core(ids, &state)
+    restore_quarantine_bulk_core(ids, state.inner())
 }
 
 pub(crate) fn restore_quarantine_bulk_core(
@@ -102,7 +103,7 @@ pub(crate) fn restore_quarantine_bulk_core(
     let mut errors = Vec::new();
 
     for id in ids {
-        match restore_quarantine_core(id.clone(), &state) {
+        match restore_quarantine_core(id.clone(), state) {
             Ok(path) => restored_paths.push(path),
             Err(e) => {
                 failed_ids.push(id);
@@ -154,9 +155,9 @@ pub(crate) fn restore_quarantine_core(id: String, state: &AppState) -> Result<St
 #[tauri::command]
 pub fn purge_quarantine(
     retention_days: u32,
-    state: State<AppState>,
+    state: State<Arc<AppState>>,
 ) -> Result<PurgeResponse, String> {
-    purge_quarantine_core(retention_days, &state)
+    purge_quarantine_core(retention_days, state.inner())
 }
 
 pub(crate) fn purge_quarantine_core(
