@@ -3,12 +3,12 @@ import type { Candidate, RiskLevel } from '../types';
 export type CandidateSortColumn = 'size' | 'kind' | 'risk' | 'path';
 export type SortDirection = 'asc' | 'desc';
 
-export type CandidateSortRule = {
+export type CandidateSortState = {
   column: CandidateSortColumn;
   dir: SortDirection;
 };
 
-export const DEFAULT_SORT_RULES: CandidateSortRule[] = [{ column: 'size', dir: 'desc' }];
+export const DEFAULT_SORT: CandidateSortState = { column: 'size', dir: 'desc' };
 
 const RISK_RANK: Record<RiskLevel, number> = {
   blocked: 0,
@@ -20,7 +20,6 @@ function sizePending(c: Candidate): boolean {
   return c.size_bytes === undefined;
 }
 
-/** Compare candidates for dashboard table sorting. Unknown sizes sort last so “Sizing…” stays at the bottom. */
 export function compareCandidates(
   a: Candidate,
   b: Candidate,
@@ -37,7 +36,7 @@ export function compareCandidates(
       const av = a.size_bytes ?? 0;
       const bv = b.size_bytes ?? 0;
       if (av !== bv) return ascending ? av - bv : bv - av;
-      break;
+      return 0;
     }
     case 'kind': {
       const cmp = String(a.kind).localeCompare(String(b.kind), undefined, {
@@ -45,13 +44,13 @@ export function compareCandidates(
         numeric: true,
       });
       if (cmp !== 0) return ascending ? cmp : -cmp;
-      break;
+      return 0;
     }
     case 'risk': {
       const av = RISK_RANK[a.risk] ?? 99;
       const bv = RISK_RANK[b.risk] ?? 99;
       if (av !== bv) return ascending ? av - bv : bv - av;
-      break;
+      return 0;
     }
     case 'path': {
       const cmp = String(a.abs_path).localeCompare(String(b.abs_path), undefined, {
@@ -59,24 +58,20 @@ export function compareCandidates(
         numeric: true,
       });
       if (cmp !== 0) return ascending ? cmp : -cmp;
-      break;
+      return 0;
     }
     default:
-      break;
+      return 0;
   }
-  return String(a.id).localeCompare(String(b.id));
 }
 
-/** Apply sort rules in order (e.g. Risk then Size when both selected with Shift+click). */
-export function compareCandidatesMulti(
+export function compareCandidatesSorted(
   a: Candidate,
   b: Candidate,
-  rules: readonly CandidateSortRule[],
+  sort: CandidateSortState = DEFAULT_SORT,
 ): number {
-  for (const rule of rules) {
-    const cmp = compareCandidates(a, b, rule.column, rule.dir);
-    if (cmp !== 0) return cmp;
-  }
+  const cmp = compareCandidates(a, b, sort.column, sort.dir);
+  if (cmp !== 0) return cmp;
   return String(a.id).localeCompare(String(b.id));
 }
 
@@ -84,25 +79,13 @@ export function defaultDirForColumn(column: CandidateSortColumn): SortDirection 
   return column === 'size' ? 'desc' : 'asc';
 }
 
-/** Click toggles direction; Shift+click adds or updates a secondary sort key. */
-export function cycleSortRules(
-  rules: readonly CandidateSortRule[],
+/** Click active column → flip direction; click another → sort by that column. */
+export function toggleSortColumn(
+  current: CandidateSortState,
   column: CandidateSortColumn,
-  additive: boolean,
-): CandidateSortRule[] {
-  const idx = rules.findIndex((r) => r.column === column);
-  if (additive) {
-    if (idx >= 0) {
-      const next = [...rules];
-      const cur = next[idx];
-      next[idx] = { ...cur, dir: cur.dir === 'asc' ? 'desc' : 'asc' };
-      return next;
-    }
-    return [...rules, { column, dir: defaultDirForColumn(column) }];
+): CandidateSortState {
+  if (current.column === column) {
+    return { column, dir: current.dir === 'asc' ? 'desc' : 'asc' };
   }
-  if (idx >= 0 && rules.length === 1) {
-    const cur = rules[0];
-    return [{ column, dir: cur.dir === 'asc' ? 'desc' : 'asc' }];
-  }
-  return [{ column, dir: defaultDirForColumn(column) }];
+  return { column, dir: defaultDirForColumn(column) };
 }

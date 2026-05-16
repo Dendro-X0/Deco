@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import {
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  FolderOpen,
 } from 'lucide-react';
 import { useDeco } from './hooks/use-deco';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
@@ -32,12 +33,20 @@ import {
   formatDurationMs,
 } from './lib/format';
 import {
-  compareCandidatesMulti,
-  cycleSortRules,
-  DEFAULT_SORT_RULES,
+  compareCandidatesSorted,
+  DEFAULT_SORT,
+  toggleSortColumn,
   type CandidateSortColumn,
-  type CandidateSortRule,
+  type CandidateSortState,
 } from './lib/candidate-sort';
+import {
+  EMPTY_CANDIDATE_FILTERS,
+  filterCandidates,
+  filtersAreActive,
+  parseSizeInput,
+  uniqueKinds,
+  type CandidateFilterState,
+} from './lib/candidate-filter';
 import { volumesFromRoots } from './lib/scan-report';
 import { normalizeSettings } from './lib/settings-normalize';
 import type { ExecutePreviewResponse, WizardStep } from './types';
@@ -75,28 +84,27 @@ import {
 
 function SortHeading({
   column,
-  sortRules,
-  onCycleSort,
+  sort,
+  onToggleSort,
   children,
   className,
   alignEnd,
 }: {
   column: CandidateSortColumn;
-  sortRules: CandidateSortRule[];
-  onCycleSort: (column: CandidateSortColumn, additive: boolean) => void;
+  sort: CandidateSortState;
+  onToggleSort: (column: CandidateSortColumn) => void;
   children: ReactNode;
   className?: string;
   alignEnd?: boolean;
 }) {
-  const idx = sortRules.findIndex((r) => r.column === column);
-  const active = idx >= 0;
-  const dir = active ? sortRules[idx].dir : null;
+  const active = sort.column === column;
+  const dir = active ? sort.dir : null;
   return (
     <TableHead className={className}>
       <button
         type="button"
-        title="Click to sort. Shift+click to add another sort column."
-        onClick={(e) => onCycleSort(column, e.shiftKey)}
+        title={active ? 'Click to reverse sort direction' : 'Click to sort by this column'}
+        onClick={() => onToggleSort(column)}
         className={cn(
           'inline-flex items-center gap-1.5 font-semibold tracking-tight text-foreground hover:text-primary transition-colors select-none rounded-sm leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
           alignEnd && 'w-full justify-end',
@@ -104,9 +112,6 @@ function SortHeading({
         )}
       >
         <span>{children}</span>
-        {active && sortRules.length > 1 ? (
-          <span className="text-[9px] font-black tabular-nums text-primary/80">{idx + 1}</span>
-        ) : null}
         {active && dir ? (
           dir === 'asc' ? (
             <ArrowUp className="h-3.5 w-3.5 shrink-0 opacity-70" />
@@ -156,7 +161,10 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState('all');
-  const [sortRules, setSortRules] = useState<CandidateSortRule[]>(DEFAULT_SORT_RULES);
+  const [kindFilter, setKindFilter] = useState('all');
+  const [sizeMinInput, setSizeMinInput] = useState('');
+  const [sizeMaxInput, setSizeMaxInput] = useState('');
+  const [sort, setSort] = useState<CandidateSortState>(DEFAULT_SORT);
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStep>('intro');
@@ -203,16 +211,44 @@ export default function App() {
         ? 'local drives'
         : 'projects + drives';
 
-  const filteredCandidates = candidates
-    .filter((c) => {
-      const path = (c.abs_path ?? '').toLowerCase();
-      const kind = String(c.kind ?? '').toLowerCase();
-      const q = search.toLowerCase();
-      const matchesSearch = path.includes(q) || kind.includes(q);
-      const matchesRisk = riskFilter === 'all' || c.risk === riskFilter;
-      return matchesSearch && matchesRisk;
-    })
-    .sort((a, b) => compareCandidatesMulti(a, b, sortRules));
+  const availableKinds = useMemo(() => uniqueKinds(candidates), [candidates]);
+
+  const filterState: CandidateFilterState = useMemo(
+    () => ({
+      searchQuery: search,
+      riskFilter: riskFilter as CandidateFilterState['riskFilter'],
+      kindFilter,
+      sizeMinBytes: parseSizeInput(sizeMinInput),
+      sizeMaxBytes: parseSizeInput(sizeMaxInput),
+    }),
+    [search, riskFilter, kindFilter, sizeMinInput, sizeMaxInput],
+  );
+
+  const effectiveKindFilter =
+    kindFilter !== 'all' && !availableKinds.includes(kindFilter) ? 'all' : kindFilter;
+
+  const activeFilterState: CandidateFilterState = useMemo(
+    () => ({ ...filterState, kindFilter: effectiveKindFilter }),
+    [filterState, effectiveKindFilter],
+  );
+
+  const filtersActive = filtersAreActive(activeFilterState);
+
+  const filteredCandidates = useMemo(
+    () =>
+      filterCandidates(candidates, activeFilterState).sort((a, b) =>
+        compareCandidatesSorted(a, b, sort),
+      ),
+    [candidates, activeFilterState, sort],
+  );
+
+  const clearFilters = () => {
+    setSearch(EMPTY_CANDIDATE_FILTERS.searchQuery);
+    setRiskFilter(EMPTY_CANDIDATE_FILTERS.riskFilter);
+    setKindFilter(EMPTY_CANDIDATE_FILTERS.kindFilter);
+    setSizeMinInput('');
+    setSizeMaxInput('');
+  };
 
   const selectedCandidate = candidates.find((c) => c.id === selectedCandidateId);
 
@@ -224,8 +260,17 @@ export default function App() {
   const countByRisk = (risk: string) =>
     candidates.filter((c) => c.risk === risk).length;
 
-  const cycleSortHeader = (col: CandidateSortColumn, additive: boolean) => {
-    setSortRules((rules) => cycleSortRules(rules, col, additive));
+  const toggleSortHeader = (col: CandidateSortColumn) => {
+    setSort((current) => toggleSortColumn(current, col));
+  };
+
+  const revealInExplorer = async (path: string) => {
+    try {
+      await invoke('reveal_path_in_explorer', { path });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg);
+    }
   };
 
   const handleSelectAll = (checked: boolean | string) => {
@@ -491,36 +536,94 @@ export default function App() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <Card className="lg:col-span-2 border-border/40 bg-card/30">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                      <div className="flex items-center gap-4 flex-1 max-w-sm">
-                        <div className="relative w-full">
+                    <CardHeader className="space-y-3 pb-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="relative w-full sm:max-w-md">
                           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input 
-                            placeholder="Filter candidates..." 
+                            placeholder="Search path or kind…" 
                             className="pl-8 bg-background/50" 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                           />
                         </div>
+                        <div className="flex flex-col items-start sm:items-end gap-0.5 shrink-0">
+                        <span className="text-sm font-medium text-primary">
+                          {selectedIds.size} selected
+                        </span>
+                        <span className="text-[10px] text-muted-foreground leading-snug">
+                          {filtersActive
+                              ? `Showing ${filteredCandidates.length} of ${candidates.length}`
+                              : `${candidates.length} candidates`}
+                            {' · '}Click headers to sort
+                        </span>
+                      </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
                         <Select value={riskFilter} onValueChange={setRiskFilter}>
-                          <SelectTrigger className="w-[140px] bg-background/50">
-                            <SelectValue placeholder="All Risks" />
+                          <SelectTrigger className="w-[130px] bg-background/50 h-9 text-xs">
+                            <SelectValue placeholder="Risk" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Risks</SelectItem>
+                            <SelectItem value="all">All risks</SelectItem>
                             <SelectItem value="safe">Safe</SelectItem>
                             <SelectItem value="review">Review</SelectItem>
                             <SelectItem value="blocked">Blocked</SelectItem>
                           </SelectContent>
                         </Select>
-                      </div>
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="text-sm font-medium text-primary">
-                          {selectedIds.size} selected
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          Shift+click headers to sort by multiple columns
-                        </span>
+                        <Select
+                          value={kindFilter}
+                          onValueChange={setKindFilter}
+                          disabled={availableKinds.length === 0}
+                        >
+                          <SelectTrigger className="w-[11rem] bg-background/50 h-9 text-xs">
+                            <SelectValue placeholder="All kinds" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All kinds</SelectItem>
+                            {availableKinds.map((k) => (
+                              <SelectItem key={k} value={k} className="font-mono text-xs uppercase">
+                                {k}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div
+                          className="flex h-9 items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2"
+                          title="Filter by size range (e.g. 100MB – 500MB)"
+                        >
+                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            Size
+                          </span>
+                          <Input
+                            aria-label="Minimum size"
+                            placeholder="100MB"
+                            title="Minimum (e.g. 100MB)"
+                            className="h-7 w-[4.75rem] border-0 bg-transparent px-0 text-xs font-mono shadow-none focus-visible:ring-0"
+                            value={sizeMinInput}
+                            onChange={(e) => setSizeMinInput(e.target.value)}
+                          />
+                          <span className="shrink-0 text-xs text-muted-foreground/50">–</span>
+                          <Input
+                            aria-label="Maximum size"
+                            placeholder="500MB"
+                            title="Maximum (e.g. 500MB)"
+                            className="h-7 w-[4.75rem] border-0 bg-transparent px-0 text-xs font-mono shadow-none focus-visible:ring-0"
+                            value={sizeMaxInput}
+                            onChange={(e) => setSizeMaxInput(e.target.value)}
+                          />
+                        </div>
+                        {filtersActive ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 text-xs"
+                            onClick={clearFilters}
+                          >
+                            Clear filters
+                          </Button>
+                        ) : null}
                       </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -535,32 +638,31 @@ export default function App() {
                             </TableHead>
                             <SortHeading
                               column="risk"
-                              sortRules={sortRules}
-                              onCycleSort={cycleSortHeader}
+                              sort={sort}
+                              onToggleSort={toggleSortHeader}
                               className="w-24"
                             >
                               Risk
                             </SortHeading>
                             <SortHeading
                               column="kind"
-                              sortRules={sortRules}
-                              onCycleSort={cycleSortHeader}
+                              sort={sort}
+                              onToggleSort={toggleSortHeader}
                               className="min-w-[9rem]"
                             >
                               Kind
                             </SortHeading>
                             <SortHeading
                               column="path"
-                              sortRules={sortRules}
-                              onCycleSort={cycleSortHeader}
+                              sort={sort}
+                              onToggleSort={toggleSortHeader}
                             >
                               Path
                             </SortHeading>
                             <SortHeading
                               column="size"
-                              sortRules={sortRules}
-                              onCycleSort={cycleSortHeader}
-                              alignEnd
+                              sort={sort}
+                              onToggleSort={toggleSortHeader}                              alignEnd
                               className="text-right w-[7.5rem]"
                             >
                               Size
@@ -630,7 +732,19 @@ export default function App() {
                           <div className="space-y-4 animate-in fade-in duration-300">
                              <div className="space-y-1">
                                <p className="text-[10px] uppercase font-bold text-muted-foreground">Path</p>
-                               <p className="text-xs font-mono break-all leading-relaxed bg-muted/20 p-2 rounded border">{selectedCandidate.abs_path}</p>
+                               <p className="text-xs font-mono break-all leading-relaxed bg-muted/20 p-2 rounded border">
+                                 {selectedCandidate.abs_path}
+                               </p>
+                               <Button
+                                 type="button"
+                                 variant="secondary"
+                                 size="sm"
+                                 className="w-full gap-2 h-8 text-xs font-semibold"
+                                 onClick={() => void revealInExplorer(selectedCandidate.abs_path)}
+                               >
+                                 <FolderOpen size={14} />
+                                 Show in File Explorer
+                               </Button>
                              </div>
                              <div className="grid grid-cols-2 gap-4">
                                <div className="space-y-1">
@@ -989,7 +1103,7 @@ export default function App() {
                </span>
              </div>
              <span className="text-[9px] text-muted-foreground/50 font-mono" title="Frontend build marker">
-               ui-2026-05-16b
+               ui-2026-05-16f
              </span>
           </footer>
         </div>

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.6] - 2026-05-16
+
+### Added
+
+- **Desktop**: **Show in File Explorer** on the candidate detail panel (opens the folder in Windows Explorer / Finder / xdg-open).
+- **Desktop**: Candidate **search** (path/kind), **kind** dropdown (labels from scan results), and **size range** filters (e.g. `100MB`–`500MB`).
+
+### Fixed
+
+- **Desktop**: Table uses **single-column sort** only (click header to sort; click again to reverse).
+
+### Changed
+
+- **Desktop**: Removed multi-column sort stack (#1/#2) in favor of search + filter controls.
+
 ## [0.4.5] - 2026-05-16
 
 ### Added

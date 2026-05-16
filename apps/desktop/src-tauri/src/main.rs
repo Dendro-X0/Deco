@@ -66,6 +66,7 @@ fn main() {
             commands::settings::suggest_scan_roots_command,
             commands::settings::list_storage_volumes_command,
             commands::classify::classify_targets_preview,
+            commands::explorer::reveal_path_in_explorer,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
