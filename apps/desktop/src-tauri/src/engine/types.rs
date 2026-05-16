@@ -301,6 +301,9 @@ pub struct PlanResponse {
 #[serde(default)]
 pub struct Settings {
     pub roots: Vec<String>,
+    /// When true, scan only `roots` instead of the full partition layout.
+    #[serde(default)]
+    pub use_custom_scan_roots: bool,
     /// `projects` | `drives` | `all` — used when roots is empty to suggest scan paths.
     #[serde(default = "default_scan_scope")]
     pub scan_scope: String,
@@ -341,6 +344,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             roots: vec![],
+            use_custom_scan_roots: false,
             scan_scope: default_scan_scope(),
             selected_volumes: vec![],
             include_project_folders: true,

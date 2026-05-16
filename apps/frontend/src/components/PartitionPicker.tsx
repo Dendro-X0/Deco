@@ -79,8 +79,8 @@ export function PartitionPicker({
           <div>
             <p className="font-bold text-sm">Partitions to scan</p>
             <p className="text-xs text-muted-foreground">
-              Each selected drive includes its volume root (e.g. D:\) so top-level trees like Experimental projects are scanned;
-              system folders are skipped. Runs in the background.
+              Each selected drive includes its volume root (e.g. D:\\) so top-level trees are scanned;
+              system folders are skipped.
             </p>
           </div>
         </div>

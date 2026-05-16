@@ -22,7 +22,9 @@ import {
 import { useDeco } from './hooks/use-deco';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
-import { PartitionPicker } from './components/PartitionPicker';
+import { ScanTargetsPanel } from './components/ScanTargetsPanel';
+import type { ScanMode } from './components/ScanModeSelector';
+import { volumeMountsFromPaths } from './lib/volume-from-path';
 import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
 import { TitleBar } from './components/TitleBar';
@@ -49,7 +51,7 @@ import {
 } from './lib/candidate-filter';
 import { volumesFromRoots } from './lib/scan-report';
 import { normalizeSettings } from './lib/settings-normalize';
-import type { ExecutePreviewResponse, WizardStep } from './types';
+import type { ExecutePreviewResponse, Settings, WizardStep } from './types';
 import { 
   Card, 
   CardHeader, 
@@ -176,7 +178,46 @@ export default function App() {
   const [scanTargetsModalOpen, setScanTargetsModalOpen] = useState(false);
   const [scanTargetsAfterWizard, setScanTargetsAfterWizard] = useState(false);
 
+  const customScanRoots = settings?.roots ?? [];
+  const useCustomScanRoots = settings?.use_custom_scan_roots ?? false;
+  const scanMode: ScanMode = useCustomScanRoots ? 'custom' : 'partition';
   const hasPartitionsSelected = selectedVolumes.length > 0;
+
+  const persistScanTargets = (patch: {
+    selected_volumes?: string[];
+    include_project_folders?: boolean;
+    roots?: string[];
+    use_custom_scan_roots?: boolean;
+  }) => {
+    if (!settings || scanning) return;
+    const roots = patch.roots ?? customScanRoots;
+    const useCustom = patch.use_custom_scan_roots ?? useCustomScanRoots;
+    let volumes = patch.selected_volumes ?? selectedVolumes;
+    const rootsPatch = patch.roots ?? (patch.use_custom_scan_roots !== undefined ? roots : undefined);
+    if (rootsPatch) {
+      const fromRoots = volumeMountsFromPaths(rootsPatch);
+      volumes = [...new Set([...volumes, ...fromRoots])].sort();
+    }
+    const next: Settings = {
+      ...normalizeSettings(settings),
+      selected_volumes: volumes,
+      include_project_folders:
+        patch.include_project_folders ?? includeProjectFolders,
+      roots,
+      use_custom_scan_roots: useCustom,
+    };
+    setSelectedVolumes(volumes);
+    if (patch.include_project_folders !== undefined) {
+      setIncludeProjectFolders(patch.include_project_folders);
+    }
+    void invoke('save_settings', { settings: next })
+      .then(() => loadSettings())
+      .catch(() => undefined);
+  };
+
+  const setScanMode = (mode: ScanMode) => {
+    persistScanTargets({ use_custom_scan_roots: mode === 'custom' });
+  };
 
   const runScan = async (afterWizard = false) => {
     const started = await scan({
@@ -426,34 +467,19 @@ export default function App() {
           <ScrollArea className="flex-1">
             <div className="px-8 py-6 max-w-7xl mx-auto space-y-6 pb-12">
               <TabsContent value="dashboard" className="m-0 space-y-6">
-                <PartitionPicker
+                <ScanTargetsPanel
+                  mode={scanMode}
+                  onModeChange={setScanMode}
                   selectedVolumes={selectedVolumes}
                   includeProjectFolders={includeProjectFolders}
-                  onSelectedVolumesChange={(mounts) => {
-                    setSelectedVolumes(mounts);
-                    if (settings && !scanning) {
-                      void invoke('save_settings', {
-                        settings: {
-                          ...normalizeSettings(settings),
-                          selected_volumes: mounts,
-                          include_project_folders: includeProjectFolders,
-                        },
-                      }).catch(() => undefined);
-                    }
-                  }}
-                  onIncludeProjectFoldersChange={(value) => {
-                    setIncludeProjectFolders(value);
-                    if (settings && !scanning) {
-                      void invoke('save_settings', {
-                        settings: {
-                          ...normalizeSettings(settings),
-                          selected_volumes: selectedVolumes,
-                          include_project_folders: value,
-                        },
-                      }).catch(() => undefined);
-                    }
-                  }}
+                  customScanRoots={customScanRoots}
+                  onSelectedVolumesChange={(mounts) => persistScanTargets({ selected_volumes: mounts })}
+                  onIncludeProjectFoldersChange={(value) =>
+                    persistScanTargets({ include_project_folders: value })
+                  }
+                  onCustomScanRootsChange={(roots) => persistScanTargets({ roots })}
                   disabled={scanning}
+                  onError={setError}
                 />
 
                 {!summary && !scanning && (
@@ -534,8 +560,8 @@ export default function App() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="lg:col-span-2 border-border/40 bg-card/30">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  <Card className="lg:col-span-2 border-border/40 bg-card/30 min-w-0">
                     <CardHeader className="space-y-3 pb-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="relative w-full sm:max-w-md">
@@ -720,7 +746,7 @@ export default function App() {
                     </CardContent>
                   </Card>
 
-                  <div className="space-y-6">
+                  <div className="lg:col-span-1 space-y-6 sticky top-4 self-start w-full max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain pr-0.5">
                     <Card className="border-border/40 bg-card/30">
                       <CardHeader>
                         <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -920,33 +946,25 @@ export default function App() {
                               <SelectItem value="drives">Drives — partition roots (C:\, D:\, …)</SelectItem>
                             </SelectContent>
                           </Select>
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mt-4 block">
-                            Scanning roots (one path per line)
-                          </label>
-                          <textarea
-                            key={settings?.roots.join('|') ?? 'empty'}
-                            className="w-full h-32 bg-background/50 border rounded-md p-3 font-mono text-xs focus:ring-1 focus:ring-primary outline-none resize-none"
-                            defaultValue={settings?.roots.join('\n')}
-                            id="rootsInput"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            onClick={async () => {
-                              const el = document.getElementById('scanScopeSelect');
-                              const scope = el?.getAttribute('data-scope') ?? settings?.scan_scope ?? 'all';
-                              const roots = (await tauriInvoke('suggest_scan_roots_command', {
-                                scope,
-                              })) as string[];
-                              const rootsInput = document.getElementById('rootsInput') as HTMLTextAreaElement;
-                              if (rootsInput) rootsInput.value = roots.join('\n');
-                            }}
-                          >
-                            Reset to suggested paths
-                          </Button>
-                          <p className="text-[10px] text-muted-foreground">
+                          <div className="mt-4">
+                            <ScanTargetsPanel
+                              mode={scanMode}
+                              onModeChange={setScanMode}
+                              selectedVolumes={selectedVolumes}
+                              includeProjectFolders={includeProjectFolders}
+                              customScanRoots={customScanRoots}
+                              onSelectedVolumesChange={(mounts) =>
+                                persistScanTargets({ selected_volumes: mounts })
+                              }
+                              onIncludeProjectFoldersChange={(value) =>
+                                persistScanTargets({ include_project_folders: value })
+                              }
+                              onCustomScanRootsChange={(roots) => persistScanTargets({ roots })}
+                              disabled={scanning}
+                              onError={setError}
+                            />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-3">
                             Partition-wide scans skip into heavy folders (node_modules, target, …) for speed. Turn off
                             size calculation below for faster discovery.
                           </p>
@@ -1037,7 +1055,6 @@ export default function App() {
                         <Button
                           className="font-bold px-8"
                           onClick={async () => {
-                            const rootsInput = document.getElementById('rootsInput') as HTMLTextAreaElement;
                             const scanScope =
                               document.getElementById('scanScopeSelect')?.getAttribute('data-scope') ??
                               settings?.scan_scope ??
@@ -1055,7 +1072,8 @@ export default function App() {
                             await tauriInvoke('save_settings', {
                               settings: {
                                 ...settings,
-                                roots: rootsInput.value.split('\n').filter(Boolean),
+                                roots: customScanRoots,
+                                use_custom_scan_roots: useCustomScanRoots,
                                 scan_scope: scanScope,
                                 check_go_cache: checkGoCache,
                                 include_size: includeSize,
@@ -1103,7 +1121,7 @@ export default function App() {
                </span>
              </div>
              <span className="text-[9px] text-muted-foreground/50 font-mono" title="Frontend build marker">
-               ui-2026-05-16f
+               ui-2026-05-17c
              </span>
           </footer>
         </div>
@@ -1151,12 +1169,21 @@ export default function App() {
       <ScanTargetsModal
         open={scanTargetsModalOpen}
         onClose={() => setScanTargetsModalOpen(false)}
+        mode={scanMode}
+        onModeChange={setScanMode}
         selectedVolumes={selectedVolumes}
         includeProjectFolders={includeProjectFolders}
-        onSelectedVolumesChange={setSelectedVolumes}
-        onIncludeProjectFoldersChange={setIncludeProjectFolders}
+        customScanRoots={customScanRoots}
+        onSelectedVolumesChange={(mounts) => persistScanTargets({ selected_volumes: mounts })}
+        onIncludeProjectFoldersChange={(value) =>
+          persistScanTargets({ include_project_folders: value })
+        }
+        onCustomScanRootsChange={(roots) => persistScanTargets({ roots })}
+        onError={setError}
         onConfirm={() => {
           if (selectedVolumes.length === 0) return;
+          if (scanMode === 'custom' && customScanRoots.length === 0) return;
+          persistScanTargets({});
           setScanTargetsModalOpen(false);
           if (scanTargetsAfterWizard) {
             setWizardOpen(true);

@@ -259,18 +259,43 @@ pub fn expand_volume_to_scan_roots(mount: &str, include_user_dev_profiles: bool)
     roots
 }
 
+fn trimmed_non_empty_roots(roots: &[String]) -> Vec<String> {
+    roots
+        .iter()
+        .map(|r| r.trim().to_string())
+        .filter(|r| !r.is_empty())
+        .collect()
+}
+
+/// User-defined folders (e.g. `G:\Web Development Project`). Active only when enabled in settings.
+pub fn custom_scan_roots(settings: &Settings) -> Vec<String> {
+    if !settings.use_custom_scan_roots {
+        return vec![];
+    }
+    dedupe_existing_roots(trimmed_non_empty_roots(&settings.roots))
+}
+
 /// Build scan roots from partition selection + optional project folders.
-/// At least one partition must be selected; dev folders alone are not enough.
+/// When `settings.roots` lists custom folders, only those paths are scanned (must lie on selected volumes).
 pub fn effective_scan_roots(settings: &Settings) -> Vec<String> {
     if settings.selected_volumes.is_empty() {
         return vec![];
     }
+
+    let custom = custom_scan_roots(settings);
+    if !custom.is_empty() {
+        let roots: Vec<String> = custom
+            .into_iter()
+            .filter(|r| path_on_selected_volumes(r, &settings.selected_volumes))
+            .collect();
+        return dedupe_existing_roots(roots);
+    }
+
     let mut roots = Vec::new();
     let include_profiles = settings.include_project_folders;
     for vol in &settings.selected_volumes {
         roots.extend(expand_volume_to_scan_roots(vol, include_profiles));
     }
-    // Only scan selected volumes — never pull in %USERPROFILE% on C: when D/E are selected.
     let roots: Vec<String> = roots
         .into_iter()
         .filter(|r| path_on_selected_volumes(r, &settings.selected_volumes))
@@ -424,6 +449,26 @@ mod tests {
                 u.starts_with("D:\\") || u.starts_with("E:\\")
             }),
             "expected only D: and E: roots, got {roots:?}"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn effective_scan_roots_uses_custom_folders_only() {
+        let custom = std::env::temp_dir();
+        let custom_str = custom.to_string_lossy().to_string();
+        let settings = Settings {
+            selected_volumes: vec![r"C:\".to_string()],
+            roots: vec![custom_str.clone()],
+            use_custom_scan_roots: true,
+            include_project_folders: true,
+            ..Settings::default()
+        };
+        let roots = effective_scan_roots(&settings);
+        assert_eq!(roots.len(), 1);
+        assert!(
+            roots[0].eq_ignore_ascii_case(&custom_str),
+            "expected custom folder only, got {roots:?}"
         );
     }
 

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.7] - 2026-05-17
+
+### Added
+
+- **Desktop**: **Custom folders** — scan only paths you specify (e.g. `G:\Web Development Project`) instead of a whole partition; much faster on HDDs.
+- **Desktop**: **Scanning mode** selector — partition-based (SSD recommended) vs custom directories; inactive section is grayed out.
+- **Desktop**: Custom folders UI — native **Browse folders** picker and a removable path list.
+- **Desktop**: Candidate detail + planner sidebar stays visible while scrolling the results table (`sticky`).
+
+### Fixed
+
+- **Desktop**: Discovery uses ancestor-marker cache and gated project detection (fewer stat calls during HDD scans).
+
 ## [0.4.6] - 2026-05-16
 
 ### Added

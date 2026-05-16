@@ -9,7 +9,7 @@ use crate::engine::types::{
     ScanResponse, Totals, SCAN_REPORT_SCHEMA_VERSION,
 };
 use crate::state::AppState;
-use crate::util::scan_roots::effective_scan_roots;
+use crate::util::scan_roots::{custom_scan_roots, effective_scan_roots};
 use rusqlite::params;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap};
@@ -111,15 +111,36 @@ pub(crate) fn run_scan(
                 "Select at least one partition to scan.".to_string(),
             );
         }
-        effective_scan_roots(&guard)
+        let settings_snapshot = guard.clone();
+        let roots = effective_scan_roots(&guard);
+        (settings_snapshot, roots)
     };
+
+    let (settings_snapshot, roots) = roots;
+
+    if settings_snapshot.use_custom_scan_roots && custom_scan_roots(&settings_snapshot).is_empty() {
+        cleanup_cancel_token_arc(&state, &scan_id);
+        return Err(
+            "Custom folders is on but the list is empty. Add folders with Browse or turn it off."
+                .to_string(),
+        );
+    }
 
     if roots.is_empty() {
         cleanup_cancel_token_arc(&state, &scan_id);
-        return Err(
+        let custom = {
+            let guard = state
+                .settings
+                .lock()
+                .map_err(|_| "settings mutex poisoned".to_string())?;
+            !guard.roots.is_empty()
+        };
+        let msg = if custom {
+            "No valid scan roots. Custom folders must exist on a selected partition (e.g. add G:\\ and select G:)."
+        } else {
             "No valid scan roots. Select at least one partition on the dashboard."
-                .to_string(),
-        );
+        };
+        return Err(msg.to_string());
     }
 
     let disk = merge_disk_cleanup_layers(&roots)?;

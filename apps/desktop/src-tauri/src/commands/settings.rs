@@ -1,6 +1,6 @@
 use crate::engine::types::Settings;
 use crate::state::AppState;
-use crate::util::scan_roots::{effective_scan_roots, suggest_scan_roots, ScanScope};
+use crate::util::scan_roots::{suggest_scan_roots, ScanScope};
 use crate::util::storage_volumes::{list_storage_volumes, StorageVolume};
 use rusqlite::params;
 use std::sync::Arc;
@@ -18,11 +18,8 @@ fn persist_settings(conn: &rusqlite::Connection, settings: &Settings) -> Result<
     Ok(())
 }
 
-fn ensure_scan_roots(settings: &mut Settings) {
-    // Do not auto-select partitions — the user must choose drives in the UI.
-    if settings.roots.is_empty() && !settings.selected_volumes.is_empty() {
-        settings.roots = effective_scan_roots(settings);
-    }
+fn ensure_scan_roots(_settings: &mut Settings) {
+    // `roots` holds user-defined custom folders only; volume expansion runs at scan time.
 }
 
 #[tauri::command]

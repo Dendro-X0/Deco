@@ -151,6 +151,7 @@ export function useDeco() {
       selected_volumes: volumes,
       include_project_folders:
         scanSettings?.include_project_folders ?? includeProjectFolders,
+      roots: scanSettings?.roots ?? settings.roots ?? [],
     };
 
     setScanning(true);

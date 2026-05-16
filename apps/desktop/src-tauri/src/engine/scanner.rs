@@ -1,10 +1,7 @@
 use super::disk_cleanup_config::ExtraDiscoverNames;
+use super::ancestor_cache::AncestorCache;
 use super::ecosystem_globals::{discover_ide_global_caches, discover_jvm_global_caches};
 use super::path_policy::PathPolicy;
-use super::project_detection::{
-    has_dotnet_project_ancestor, has_go_mod_ancestor, has_jvm_project_ancestor,
-    has_python_project_ancestor,
-};
 use super::types::{EcosystemScanOptions, Kind};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -108,11 +105,64 @@ fn detect_kind(
     profile: &str,
     extra: &ExtraDiscoverNames,
     eco: EcosystemScanOptions,
+    cache: &mut AncestorCache,
 ) -> Option<Kind> {
-    let has_go = has_go_mod_ancestor(entry_path, 6);
-    let has_py = has_python_project_ancestor(entry_path, 6);
-    let has_jvm = has_jvm_project_ancestor(entry_path, 6);
-    let has_dotnet = has_dotnet_project_ancestor(entry_path, 6);
+    // Names that never need ancestor marker probes (saves HDD stat storms).
+    match name {
+        "node_modules" => return Some(Kind::NodeModules),
+        "test-results" | "playwright-report" => return Some(Kind::PlaywrightArtifact),
+        "target" | ".cargo-target" | "pkg" => return Some(Kind::RustArtifact),
+        ".next" | ".svelte-kit" | ".astro" | ".cache" | "dist-firefox" => {
+            return Some(Kind::BuildArtifact);
+        }
+        ".turbo" | ".vite" | ".nuxt" | ".parcel-cache" | ".eslintcache" | ".tmp" | "tmp"
+        | "temp" | "cache"
+            if profile == "aggressive" =>
+        {
+            return Some(Kind::UnknownArtifact);
+        }
+        _ => {}
+    }
+
+    if extra.playwright_artifacts.iter().any(|n| n == name) {
+        return Some(Kind::PlaywrightArtifact);
+    }
+    if extra.rust_artifacts.iter().any(|n| n == name) {
+        return Some(Kind::RustArtifact);
+    }
+    if profile != "safe" && extra.build_artifacts.iter().any(|n| n == name) {
+        return Some(Kind::BuildArtifact);
+    }
+
+    let needs_go = is_go_artifact_dir_name(name, extra) || name == "dist" || name == "build";
+    let needs_py = eco.include_python_artifacts
+        && (matches!(
+            name,
+            "__pycache__"
+                | ".pytest_cache"
+                | ".mypy_cache"
+                | ".ruff_cache"
+                | ".tox"
+        ) || name.ends_with(".egg-info")
+            || name == "dist"
+            || name == "build");
+    let needs_py_venv =
+        eco.include_python_venv && (name == "venv" || name == ".venv");
+    let needs_jvm = eco.include_jvm_artifacts && (name == "dist" || name == "build");
+    let needs_dotnet =
+        eco.include_dotnet_artifacts && (name == "bin" || name == "obj");
+
+    let needs_ancestor = needs_go || needs_py || needs_py_venv || needs_jvm || needs_dotnet;
+    if !needs_ancestor {
+        return None;
+    }
+
+    const MAX_ASCEND: u32 = 6;
+    let has_go = needs_go && cache.has_go_mod_ancestor(entry_path, MAX_ASCEND);
+    let has_py = (needs_py || needs_py_venv)
+        && cache.has_python_project_ancestor(entry_path, MAX_ASCEND);
+    let has_jvm = needs_jvm && cache.has_jvm_project_ancestor(entry_path, MAX_ASCEND);
+    let has_dotnet = needs_dotnet && cache.has_dotnet_project_ancestor(entry_path, MAX_ASCEND);
 
     if eco.include_python_venv && (name == "venv" || name == ".venv") && has_py {
         return Some(Kind::PythonVenv);
@@ -160,37 +210,7 @@ fn detect_kind(
         return Some(Kind::BuildArtifact);
     }
 
-    match name {
-        "node_modules" => Some(Kind::NodeModules),
-        "test-results" | "playwright-report" => Some(Kind::PlaywrightArtifact),
-        "target" | ".cargo-target" | "pkg" => Some(Kind::RustArtifact),
-        ".next" | ".svelte-kit" | ".astro" | ".cache" | "dist-firefox" => Some(Kind::BuildArtifact),
-        ".turbo" | ".vite" | ".nuxt" | ".parcel-cache" | ".eslintcache" | ".tmp" | "tmp"
-        | "temp" | "cache"
-            if profile == "aggressive" =>
-        {
-            Some(Kind::UnknownArtifact)
-        }
-        _ => None,
-    }
-    .or_else(|| {
-        if extra
-            .playwright_artifacts
-            .iter()
-            .any(|n| n == name)
-        {
-            return Some(Kind::PlaywrightArtifact);
-        }
-        if extra.rust_artifacts.iter().any(|n| n == name) {
-            return Some(Kind::RustArtifact);
-        }
-        if profile != "safe" {
-            if extra.build_artifacts.iter().any(|n| n == name) {
-                return Some(Kind::BuildArtifact);
-            }
-        }
-        None
-    })
+    None
 }
 
 fn dedupe_roots(roots: &[String]) -> Vec<String> {
@@ -273,6 +293,7 @@ fn discover_under_root(
         .into_iter();
 
     const PROGRESS_EVERY: u64 = 800;
+    let mut ancestor_cache = AncestorCache::default();
 
     while let Some(entry_result) = walker.next() {
         if cancel.is_some_and(|t| t.load(Ordering::Relaxed)) {
@@ -321,7 +342,9 @@ fn discover_under_root(
         scanned_dirs += 1;
         let total = total_scanned.fetch_add(1, Ordering::Relaxed) + 1;
 
-        if let Some(kind) = detect_kind(entry.path(), &dir_name, profile, extra_names, eco) {
+        if let Some(kind) =
+            detect_kind(entry.path(), &dir_name, profile, extra_names, eco, &mut ancestor_cache)
+        {
             let abs = entry.path().to_string_lossy().to_string();
             let mtime_ms = std::fs::metadata(entry.path())
                 .ok()

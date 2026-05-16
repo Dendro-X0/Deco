@@ -17,6 +17,7 @@ use tauri::Manager;
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 for name in ["icons/32x32.png", "icons/icon.ico", "icons/icon.png"] {

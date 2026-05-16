@@ -1,3 +1,4 @@
+pub mod ancestor_cache;
 pub mod classifier;
 pub mod disk_cleanup_config;
 pub mod ecosystem_globals;

@@ -1,15 +1,21 @@
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { PartitionPicker } from '@/components/PartitionPicker';
+import { ScanTargetsPanel } from '@/components/ScanTargetsPanel';
+import type { ScanMode } from '@/components/ScanModeSelector';
 
 type Props = {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  mode: ScanMode;
+  onModeChange: (mode: ScanMode) => void;
   selectedVolumes: string[];
   includeProjectFolders: boolean;
+  customScanRoots: string[];
   onSelectedVolumesChange: (mounts: string[]) => void;
   onIncludeProjectFoldersChange: (value: boolean) => void;
+  onCustomScanRootsChange: (roots: string[]) => void;
+  onError?: (message: string) => void;
   title?: string;
 };
 
@@ -17,15 +23,21 @@ export function ScanTargetsModal({
   open,
   onClose,
   onConfirm,
+  mode,
+  onModeChange,
   selectedVolumes,
   includeProjectFolders,
+  customScanRoots,
   onSelectedVolumesChange,
   onIncludeProjectFoldersChange,
-  title = 'Choose partitions to scan',
+  onCustomScanRootsChange,
+  onError,
+  title = 'Choose scan targets',
 }: Props) {
   if (!open) return null;
 
-  const canStart = selectedVolumes.length > 0;
+  const canStart =
+    selectedVolumes.length > 0 && (mode === 'partition' || customScanRoots.length > 0);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -41,7 +53,7 @@ export function ScanTargetsModal({
               {title}
             </h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Select at least one drive. You can also include dev folders below.
+              Pick a scanning mode, then configure partitions or custom folders.
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -49,12 +61,17 @@ export function ScanTargetsModal({
           </button>
         </div>
         <div className="overflow-y-auto px-6 py-4 flex-1">
-          <PartitionPicker
+          <ScanTargetsPanel
+            mode={mode}
+            onModeChange={onModeChange}
             showQuickAddSelect
             selectedVolumes={selectedVolumes}
             includeProjectFolders={includeProjectFolders}
+            customScanRoots={customScanRoots}
             onSelectedVolumesChange={onSelectedVolumesChange}
             onIncludeProjectFoldersChange={onIncludeProjectFoldersChange}
+            onCustomScanRootsChange={onCustomScanRootsChange}
+            onError={onError}
           />
         </div>
         <div className="flex justify-end gap-2 border-t px-6 py-4 shrink-0">

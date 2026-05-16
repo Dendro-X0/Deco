@@ -65,6 +65,8 @@ export interface StorageVolume {
 
 export interface Settings {
   roots: string[];
+  /** When true, scan only `roots` instead of the full partition layout. */
+  use_custom_scan_roots?: boolean;
   /** projects | drives | all — used when roots is empty */
   scan_scope?: string;
   selected_volumes?: string[];

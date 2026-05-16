@@ -24,8 +24,14 @@ export function normalizeSettings(raw: unknown): Settings {
     return Array.isArray(v) ? (v as string[]) : [];
   };
 
+  const roots = strList('roots', 'roots');
+  const useCustomRaw = r.use_custom_scan_roots ?? r.useCustomScanRoots;
+  const use_custom_scan_roots =
+    typeof useCustomRaw === 'boolean' ? useCustomRaw : roots.length > 0;
+
   return {
-    roots: strList('roots', 'roots'),
+    roots,
+    use_custom_scan_roots,
     scan_scope: str('scan_scope', 'scanScope', 'projects'),
     selected_volumes: readSelectedVolumes(r),
     include_project_folders: bool('include_project_folders', 'includeProjectFolders', true),
