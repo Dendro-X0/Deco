@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.9] - 2026-05-17
+
+### Changed
+
+- **Desktop**: **Settings** page refactor — exclusive scan mode UI (only active target editor shown), controlled form with reliable save of profile/thresholds/toggles, and clearer section layout.
+- **Desktop**: **Quarantine** — History-style filters (search, size, time presets, drive), instant client-side filtering, purge confirmation, days-until-purge badges, Show in Explorer, and empty-state CTA.
+- **Desktop**: Page-specific subtitles in the main header.
+- **Desktop**: **Dashboard** shows a scan-target summary with **Edit in Settings** / **Quick adjust** (full picker lives in Settings and the pre-scan modal).
+- **Desktop**: Disabled actions show hover tooltips (**Clean selected**, **Preview cleanup**, Settings save/discard, **Purge eligible**).
+
 ## [0.4.8] - 2026-05-17
 
 ### Added

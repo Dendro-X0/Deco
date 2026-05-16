@@ -22,12 +22,15 @@ import {
 import { useDeco } from './hooks/use-deco';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
-import { ScanTargetsPanel } from './components/ScanTargetsPanel';
+import { ScanTargetsSummaryCard } from './components/ScanTargetsSummaryCard';
+import { DisabledActionHint } from './components/DisabledActionHint';
+import { cleanSelectedDisabledReason } from './lib/disabled-reasons';
 import type { ScanMode } from './components/ScanModeSelector';
 import { volumeMountsFromPaths } from './lib/volume-from-path';
 import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
 import { ScanHistoryPanel } from './components/ScanHistoryPanel';
+import { SettingsPanel } from './components/SettingsPanel';
 import { TitleBar } from './components/TitleBar';
 import { DecoLogo } from './components/DecoLogo';
 import {
@@ -58,7 +61,6 @@ import {
   CardHeader, 
   CardTitle, 
   CardContent,
-  CardDescription
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -184,7 +186,20 @@ export default function App() {
   const customScanRoots = settings?.roots ?? [];
   const useCustomScanRoots = settings?.use_custom_scan_roots ?? false;
   const scanMode: ScanMode = useCustomScanRoots ? 'custom' : 'partition';
-  const hasPartitionsSelected = selectedVolumes.length > 0;
+  const hasScanTargetsReady = useCustomScanRoots
+    ? customScanRoots.length > 0
+    : selectedVolumes.length > 0;
+
+  const cleanSelectedReason = useMemo(
+    () =>
+      cleanSelectedDisabledReason({
+        selectedCount: selectedIds.size,
+        scanning,
+        busy,
+        hasScanResults: Boolean(summary?.scan_id),
+      }),
+    [selectedIds.size, scanning, busy, summary?.scan_id],
+  );
 
   const persistScanTargets = (patch: {
     selected_volumes?: string[];
@@ -235,7 +250,7 @@ export default function App() {
 
   const requestScan = (opts?: { wizard?: boolean }) => {
     if (scanning) return;
-    if (!hasPartitionsSelected) {
+    if (!hasScanTargetsReady) {
       setScanTargetsAfterWizard(!!opts?.wizard);
       if (opts?.wizard) setWizardOpen(true);
       setScanTargetsModalOpen(true);
@@ -433,7 +448,12 @@ export default function App() {
           <header className="h-20 border-b flex items-center justify-between px-8 bg-background/80 backdrop-blur-md z-10">
             <div className="flex flex-col">
               <h2 className="text-2xl font-bold tracking-tight capitalize">{activeTab}</h2>
-              <p className="text-sm text-muted-foreground">Manage and clean your development environment.</p>
+              <p className="text-sm text-muted-foreground">
+                {activeTab === 'dashboard' && 'Scan, review candidates, and reclaim disk space.'}
+                {activeTab === 'quarantine' && 'Restore or permanently purge held folders.'}
+                {activeTab === 'history' && 'Review past scans and reuse configurations.'}
+                {activeTab === 'settings' && 'Configure scan targets, safety, and discovery options.'}
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -456,33 +476,33 @@ export default function App() {
                   <Play size={16} fill="currentColor" /> Scan Now
                 </Button>
               )}
-              <Button
-                variant="outline"
-                className="gap-2 border-primary/20 hover:border-primary/50 text-primary"
-                disabled={selectedIds.size === 0 || scanning || busy}
-                onClick={openCleanupPreview}
-              >
-                <Trash2 size={16} /> Clean selected…
-              </Button>
+              <DisabledActionHint reason={cleanSelectedReason}>
+                <Button
+                  variant="outline"
+                  className="gap-2 border-primary/20 hover:border-primary/50 text-primary"
+                  disabled={cleanSelectedReason !== null}
+                  onClick={openCleanupPreview}
+                >
+                  <Trash2 size={16} /> Clean selected…
+                </Button>
+              </DisabledActionHint>
             </div>
           </header>
 
           <ScrollArea className="flex-1">
             <div className="px-8 py-6 max-w-7xl mx-auto space-y-6 pb-12">
               <TabsContent value="dashboard" className="m-0 space-y-6">
-                <ScanTargetsPanel
+                <ScanTargetsSummaryCard
                   mode={scanMode}
-                  onModeChange={setScanMode}
                   selectedVolumes={selectedVolumes}
                   includeProjectFolders={includeProjectFolders}
                   customScanRoots={customScanRoots}
-                  onSelectedVolumesChange={(mounts) => persistScanTargets({ selected_volumes: mounts })}
-                  onIncludeProjectFoldersChange={(value) =>
-                    persistScanTargets({ include_project_folders: value })
-                  }
-                  onCustomScanRootsChange={(roots) => persistScanTargets({ roots })}
+                  profile={settings?.profile}
+                  scanScope={settings?.scan_scope}
+                  ready={hasScanTargetsReady}
                   disabled={scanning}
-                  onError={setError}
+                  onEditSettings={() => setActiveTab('settings')}
+                  onQuickConfigure={() => setScanTargetsModalOpen(true)}
                 />
 
                 {!summary && !scanning && (
@@ -840,13 +860,15 @@ export default function App() {
                          {plannerMessage && (
                            <p className="text-xs text-muted-foreground leading-relaxed">{plannerMessage}</p>
                          )}
-                         <Button
-                           className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 h-10 font-bold"
-                           disabled={selectedIds.size === 0}
-                           onClick={openCleanupPreview}
-                         >
-                           Preview cleanup
-                         </Button>
+                         <DisabledActionHint reason={cleanSelectedReason}>
+                           <Button
+                             className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 h-10 font-bold"
+                             disabled={cleanSelectedReason !== null}
+                             onClick={openCleanupPreview}
+                           >
+                             Preview cleanup
+                           </Button>
+                         </DisabledActionHint>
                        </CardContent>
                     </Card>
                   </div>
@@ -857,13 +879,16 @@ export default function App() {
                 <QuarantinePanel
                   entries={quarantine}
                   retentionDays={settings?.quarantine_retention_days ?? 30}
-                  onRefresh={(filter) => refreshQuarantine(filter)}
+                  onReload={() => refreshQuarantine()}
                   onRestore={async (id) => {
                     await tauriInvoke('restore_quarantine', { id });
                     await refreshQuarantine();
                   }}
                   onBulkRestore={bulkRestoreQuarantine}
-                  onPurge={() => purgeQuarantine()}
+                  onPurge={async () => {
+                    await purgeQuarantine();
+                  }}
+                  onGoToDashboard={() => setActiveTab('dashboard')}
                 />
               </TabsContent>
 
@@ -890,175 +915,16 @@ export default function App() {
 
 
               <TabsContent value="settings" className="m-0">
-                 <Card className="border-border/40 bg-card/30">
-                    <CardHeader>
-                      <CardTitle>Global Configuration</CardTitle>
-                      <CardDescription>Configure root directories, profile behaviors, and safety thresholds.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-8">
-                      <div className="grid gap-6 md:grid-cols-2">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Scan scope</label>
-                          <Select
-                            defaultValue={settings?.scan_scope || 'all'}
-                            onValueChange={(v) => {
-                              const el = document.getElementById('scanScopeSelect');
-                              if (el) el.setAttribute('data-scope', v);
-                            }}
-                          >
-                            <SelectTrigger className="bg-background/50" id="scanScopeSelect" data-scope={settings?.scan_scope || 'all'}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All — dev folders + drives (recommended)</SelectItem>
-                              <SelectItem value="projects">Projects — profile folders only</SelectItem>
-                              <SelectItem value="drives">Drives — partition roots (C:\, D:\, …)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="mt-4">
-                            <ScanTargetsPanel
-                              mode={scanMode}
-                              onModeChange={setScanMode}
-                              selectedVolumes={selectedVolumes}
-                              includeProjectFolders={includeProjectFolders}
-                              customScanRoots={customScanRoots}
-                              onSelectedVolumesChange={(mounts) =>
-                                persistScanTargets({ selected_volumes: mounts })
-                              }
-                              onIncludeProjectFoldersChange={(value) =>
-                                persistScanTargets({ include_project_folders: value })
-                              }
-                              onCustomScanRootsChange={(roots) => persistScanTargets({ roots })}
-                              disabled={scanning}
-                              onError={setError}
-                            />
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mt-3">
-                            Partition-wide scans skip into heavy folders (node_modules, target, …) for speed. Turn off
-                            size calculation below for faster discovery.
-                          </p>
-                        </div>
-                        <div className="space-y-6">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Safety Profile</label>
-                            <Select defaultValue={settings?.profile || 'safe'}>
-                              <SelectTrigger className="bg-background/50">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="safe">Safe (Conservative)</SelectItem>
-                                <SelectItem value="balanced">Balanced</SelectItem>
-                                <SelectItem value="aggressive">Aggressive (Maximum Space)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                             <div className="space-y-2">
-                               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Stale Threshold (Days)</label>
-                               <Input type="number" defaultValue={settings?.stale_days || 45} className="bg-background/50" />
-                             </div>
-                             <div className="space-y-2">
-                               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Max Search Depth</label>
-                               <Input type="number" defaultValue={settings?.max_depth || 6} className="bg-background/50" />
-                             </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <Separator />
-
-                      <div className="flex items-center justify-between bg-muted/20 p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold">Calculate sizes</p>
-                          <p className="text-xs text-muted-foreground">
-                            Turn off for a faster scan (CLI: --no-size).
-                          </p>
-                        </div>
-                        <Checkbox id="includeSize" defaultChecked={settings?.include_size ?? true} />
-                      </div>
-
-                      <div className="flex items-center justify-between bg-muted/20 p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold">Check global Go cache</p>
-                          <p className="text-xs text-muted-foreground">
-                            Opt-in scan for GOCACHE and GOMODCACHE via go env. Never included by default.
-                          </p>
-                        </div>
-                        <Checkbox id="checkGoCache" defaultChecked={settings?.check_go_cache ?? false} />
-                      </div>
-
-                      <div className="flex items-center justify-between bg-muted/20 p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold">Global JVM caches</p>
-                          <p className="text-xs text-muted-foreground">~/.m2/repository and ~/.gradle/caches (review tier).</p>
-                        </div>
-                        <Checkbox id="checkJvmGlobalCache" defaultChecked={settings?.check_jvm_global_cache ?? false} />
-                      </div>
-
-                      <div className="flex items-center justify-between bg-muted/20 p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold">Xcode DerivedData</p>
-                          <p className="text-xs text-muted-foreground">IDE global cache (review tier; opt-in).</p>
-                        </div>
-                        <Checkbox id="checkIdeGlobalCache" defaultChecked={settings?.check_ide_global_cache ?? false} />
-                      </div>
-
-                      <div className="flex items-center justify-between bg-muted/20 p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold">Include Python venv</p>
-                          <p className="text-xs text-muted-foreground">venv / .venv when a Python project is detected (high risk).</p>
-                        </div>
-                        <Checkbox id="includePythonVenv" defaultChecked={settings?.include_python_venv ?? false} />
-                      </div>
-                      
-                      <div className="flex items-center justify-between bg-muted/20 p-4 rounded-lg">
-                        <div className="space-y-0.5">
-                          <p className="text-sm font-bold">Advanced Mode</p>
-                          <p className="text-xs text-muted-foreground">Enables destructive actions and experimental classifiers.</p>
-                        </div>
-                        <Checkbox defaultChecked={settings?.advanced_mode} />
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-4">
-                        <Button variant="ghost" onClick={() => loadSettings()}>Discard Changes</Button>
-                        <Button
-                          className="font-bold px-8"
-                          onClick={async () => {
-                            const scanScope =
-                              document.getElementById('scanScopeSelect')?.getAttribute('data-scope') ??
-                              settings?.scan_scope ??
-                              'all';
-                            const checkGoCache =
-                              (document.getElementById('checkGoCache') as HTMLInputElement)?.checked ?? false;
-                            const includeSize =
-                              (document.getElementById('includeSize') as HTMLInputElement)?.checked ?? true;
-                            const checkJvmGlobalCache =
-                              (document.getElementById('checkJvmGlobalCache') as HTMLInputElement)?.checked ?? false;
-                            const checkIdeGlobalCache =
-                              (document.getElementById('checkIdeGlobalCache') as HTMLInputElement)?.checked ?? false;
-                            const includePythonVenv =
-                              (document.getElementById('includePythonVenv') as HTMLInputElement)?.checked ?? false;
-                            await tauriInvoke('save_settings', {
-                              settings: {
-                                ...settings,
-                                roots: customScanRoots,
-                                use_custom_scan_roots: useCustomScanRoots,
-                                scan_scope: scanScope,
-                                check_go_cache: checkGoCache,
-                                include_size: includeSize,
-                                check_jvm_global_cache: checkJvmGlobalCache,
-                                check_ide_global_cache: checkIdeGlobalCache,
-                                include_python_venv: includePythonVenv,
-                              },
-                            });
-                            await loadSettings();
-                          }}
-                        >
-                          Save Changes
-                        </Button>
-                      </div>
-                    </CardContent>
-                 </Card>
+                <SettingsPanel
+                  settings={settings}
+                  scanning={scanning}
+                  onSave={async (next) => {
+                    await tauriInvoke('save_settings', { settings: next });
+                    await loadSettings();
+                  }}
+                  onDiscard={() => loadSettings()}
+                  onError={setError}
+                />
               </TabsContent>
             </div>
           </ScrollArea>
@@ -1090,7 +956,7 @@ export default function App() {
                </span>
              </div>
              <span className="text-[9px] text-muted-foreground/50 font-mono" title="Frontend build marker">
-               ui-2026-05-17c
+               ui-2026-05-17d
              </span>
           </footer>
         </div>

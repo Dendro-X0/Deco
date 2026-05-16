@@ -8,7 +8,6 @@ import type {
   ExecuteResponse,
   PlanResponse,
   QuarantineEntry,
-  QuarantineFilter,
   ScanReport,
   Settings,
   HistoryItem,
@@ -78,25 +77,14 @@ export function useDeco() {
     return resp.deleted_count ?? 0;
   }, [refreshHistory]);
 
-  const refreshQuarantine = useCallback(
-    async (filterOverride?: QuarantineFilter) => {
-      if (!settings) return;
-      try {
-        const filter: QuarantineFilter = filterOverride ?? {
-          query: null,
-          from_iso: null,
-          to_iso: null,
-          only_purge_eligible: false,
-          retention_days: settings.quarantine_retention_days,
-        };
-        const entries = (await tauriInvoke('list_quarantine_filtered', { filter })) as QuarantineEntry[];
-        setQuarantine(entries);
-      } catch {
-        /* surfaced via tauriInvoke */
-      }
-    },
-    [settings],
-  );
+  const refreshQuarantine = useCallback(async () => {
+    try {
+      const entries = (await tauriInvoke('list_quarantine')) as QuarantineEntry[];
+      setQuarantine(entries);
+    } catch {
+      /* surfaced via tauriInvoke */
+    }
+  }, []);
 
   const applySettings = useCallback((raw: unknown) => {
     const s = normalizeSettings(raw);
