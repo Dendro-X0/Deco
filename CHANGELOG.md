@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.8] - 2026-05-17
+
+### Added
+
+- **Desktop**: **History** filters — size range, time presets (1 h / 24 h / 7 d / 30 d), and partition/drive.
+- **Desktop**: Delete individual scan history records or **clear all** (with confirmation).
+
 ## [0.4.7] - 2026-05-17
 
 ### Added

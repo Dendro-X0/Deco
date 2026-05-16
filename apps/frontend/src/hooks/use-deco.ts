@@ -56,12 +56,27 @@ export function useDeco() {
 
   const refreshHistory = useCallback(async () => {
     try {
-      const resp = (await tauriInvoke('scan_history', { limit: 20 })) as { items?: HistoryItem[] };
+      const resp = (await tauriInvoke('scan_history', { limit: 100 })) as { items?: HistoryItem[] };
       setHistory(resp.items || []);
     } catch {
       /* surfaced via tauriInvoke */
     }
   }, []);
+
+  const deleteScanHistory = useCallback(
+    async (scanId: string) => {
+      const resp = (await tauriInvoke('delete_scan_history', { scanId })) as { deleted?: boolean };
+      await refreshHistory();
+      return resp.deleted === true;
+    },
+    [refreshHistory],
+  );
+
+  const clearScanHistory = useCallback(async () => {
+    const resp = (await tauriInvoke('clear_scan_history')) as { deleted_count?: number };
+    await refreshHistory();
+    return resp.deleted_count ?? 0;
+  }, [refreshHistory]);
 
   const refreshQuarantine = useCallback(
     async (filterOverride?: QuarantineFilter) => {
@@ -478,6 +493,8 @@ export function useDeco() {
     loadSettings,
     refreshQuarantine,
     refreshHistory,
+    deleteScanHistory,
+    clearScanHistory,
     previewCleanup,
     executeCleanup,
     planFreeSpace,

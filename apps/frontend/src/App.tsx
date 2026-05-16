@@ -27,6 +27,7 @@ import type { ScanMode } from './components/ScanModeSelector';
 import { volumeMountsFromPaths } from './lib/volume-from-path';
 import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
+import { ScanHistoryPanel } from './components/ScanHistoryPanel';
 import { TitleBar } from './components/TitleBar';
 import { DecoLogo } from './components/DecoLogo';
 import {
@@ -156,6 +157,8 @@ export default function App() {
     planFreeSpace,
     bulkRestoreQuarantine,
     purgeQuarantine,
+    deleteScanHistory,
+    clearScanHistory,
     tauriInvoke,
     cancelScan,
   } = useDeco();
@@ -865,60 +868,26 @@ export default function App() {
               </TabsContent>
 
               <TabsContent value="history" className="m-0">
-                <Card className="border-border/40 bg-card/30">
-                  <CardHeader>
-                    <CardTitle>Scan History</CardTitle>
-                    <CardDescription>Review previous scan sessions and their reclaimed space.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                     {history.length > 0 ? (
-                       <div className="space-y-4">
-                          {history.map(item => (
-                            <div key={item.scan_id} className="p-4 rounded-lg border bg-background/50 flex items-center justify-between group">
-                              <div className="space-y-1">
-                                <p className="font-bold text-sm tracking-tight">{new Date(item.created_at).toLocaleString()}</p>
-                                <p className="text-[10px] text-muted-foreground opacity-70">Roots: {item.roots.join(', ')}</p>
-                              </div>
-                              <div className="flex items-center gap-6">
-                                <div className="text-right">
-                                  <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">Recovered</p>
-                                  <p className="text-sm font-black text-primary">{formatBytes(item.total_bytes)}</p>
-                                </div>
-                                <Button 
-                                  variant="secondary" 
-                                  size="sm" 
-                                  className="h-8 font-semibold"
-                                  onClick={() => {
-                                    setActiveTab('dashboard');
-                                    const volumes = volumesFromRoots(item.roots);
-                                    if (volumes.length === 0) {
-                                      setError('Could not map history roots to drive letters.');
-                                      return;
-                                    }
-                                    void scan({
-                                      selected_volumes: volumes,
-                                      profile: item.profile,
-                                      stale_days: item.stale_days,
-                                    });
-                                  }}
-                                >
-                                  Reuse Config
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                       </div>
-                     ) : (
-                       <div className="py-20 text-center flex flex-col items-center gap-3">
-                         <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center">
-                           <HistoryIcon className="text-muted-foreground/50" />
-                         </div>
-                         <p className="text-muted-foreground font-medium">No history available.</p>
-                       </div>
-                     )}
-                  </CardContent>
-                </Card>
+                <ScanHistoryPanel
+                  items={history}
+                  onReuse={(item) => {
+                    setActiveTab('dashboard');
+                    const volumes = volumesFromRoots(item.roots);
+                    if (volumes.length === 0) {
+                      setError('Could not map history roots to drive letters.');
+                      return;
+                    }
+                    void scan({
+                      selected_volumes: volumes,
+                      profile: item.profile,
+                      stale_days: item.stale_days,
+                    });
+                  }}
+                  onDelete={deleteScanHistory}
+                  onClearAll={clearScanHistory}
+                />
               </TabsContent>
+
 
               <TabsContent value="settings" className="m-0">
                  <Card className="border-border/40 bg-card/30">

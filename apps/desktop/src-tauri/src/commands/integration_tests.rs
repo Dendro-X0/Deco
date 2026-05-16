@@ -3,7 +3,9 @@ use super::quarantine::{
     list_quarantine_core, purge_quarantine_core, restore_quarantine_bulk_core,
     restore_quarantine_core,
 };
-use super::scan::{cancel_scan_core, scan_history_core};
+use super::scan::{
+    cancel_scan_core, clear_scan_history_core, delete_scan_history_core, scan_history_core,
+};
 use crate::db::init_db;
 use crate::engine::types::{
     CleanupCandidate, ExecuteRequest, Kind, RiskLevel, SafetyClass, Settings,
@@ -508,6 +510,39 @@ fn scan_history_returns_newest_first() {
     assert_eq!(history.items[0].scan_id, "scan-new");
     assert_eq!(history.items[1].scan_id, "scan-old");
     assert_eq!(history.items[0].safe_count, 1);
+
+    drop(state);
+    remove_dir_all(root).expect("cleanup");
+}
+
+#[test]
+fn delete_and_clear_scan_history() {
+    let root = temp_root("scan-history-delete");
+    let state = build_state(&root);
+
+    {
+        let conn = state.db.lock().expect("lock db");
+        for (id, created) in [("scan-a", "2026-03-01T00:00:00Z"), ("scan-b", "2026-03-02T00:00:00Z")]
+        {
+            conn.execute(
+                "INSERT INTO scans (scan_id, created_at, roots_json, profile, stale_days, scanned_dirs, total_bytes)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![id, created, "[\"F:/\"]", "safe", 45_i64, 10_i64, 1024_i64],
+            )
+            .expect("insert scan");
+        }
+    }
+
+    let del = delete_scan_history_core("scan-a", &state).expect("delete one");
+    assert!(del.deleted);
+    let history = scan_history_core(10, &state).expect("history after delete");
+    assert_eq!(history.items.len(), 1);
+    assert_eq!(history.items[0].scan_id, "scan-b");
+
+    let cleared = clear_scan_history_core(&state).expect("clear all");
+    assert_eq!(cleared.deleted_count, 1);
+    let empty = scan_history_core(10, &state).expect("history after clear");
+    assert!(empty.items.is_empty());
 
     drop(state);
     remove_dir_all(root).expect("cleanup");

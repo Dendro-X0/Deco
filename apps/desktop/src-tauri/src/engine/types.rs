@@ -282,6 +282,16 @@ pub struct ScanHistoryResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeleteScanHistoryResponse {
+    pub deleted: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClearScanHistoryResponse {
+    pub deleted_count: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanRequest {
     pub scan_id: String,
     pub target_gb: u32,

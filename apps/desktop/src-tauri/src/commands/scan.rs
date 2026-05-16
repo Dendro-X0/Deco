@@ -5,8 +5,9 @@ use crate::engine::scanner::{discover_targets, DiscoverProgressCallback};
 use crate::engine::sizer::dir_size_bytes;
 use rayon::prelude::*;
 use crate::engine::types::{
-    CleanupCandidate, RiskLevel, RiskTotals, ScanHistoryItem, ScanHistoryResponse, ScanRequest,
-    ScanResponse, Totals, SCAN_REPORT_SCHEMA_VERSION,
+    CleanupCandidate, ClearScanHistoryResponse, DeleteScanHistoryResponse, RiskLevel, RiskTotals,
+    ScanHistoryItem, ScanHistoryResponse, ScanRequest, ScanResponse, Totals,
+    SCAN_REPORT_SCHEMA_VERSION,
 };
 use crate::state::AppState;
 use crate::util::scan_roots::{custom_scan_roots, effective_scan_roots};
@@ -443,6 +444,89 @@ pub(crate) fn scan_history_core(
         items.push(row.map_err(|e| format!("scan history row map failed: {e}"))?);
     }
     Ok(ScanHistoryResponse { items })
+}
+
+#[tauri::command]
+pub fn delete_scan_history(
+    scan_id: String,
+    state: State<Arc<AppState>>,
+) -> Result<DeleteScanHistoryResponse, String> {
+    delete_scan_history_core(&scan_id, state.inner())
+}
+
+pub(crate) fn delete_scan_history_core(
+    scan_id: &str,
+    state: &AppState,
+) -> Result<DeleteScanHistoryResponse, String> {
+    let scan_id = scan_id.trim();
+    if scan_id.is_empty() {
+        return Err("scan_id is required".to_string());
+    }
+
+    let conn = state
+        .db
+        .lock()
+        .map_err(|_| "db mutex poisoned".to_string())?;
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|e| format!("begin delete scan history transaction failed: {e}"))?;
+    tx.execute(
+        "DELETE FROM candidates WHERE scan_id = ?1",
+        params![scan_id],
+    )
+    .map_err(|e| format!("delete scan candidates failed: {e}"))?;
+    tx.execute(
+        "DELETE FROM scan_events WHERE scan_id = ?1",
+        params![scan_id],
+    )
+    .map_err(|e| format!("delete scan events failed: {e}"))?;
+    let deleted_rows = tx
+        .execute("DELETE FROM scans WHERE scan_id = ?1", params![scan_id])
+        .map_err(|e| format!("delete scan row failed: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("commit delete scan history failed: {e}"))?;
+
+    if let Ok(mut scans) = state.scans.lock() {
+        scans.remove(scan_id);
+    }
+
+    Ok(DeleteScanHistoryResponse {
+        deleted: deleted_rows > 0,
+    })
+}
+
+#[tauri::command]
+pub fn clear_scan_history(state: State<Arc<AppState>>) -> Result<ClearScanHistoryResponse, String> {
+    clear_scan_history_core(state.inner())
+}
+
+pub(crate) fn clear_scan_history_core(
+    state: &AppState,
+) -> Result<ClearScanHistoryResponse, String> {
+    let conn = state
+        .db
+        .lock()
+        .map_err(|_| "db mutex poisoned".to_string())?;
+    let tx = conn
+        .unchecked_transaction()
+        .map_err(|e| format!("begin clear scan history transaction failed: {e}"))?;
+    tx.execute("DELETE FROM candidates", [])
+        .map_err(|e| format!("clear scan candidates failed: {e}"))?;
+    tx.execute("DELETE FROM scan_events", [])
+        .map_err(|e| format!("clear scan events failed: {e}"))?;
+    let deleted_rows = tx
+        .execute("DELETE FROM scans", [])
+        .map_err(|e| format!("clear scans failed: {e}"))?;
+    tx.commit()
+        .map_err(|e| format!("commit clear scan history failed: {e}"))?;
+
+    if let Ok(mut scans) = state.scans.lock() {
+        scans.clear();
+    }
+
+    Ok(ClearScanHistoryResponse {
+        deleted_count: deleted_rows as u32,
+    })
 }
 
 fn emit_progress(app: &AppHandle, payload: ScanProgressEvent) {

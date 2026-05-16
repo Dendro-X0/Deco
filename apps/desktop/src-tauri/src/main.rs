@@ -54,6 +54,8 @@ fn main() {
             commands::scan::start_scan,
             commands::scan::cancel_scan,
             commands::scan::scan_history,
+            commands::scan::delete_scan_history,
+            commands::scan::clear_scan_history,
             commands::execute::execute_cleanup_command,
             commands::execute::preview_execute,
             commands::execute::plan_free_space,
