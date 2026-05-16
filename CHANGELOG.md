@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.3] - 2026-05-16
+
+### Added
+
+- **Desktop**: Dashboard table sort — click **Risk**, **Kind**, **Path**, or **Size** headers (toggle asc/desc; default largest size first).
+- **Desktop**: Rows and overview cards show **Sizing…** until the engine reports each candidate’s `size_bytes`; **0.00 B** only appears when sizing finished and the directory is empty.
+
 ## [0.4.1] - 2026-05-15
 
 ### Fixed

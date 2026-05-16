@@ -9,6 +9,11 @@ export function formatBytes(bytes = 0): string {
   return `${value.toFixed(2)} ${units[idx]}`;
 }
 
+/** True when backend has reported an explicit byte size for this candidate (including 0 for empty dirs). */
+export function candidateSizeIsKnown(bytes: number | undefined): bytes is number {
+  return typeof bytes === 'number' && !Number.isNaN(bytes);
+}
+
 /** Compact duration for status lines (e.g. `45s`, `2m 15s`, `1h 5m`). */
 export function formatDurationMs(ms: number): string {
   const s = Math.floor(Math.max(0, ms) / 1000);

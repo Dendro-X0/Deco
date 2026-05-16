@@ -16,9 +16,17 @@ Built by [`.github/workflows/release.yml`](../../.github/workflows/release.yml) 
 
 ## GitHub “Deployments” / npm noise
 
-If the repository sidebar shows a failing deployment named **Configure NPM** (or similar), that usually comes from **GitHub’s npm / Node publishing integrations or an old environment**, not from this repo’s workflows (we only use **pnpm** for CI and ship via **Releases**, not `npm publish`).
+If the repository sidebar shows a failing deployment named **Configure NPM** (or similar), that **does not come from this repo’s CI** (we use **pnpm** only and ship via [**Releases**](https://github.com/Dendro-X0/Deco/releases)). It is usually a **stale GitHub feature** (Packages / suggested npm workflow / an old **Environment** expecting `NODE_AUTH_TOKEN`).
 
-**What to do:** remove or disable any unused **Environments** under *Settings → Environments*, turn off **Packages** publishing automation if it was enabled experimentally, and delete archived workflows under *.github/workflows* on GitHub that referenced `npm publish` / `NODE_AUTH_TOKEN`. Scoped packages in this monorepo are marked **`"private": true`** where applicable so accidental registry publishes are blocked.
+**How to remove the red item (do this in the browser on github.com):**
+
+1. **Actions → (left) “Actions” tab** — open **All workflows**, delete or disable any archived workflow named like *Publish Node.js Package to npm* / *npm-publish* if present (including under *…* → *Delete workflow run* is not enough; remove the workflow file via *Actions* disabled workflow or a PR that deletes unused files on the default branch).
+2. **Settings → Environments** — delete environments named `npm`, `production` (npm), or **Configure NPM** if they only existed for registry publish. No environments are required for Releases-only shipping.
+3. **Settings → Secrets and variables → Actions** — remove obsolete `NPM_TOKEN`, `NODE_AUTH_TOKEN`, or npm registry secrets tied to that environment.
+4. **Settings → Integration (or “Security” / Packages)** — disable **GitHub Packages** publishing to the npm registry for this repo if you turned it on accidentally.
+5. **Deployments** sidebar may still list old failed runs for a while after the above — new pushes will not recreate them once the triggering workflow/integration is gone.
+
+Scoped packages here use **`"private": true`** so accidental `npm publish` from a developer machine stays blocked unless explicitly removed.
 
 ## End-user install paths
 

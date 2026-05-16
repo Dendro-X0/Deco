@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import {
   LayoutDashboard,
@@ -14,6 +14,9 @@ import {
   Info,
   AlertTriangle,
   Sparkles,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
 } from 'lucide-react';
 import { useDeco } from './hooks/use-deco';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
@@ -23,7 +26,15 @@ import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
 import { TitleBar } from './components/TitleBar';
 import { DecoLogo } from './components/DecoLogo';
-import { formatBytes } from './lib/format';
+import {
+  candidateSizeIsKnown,
+  formatBytes,
+} from './lib/format';
+import {
+  compareCandidates,
+  type CandidateSortColumn,
+  type SortDirection,
+} from './lib/candidate-sort';
 import { volumesFromRoots } from './lib/scan-report';
 import { normalizeSettings } from './lib/settings-normalize';
 import type { ExecutePreviewResponse, WizardStep } from './types';
@@ -50,6 +61,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import { 
   Select, 
   SelectContent, 
@@ -57,6 +69,50 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+
+function SortHeading({
+  column,
+  activeColumn,
+  sortDir,
+  onCycleSort,
+  children,
+  className,
+  alignEnd,
+}: {
+  column: CandidateSortColumn;
+  activeColumn: CandidateSortColumn;
+  sortDir: SortDirection;
+  onCycleSort: (column: CandidateSortColumn) => void;
+  children: ReactNode;
+  className?: string;
+  alignEnd?: boolean;
+}) {
+  const active = activeColumn === column;
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        title="Sort column"
+        onClick={() => onCycleSort(column)}
+        className={cn(
+          'inline-flex items-center gap-1.5 font-semibold tracking-tight text-foreground hover:text-primary transition-colors select-none rounded-sm leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+          alignEnd && 'w-full justify-end',
+        )}
+      >
+        <span>{children}</span>
+        {active ? (
+          sortDir === 'asc' ? (
+            <ArrowUp className="h-3.5 w-3.5 shrink-0 opacity-70" />
+          ) : (
+            <ArrowDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
 
 export default function App() {
   const {
@@ -92,7 +148,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState('all');
-  const [sortOrder] = useState('size_desc');
+  const [sortColumn, setSortColumn] = useState<CandidateSortColumn>('size');
+  const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<WizardStep>('intro');
@@ -140,7 +197,7 @@ export default function App() {
         : 'projects + drives';
 
   const filteredCandidates = candidates
-    .filter(c => {
+    .filter((c) => {
       const path = (c.abs_path ?? '').toLowerCase();
       const kind = String(c.kind ?? '').toLowerCase();
       const q = search.toLowerCase();
@@ -148,13 +205,26 @@ export default function App() {
       const matchesRisk = riskFilter === 'all' || c.risk === riskFilter;
       return matchesSearch && matchesRisk;
     })
-    .sort((a, b) => {
-      if (sortOrder === 'size_desc') return (b.size_bytes || 0) - (a.size_bytes || 0);
-      if (sortOrder === 'size_asc') return (a.size_bytes || 0) - (b.size_bytes || 0);
-      return 0;
-    });
+    .sort((a, b) => compareCandidates(a, b, sortColumn, sortDir));
 
-  const selectedCandidate = candidates.find(c => c.id === selectedCandidateId);
+  const selectedCandidate = candidates.find((c) => c.id === selectedCandidateId);
+
+  const anySizingPending =
+    scanning &&
+    (candidates.length === 0 ||
+      candidates.some((c) => !candidateSizeIsKnown(c.size_bytes)));
+
+  const countByRisk = (risk: string) =>
+    candidates.filter((c) => c.risk === risk).length;
+
+  const cycleSortHeader = (col: CandidateSortColumn) => {
+    if (sortColumn !== col) {
+      setSortColumn(col);
+      setSortDir(col === 'size' ? 'desc' : 'asc');
+      return;
+    }
+    setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+  };
 
   const handleSelectAll = (checked: boolean | string) => {
     if (checked === true) {
@@ -363,10 +433,58 @@ export default function App() {
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <StatCard label="Safe" value={formatBytes(summary?.totals_by_risk?.safe?.bytes)} count={summary?.totals_by_risk?.safe?.count} color="text-primary" />
-                  <StatCard label="Review" value={formatBytes(summary?.totals_by_risk?.review?.bytes)} count={summary?.totals_by_risk?.review?.count} color="text-amber-500" />
-                  <StatCard label="Blocked" value={formatBytes(summary?.totals_by_risk?.blocked?.bytes)} count={summary?.totals_by_risk?.blocked?.count} color="text-destructive" />
-                  <StatCard label="Total Reclaimable" value={formatBytes(summary?.total_bytes)} count={candidates.length} color="text-foreground" />
+                  <StatCard
+                    label="Safe"
+                    value={
+                      anySizingPending
+                        ? 'Sizing…'
+                        : formatBytes(summary?.totals_by_risk?.safe?.bytes)
+                    }
+                    count={
+                      scanning
+                        ? countByRisk('safe')
+                        : (summary?.totals_by_risk?.safe?.count ?? 0)
+                    }
+                    color="text-primary"
+                  />
+                  <StatCard
+                    label="Review"
+                    value={
+                      anySizingPending
+                        ? 'Sizing…'
+                        : formatBytes(summary?.totals_by_risk?.review?.bytes)
+                    }
+                    count={
+                      scanning
+                        ? countByRisk('review')
+                        : (summary?.totals_by_risk?.review?.count ?? 0)
+                    }
+                    color="text-amber-500"
+                  />
+                  <StatCard
+                    label="Blocked"
+                    value={
+                      anySizingPending
+                        ? 'Sizing…'
+                        : formatBytes(summary?.totals_by_risk?.blocked?.bytes)
+                    }
+                    count={
+                      scanning
+                        ? countByRisk('blocked')
+                        : (summary?.totals_by_risk?.blocked?.count ?? 0)
+                    }
+                    color="text-destructive"
+                  />
+                  <StatCard
+                    label="Total Reclaimable"
+                    value={
+                      anySizingPending
+                        ? 'Sizing…'
+                        : formatBytes(summary?.total_bytes)
+                    }
+                    count={candidates.length}
+                    color="text-foreground"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -408,10 +526,42 @@ export default function App() {
                                 checked={candidates.length > 0 && Array.from(selectedIds).length === candidates.filter(c => c.risk !== 'blocked').length}
                               />
                             </TableHead>
-                            <TableHead className="w-24">Risk</TableHead>
-                            <TableHead className="w-32">Kind</TableHead>
-                            <TableHead>Path</TableHead>
-                            <TableHead className="text-right w-24">Size</TableHead>
+                            <SortHeading
+                              column="risk"
+                              activeColumn={sortColumn}
+                              sortDir={sortDir}
+                              onCycleSort={cycleSortHeader}
+                              className="w-24"
+                            >
+                              Risk
+                            </SortHeading>
+                            <SortHeading
+                              column="kind"
+                              activeColumn={sortColumn}
+                              sortDir={sortDir}
+                              onCycleSort={cycleSortHeader}
+                              className="min-w-[9rem]"
+                            >
+                              Kind
+                            </SortHeading>
+                            <SortHeading
+                              column="path"
+                              activeColumn={sortColumn}
+                              sortDir={sortDir}
+                              onCycleSort={cycleSortHeader}
+                            >
+                              Path
+                            </SortHeading>
+                            <SortHeading
+                              column="size"
+                              activeColumn={sortColumn}
+                              sortDir={sortDir}
+                              onCycleSort={cycleSortHeader}
+                              alignEnd
+                              className="text-right w-[7.5rem]"
+                            >
+                              Size
+                            </SortHeading>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -439,7 +589,17 @@ export default function App() {
                               </TableCell>
                               <TableCell className="font-mono text-[11px] font-semibold opacity-70 uppercase tracking-tighter">{c.kind}</TableCell>
                               <TableCell className="font-mono text-[11px] truncate max-w-xs">{c.abs_path}</TableCell>
-                              <TableCell className="text-right font-semibold">{formatBytes(c.size_bytes)}</TableCell>
+                              <TableCell className="text-right">
+                                {candidateSizeIsKnown(c.size_bytes) ? (
+                                  <span className="font-semibold tabular-nums">
+                                    {formatBytes(c.size_bytes)}
+                                  </span>
+                                ) : (
+                                  <span className="font-medium text-muted-foreground tabular-nums text-xs">
+                                    Sizing…
+                                  </span>
+                                )}
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
@@ -478,6 +638,16 @@ export default function App() {
                                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Project</p>
                                  <p className="text-xs font-semibold">{selectedCandidate.project_root || 'N/A'}</p>
                                </div>
+                             </div>
+                             <div className="space-y-1">
+                               <p className="text-[10px] uppercase font-bold text-muted-foreground">Size</p>
+                               <p className="text-xs font-black tabular-nums">
+                                 {candidateSizeIsKnown(selectedCandidate.size_bytes) ? (
+                                   formatBytes(selectedCandidate.size_bytes)
+                                 ) : (
+                                   <span className="font-medium text-muted-foreground">Sizing…</span>
+                                 )}
+                               </p>
                              </div>
                              <div className="space-y-1">
                                <p className="text-[10px] uppercase font-bold text-muted-foreground">Reason Codes</p>
@@ -803,7 +973,7 @@ export default function App() {
                <span className="text-xs font-mono font-bold tracking-tighter">{progress.percent.toFixed(0)}%</span>
              </div>
              <span className="text-[9px] text-muted-foreground/50 font-mono" title="Frontend build marker">
-               ui-2026-05-15h
+               ui-2026-05-16a
              </span>
           </footer>
         </div>
