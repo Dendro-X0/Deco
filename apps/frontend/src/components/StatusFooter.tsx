@@ -1,0 +1,74 @@
+import { Loader2, Play } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { APP_VERSION } from '@/lib/app-version';
+import { formatDurationMs } from '@/lib/format';
+import {
+  type ScanProgress,
+  scanProgressPhaseLabel,
+} from '@/lib/scan-progress';
+import { cn } from '@/lib/utils';
+
+type Props = {
+  progress: ScanProgress;
+  scanning: boolean;
+  busy: boolean;
+  elapsedMs: number;
+};
+
+export function StatusFooter({ progress, scanning, busy, elapsedMs }: Props) {
+  const active = scanning || busy;
+  const phaseLabel = scanProgressPhaseLabel(progress.phase);
+  const showElapsed = active && elapsedMs > 0;
+
+  return (
+    <footer className="flex h-14 shrink-0 items-center gap-4 border-t bg-background/80 px-6 backdrop-blur-md">
+      <div className="flex min-w-0 max-w-[40%] flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          {active ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" aria-hidden />
+          ) : (
+            <Play className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          )}
+          {phaseLabel ? (
+            <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary">
+              {phaseLabel}
+            </span>
+          ) : null}
+        </div>
+        <span
+          className="truncate text-[10px] font-medium leading-snug text-muted-foreground"
+          title={progress.text}
+        >
+          {progress.text}
+        </span>
+      </div>
+
+      <div className="relative min-w-0 flex-1">
+        <Progress
+          value={progress.percent}
+          className={cn('h-2 overflow-hidden', active && 'shimmer-progress')}
+        />
+      </div>
+
+      <div className="flex shrink-0 items-center gap-3">
+        {showElapsed ? (
+          <span
+            className="text-xs font-mono font-semibold tabular-nums text-primary"
+            title="Elapsed time"
+          >
+            {formatDurationMs(elapsedMs)}
+          </span>
+        ) : null}
+        <span className="min-w-[2.5rem] text-right text-xs font-mono font-bold tabular-nums tracking-tight">
+          {progress.percent.toFixed(0)}%
+        </span>
+        <span
+          className="hidden text-[10px] font-mono text-muted-foreground/60 sm:inline"
+          title="Deco version"
+        >
+          v{APP_VERSION}
+        </span>
+      </div>
+    </footer>
+  );
+}

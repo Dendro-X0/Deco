@@ -17,6 +17,7 @@ import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normaliz
 import { formatBytes, formatDurationMs } from '../lib/format';
 import { volumeMountsFromPaths } from '../lib/volume-from-path';
 import { toast } from '../lib/toast';
+import { IDLE_PROGRESS, type ScanProgress } from '../lib/scan-progress';
 
 export function useDeco() {
   const [scanId, setScanId] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export function useDeco() {
   const [candidateMap, setCandidateMap] = useState<Map<string, Candidate>>(new Map());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState({ percent: 0, text: 'Ready' });
+  const [progress, setProgress] = useState<ScanProgress>(IDLE_PROGRESS);
   const [status, setStatus] = useState({ text: 'System Ready', type: 'idle' as 'active' | 'idle' | 'error' | 'done' });
   const [summary, setSummary] = useState<ScanReport | null>(null);
   const [quarantine, setQuarantine] = useState<QuarantineEntry[]>([]);
@@ -114,7 +115,7 @@ export function useDeco() {
     const id = activeScanIdRef.current ?? scanId;
     if (!id) {
       finishScan();
-      setProgress({ percent: 0, text: 'Ready' });
+      setProgress(IDLE_PROGRESS);
       return;
     }
     try {
@@ -129,7 +130,7 @@ export function useDeco() {
       const msg = err instanceof Error ? err.message : String(err);
       setError(msg);
       finishScan();
-      setProgress({ percent: 0, text: 'Scan stopped' });
+      setProgress({ percent: 0, text: 'Scan stopped', phase: null });
     }
   };
 
@@ -185,7 +186,7 @@ export function useDeco() {
     setCandidateMap(new Map());
     setSelectedIds(new Set());
     setSummary(null);
-    setProgress({ percent: 2, text: 'Starting scan…' });
+    setProgress({ percent: 2, text: 'Starting scan…', phase: 'discover' });
     setStatus({ text: 'Scan running in background', type: 'active' });
 
     try {
@@ -232,7 +233,7 @@ export function useDeco() {
       return { scan_id: id };
     } catch {
       finishScan();
-      setProgress({ percent: 0, text: 'Ready' });
+      setProgress(IDLE_PROGRESS);
       return null;
     }
   };
@@ -358,11 +359,18 @@ export function useDeco() {
       const eventScanId = (payload.scan_id ?? payload.scanId) as string | undefined;
       if (eventScanId && activeScanIdRef.current && eventScanId !== activeScanIdRef.current) return;
 
-      const phase = payload.phase as string | undefined;
+      const rawPhase = payload.phase as string | undefined;
+      const progressPhase =
+        rawPhase === 'discover' ||
+        rawPhase === 'classify' ||
+        rawPhase === 'size' ||
+        rawPhase === 'done'
+          ? rawPhase
+          : null;
       let percent = 0;
       const text = (payload.message as string) || 'Scanning...';
 
-      if (phase === 'discover') {
+      if (progressPhase === 'discover') {
         const scanned = Number(payload.scanned_dirs ?? 0);
         const found = Number(payload.discovered_targets ?? 0);
         percent = Math.min(18, 5 + Math.log10(scanned + 10) * 3);
@@ -370,18 +378,19 @@ export function useDeco() {
           setProgress({
             percent,
             text: `Scanning directories… ${scanned} scanned, ${found} found`,
+            phase: 'discover',
           });
           setStatus({ text: `Scanning… ${scanned} dirs`, type: 'active' });
           return;
         }
-      } else if (phase === 'classify') percent = 20;
-      else if (phase === 'size') {
+      } else if (progressPhase === 'classify') percent = 20;
+      else if (progressPhase === 'size') {
         const total = Number(payload.total_size_candidates || 0);
         const done = Number(payload.processed_sizes || 0);
         percent = total > 0 ? 20 + (done / total) * 75 : 65;
-      } else if (phase === 'done') percent = 100;
+      } else if (progressPhase === 'done') percent = 100;
 
-      setProgress({ percent, text });
+      setProgress({ percent, text, phase: progressPhase });
       setStatus({ text, type: 'active' });
     });
 
@@ -408,7 +417,7 @@ export function useDeco() {
         const report = normalizeScanReport(event.payload);
         if (!report.scan_id) {
           finishScan();
-          setProgress({ percent: 0, text: 'Ready' });
+          setProgress(IDLE_PROGRESS);
           return;
         }
         if (activeScanIdRef.current && report.scan_id !== activeScanIdRef.current) return;
@@ -419,7 +428,7 @@ export function useDeco() {
         setCandidateMap(new Map(list.filter((c) => c.id).map((c) => [c.id, c])));
         setSelectedIds(new Set(list.filter((c) => c.risk === 'safe' && c.id).map((c) => c.id)));
         setSummary(report);
-        setProgress({ percent: 100, text: 'Done' });
+        setProgress({ percent: 100, text: 'Scan complete', phase: 'done' });
         const canceled = (report.warnings ?? []).some((w) => w.toLowerCase().includes('cancel'));
         const bytes = report.total_bytes ?? 0;
         const sizeHint = bytes > 0 ? ` · ${formatBytes(bytes)}` : '';
@@ -438,7 +447,7 @@ export function useDeco() {
         console.error('[Deco] scan-complete handler failed', err);
         setError(err instanceof Error ? err.message : 'Failed to process scan results.');
         finishScan();
-        setProgress({ percent: 0, text: 'Ready' });
+        setProgress(IDLE_PROGRESS);
       }
     });
 
@@ -450,7 +459,7 @@ export function useDeco() {
       setError(msg);
       setStatus({ text: `Error: ${msg}`, type: 'error' });
       finishScan();
-      setProgress({ percent: 0, text: 'Ready' });
+      setProgress(IDLE_PROGRESS);
     });
 
     return () => {

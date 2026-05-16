@@ -40,27 +40,36 @@ export function ScanTargetsModal({
     selectedVolumes.length > 0 && (mode === 'partition' || customScanRoots.length > 0);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} aria-hidden />
+    <div className="fixed inset-0 z-[60] grid place-items-center p-4">
       <div
-        className="relative w-full max-w-2xl rounded-xl border bg-card shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
+        className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        className="relative z-10 grid h-[min(85dvh,52rem)] w-full max-w-2xl max-h-[calc(100vh-2rem)] grid-rows-[auto_1fr_auto] overflow-hidden rounded-xl border bg-card shadow-2xl"
         role="dialog"
         aria-labelledby="scan-targets-title"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b px-6 py-4 shrink-0">
+        <header className="flex shrink-0 items-center justify-between border-b px-6 py-4">
           <div>
             <h3 id="scan-targets-title" className="text-lg font-bold">
               {title}
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Pick a scanning mode, then configure partitions or custom folders.
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X size={18} />
           </button>
-        </div>
-        <div className="overflow-y-auto px-6 py-4 flex-1">
+        </header>
+        <div
+          className="min-h-0 overflow-y-auto overflow-x-hidden deco-scrollbar px-6 py-4"
+          role="region"
+          aria-label="Scan target options"
+        >
           <ScanTargetsPanel
             mode={mode}
             onModeChange={onModeChange}
@@ -74,14 +83,14 @@ export function ScanTargetsModal({
             onError={onError}
           />
         </div>
-        <div className="flex justify-end gap-2 border-t px-6 py-4 shrink-0">
+        <footer className="flex shrink-0 justify-end gap-2 border-t px-6 py-4">
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button disabled={!canStart} className="font-semibold gap-2" onClick={onConfirm}>
+          <Button disabled={!canStart} className="gap-2 font-semibold" onClick={onConfirm}>
             Start scan
           </Button>
-        </div>
+        </footer>
       </div>
     </div>
   );

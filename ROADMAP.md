@@ -116,15 +116,30 @@ Details: [`docs/milestones/milestone-8.md`](docs/milestones/milestone-8.md).
 
 ---
 
+## Forward plan (versions)
+
+Milestones **M0–M8** are complete. Ongoing delivery is tracked by **semver** and product phase:
+
+| Doc | Contents |
+|-----|----------|
+| [**Version roadmap**](docs/product/version-roadmap.md) | `v0.4.x` UX → `v0.5.x` ecosystems/package managers → `v0.6.x` scan engine → `v0.7.x` trust/community → `v0.8+` platforms |
+
+**Current release:** `v0.4.11` — see [CHANGELOG.md](CHANGELOG.md).
+
+---
+
 ## Experimental track (non-blocking)
 
-Pick items as spikes; promote into numbered milestones when validated.
+Pick items as spikes; promote into a version per [version-roadmap.md](docs/product/version-roadmap.md). Spike notes live under [`docs/experiments/`](docs/experiments/README.md).
 
 - **Dormancy ranking** — Explain “likely stale” vs “recent”; no auto-delete on signals alone.
 - **Regeneration hints** — Short human text for review-tier rows.
 - **Workspace graph / rollups** — Monorepo-first summaries in UI and JSON.
 - **External tool links** — Open path in Explorer or optional handoff to TreeSize-style tools.
 - **Profiles** — “First-time”, “Monorepo maintainer”, “CI disk” presets (same engine, different defaults).
+- **Phased discover → size** — Hardware-agnostic; see `v0.6.x` in version roadmap.
+- **Adaptive concurrency** — Bounded parallel sizing; not “max threads everywhere.”
+- **Incremental inventory** — SQLite-backed rescan skip for unchanged paths.
 
 ---
 

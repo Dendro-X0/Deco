@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-15 (docs reorganized into [docs/README.md](../README.md))
+Last updated: 2026-05-16 · Release **v0.4.11** shipped
 
 ## Current Direction
 
@@ -45,18 +45,23 @@ Last updated: 2026-05-15 (docs reorganized into [docs/README.md](../README.md))
   - Rust unit/integration suite (`apps/desktop/src-tauri`): `cargo test`
   - CLI (`apps/cli`): `pnpm -F @dendro-x0/deco-cli test`
 
-## Known Gaps / Next Steps
+## Forward priorities
 
-- Run **Milestone 8** manual QA checklist on a Windows installer build ([milestone-8](../milestones/milestone-8.md)).
-- Optional distribution expansion: winget, macOS/Linux bundles — [distribution/github-releases.md](../distribution/github-releases.md#future-distribution-options).
-- Experimental track items in [`ROADMAP.md`](../../ROADMAP.md) (dormancy ranking, profiles, …).
-- Validate cancellation UX on very large scans (ensure smooth partial UI updates).
-- Evaluate whether `scan_events` should store full event streams or remain lightweight.
-- Polish text/labels/layout in UI for production-level clarity.
-- Prepare release checklist:
-  - version bump
-  - tag
-  - GitHub release notes + artifacts verification
+See **[version-roadmap.md](version-roadmap.md)** for the phased plan (HDD/SSD-agnostic):
+
+| Phase | Versions | Theme |
+|-------|----------|--------|
+| A | `v0.4.11` ✓ | Dashboard/Settings UX polish (filters, progress, shortcuts, onboarding, planner) |
+| B | `v0.5.x` | Package managers & tool caches (npm, pnpm, conda, …) |
+| C | `v0.6.x` | Scan engine: phased sizing, adaptive concurrency, incremental inventory |
+| D | `v0.7.x` | Profiles, dormancy hints, policy packs, classification parity |
+| E | `v0.8+` | macOS/Linux GA, distribution expansion |
+
+## Known gaps / maintenance
+
+- Optional distribution: winget, macOS/Linux bundles — [github-releases.md](../distribution/github-releases.md#future-distribution-options).
+- Validate cancellation UX on very large scans.
+- Keep `CHANGELOG.md`, [features.md](features.md), and this file aligned when shipping.
 
 ## Quick Resume Commands
 

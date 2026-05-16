@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import {
   LayoutDashboard,
@@ -10,7 +10,6 @@ import {
   Play,
   X,
   ChevronRight,
-  HardDrive,
   Info,
   AlertTriangle,
   Sparkles,
@@ -43,7 +42,6 @@ import { DecoLogo } from './components/DecoLogo';
 import {
   candidateSizeIsKnown,
   formatBytes,
-  formatDurationMs,
   formatStatBytes,
 } from './lib/format';
 import {
@@ -71,6 +69,13 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CandidateFilterBar } from '@/components/CandidateFilterBar';
+import { StatusFooter } from '@/components/StatusFooter';
+import { FreeSpacePlannerCard } from '@/components/FreeSpacePlannerCard';
+import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
+import { OnboardingDialog } from '@/components/OnboardingDialog';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
+import { hasCompletedOnboarding, markOnboardingCompleted } from '@/lib/client-prefs';
 import {
   Table,
   TableBody,
@@ -81,18 +86,10 @@ import {
 } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
 
 function SortHeading({
   column,
@@ -189,6 +186,14 @@ export default function App() {
   const [plannerMessage, setPlannerMessage] = useState<string | null>(null);
   const [scanTargetsModalOpen, setScanTargetsModalOpen] = useState(false);
   const [scanTargetsAfterWizard, setScanTargetsAfterWizard] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(() => !hasCompletedOnboarding());
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const dismissOnboarding = () => {
+    markOnboardingCompleted();
+    setOnboardingOpen(false);
+  };
 
   const customScanRoots = settings?.roots ?? [];
   const useCustomScanRoots = settings?.use_custom_scan_roots ?? false;
@@ -346,6 +351,26 @@ export default function App() {
     setSizeMinInput('');
     setSizeMaxInput('');
   };
+
+  const shortcutsEnabled =
+    !wizardOpen && !previewOpen && !scanTargetsModalOpen && !onboardingOpen;
+
+  useKeyboardShortcuts({
+    enabled: shortcutsEnabled,
+    onFocusSearch: () => {
+      if (activeTab !== 'dashboard') setActiveTab('dashboard');
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    },
+    onStartScan: () => {
+      if (activeTab !== 'dashboard') setActiveTab('dashboard');
+      requestScan();
+    },
+    onShowShortcuts: () => setShortcutsOpen(true),
+    onClearFilters: () => {
+      if (filtersActive) clearFilters();
+    },
+  });
 
   const selectedCandidate = candidates.find((c) => c.id === selectedCandidateId);
 
@@ -643,9 +668,10 @@ export default function App() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="relative w-full sm:max-w-md">
                           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            placeholder="Search path or kind…" 
-                            className="pl-8 bg-background/50" 
+                          <Input
+                            ref={searchInputRef}
+                            placeholder="Search path or kind…"
+                            className="pl-8 bg-background/50"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                           />
@@ -662,72 +688,20 @@ export default function App() {
                         </span>
                       </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Select value={riskFilter} onValueChange={setRiskFilter}>
-                          <SelectTrigger className="w-[130px] bg-background/50 h-9 text-xs">
-                            <SelectValue placeholder="Risk" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All risks</SelectItem>
-                            <SelectItem value="safe">Safe</SelectItem>
-                            <SelectItem value="review">Review</SelectItem>
-                            <SelectItem value="blocked">Blocked</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select
-                          value={kindFilter}
-                          onValueChange={setKindFilter}
-                          disabled={availableKinds.length === 0}
-                        >
-                          <SelectTrigger className="w-[11rem] bg-background/50 h-9 text-xs">
-                            <SelectValue placeholder="All kinds" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All kinds</SelectItem>
-                            {availableKinds.map((k) => (
-                              <SelectItem key={k} value={k} className="font-mono text-xs uppercase">
-                                {k}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <div
-                          className="flex h-9 items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2"
-                          title="Filter by size range (e.g. 100MB – 500MB)"
-                        >
-                          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            Size
-                          </span>
-                          <Input
-                            aria-label="Minimum size"
-                            placeholder="100MB"
-                            title="Minimum (e.g. 100MB)"
-                            className="h-7 w-[4.75rem] border-0 bg-transparent px-0 text-xs font-mono shadow-none focus-visible:ring-0"
-                            value={sizeMinInput}
-                            onChange={(e) => setSizeMinInput(e.target.value)}
-                          />
-                          <span className="shrink-0 text-xs text-muted-foreground/50">–</span>
-                          <Input
-                            aria-label="Maximum size"
-                            placeholder="500MB"
-                            title="Maximum (e.g. 500MB)"
-                            className="h-7 w-[4.75rem] border-0 bg-transparent px-0 text-xs font-mono shadow-none focus-visible:ring-0"
-                            value={sizeMaxInput}
-                            onChange={(e) => setSizeMaxInput(e.target.value)}
-                          />
-                        </div>
-                        {filtersActive ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-9 text-xs"
-                            onClick={clearFilters}
-                          >
-                            Clear filters
-                          </Button>
-                        ) : null}
-                      </div>
+                      <CandidateFilterBar
+                        riskFilter={riskFilter}
+                        onRiskFilterChange={setRiskFilter}
+                        kindFilter={kindFilter}
+                        onKindFilterChange={setKindFilter}
+                        availableKinds={availableKinds}
+                        sizeMinInput={sizeMinInput}
+                        sizeMaxInput={sizeMaxInput}
+                        onSizeMinChange={setSizeMinInput}
+                        onSizeMaxChange={setSizeMaxInput}
+                        filtersActive={filtersActive}
+                        onClearFilters={clearFilters}
+                        sizeFilterDisabled={candidates.length === 0}
+                      />
                     </CardHeader>
                     <CardContent className="p-0">
                       <Table>
@@ -823,7 +797,7 @@ export default function App() {
                     </CardContent>
                   </Card>
 
-                  <div className="lg:col-span-1 space-y-6 sticky top-4 self-start w-full max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain pr-0.5">
+                  <div className="lg:col-span-1 space-y-6 sticky top-4 self-start w-full max-h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain pr-1 deco-scrollbar">
                     <Card className="border-border/40 bg-card/30">
                       <CardHeader>
                         <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
@@ -886,45 +860,17 @@ export default function App() {
                       </CardContent>
                     </Card>
 
-                    <Card className="border-border/40 bg-card/30">
-                       <CardHeader>
-                         <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                           <HardDrive size={14} /> Free Space Planner
-                         </CardTitle>
-                       </CardHeader>
-                       <CardContent className="space-y-4">
-                         <div className="space-y-2">
-                           <label className="text-[10px] font-bold uppercase text-muted-foreground">Target to Free (GB)</label>
-                           <Input
-                             type="number"
-                             min={1}
-                             value={plannerGb}
-                             onChange={(e) => setPlannerGb(Number(e.target.value) || 1)}
-                             className="bg-background/50"
-                           />
-                         </div>
-                         <div className="grid grid-cols-2 gap-2">
-                           <Button variant="secondary" size="sm" className="text-xs h-9" onClick={() => applyPlanner(false)}>
-                             Plan safe
-                           </Button>
-                           <Button variant="secondary" size="sm" className="text-xs h-9" onClick={() => applyPlanner(true)}>
-                             Incl. review
-                           </Button>
-                         </div>
-                         {plannerMessage && (
-                           <p className="text-xs text-muted-foreground leading-relaxed">{plannerMessage}</p>
-                         )}
-                         <DisabledActionHint reason={cleanSelectedReason}>
-                           <Button
-                             className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 h-10 font-bold"
-                             disabled={cleanSelectedReason !== null}
-                             onClick={openCleanupPreview}
-                           >
-                             Preview cleanup
-                           </Button>
-                         </DisabledActionHint>
-                       </CardContent>
-                    </Card>
+                    <FreeSpacePlannerCard
+                      summary={summary}
+                      plannerGb={plannerGb}
+                      onPlannerGbChange={setPlannerGb}
+                      plannerMessage={plannerMessage}
+                      onPlanSafe={() => void applyPlanner(false)}
+                      onPlanReview={() => void applyPlanner(true)}
+                      cleanDisabledReason={cleanSelectedReason}
+                      onPreview={() => void openCleanupPreview()}
+                      disabled={scanning || busy}
+                    />
                   </div>
                 </div>
               </TabsContent>
@@ -971,36 +917,12 @@ export default function App() {
             </div>
           </ScrollArea>
 
-          <footer className="h-14 border-t px-8 flex items-center gap-6 bg-background/80 backdrop-blur-md">
-             <div className="flex items-center gap-2 min-w-[120px]">
-               <Play size={12} className={scanning ? 'animate-spin text-primary' : 'text-muted-foreground'} />
-               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground transition-all duration-300">
-                 {progress.text}
-               </span>
-             </div>
-             <div className="flex-1 relative">
-               <Progress
-                 value={progress.percent}
-                 className={`h-2 overflow-hidden ${scanning || busy ? 'shimmer-progress' : ''}`}
-               />
-             </div>
-             <div className="flex items-center gap-3 min-w-[7rem] justify-end">
-               {(scanning || busy) && elapsedMs > 0 ? (
-                 <span
-                   className="text-xs font-mono font-semibold tabular-nums text-primary"
-                   title="Elapsed time"
-                 >
-                   {formatDurationMs(elapsedMs)}
-                 </span>
-               ) : null}
-               <span className="text-xs font-mono font-bold tracking-tighter tabular-nums">
-                 {progress.percent.toFixed(0)}%
-               </span>
-             </div>
-             <span className="text-[9px] text-muted-foreground/50 font-mono" title="Frontend build marker">
-               ui-2026-05-17d
-             </span>
-          </footer>
+          <StatusFooter
+            progress={progress}
+            scanning={scanning}
+            busy={busy}
+            elapsedMs={elapsedMs}
+          />
         </div>
       </Tabs>
 
@@ -1081,6 +1003,18 @@ export default function App() {
           onClearSelection={() => setSelectedIds(new Set())}
         />
       ) : null}
+
+      <KeyboardShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+
+      <OnboardingDialog
+        open={onboardingOpen}
+        onDismiss={dismissOnboarding}
+        onGetStarted={() => {
+          dismissOnboarding();
+          setWizardOpen(true);
+          setWizardStep('intro');
+        }}
+      />
 
       {error && (
         <div className="fixed bottom-20 right-8 max-w-md bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl animate-in fade-in slide-in-from-bottom-5 border-2 border-white/10 z-50">

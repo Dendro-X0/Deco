@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import {
   Select,
   SelectContent,
@@ -246,28 +246,28 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                 Stale threshold (days)
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 min={1}
                 max={365}
-                className="bg-background/50"
+                step={1}
                 value={draft.stale_days}
                 disabled={scanning || saving}
-                onChange={(e) => patch({ stale_days: clampStaleDays(Number(e.target.value)) })}
+                onValueChange={(v) => patch({ stale_days: clampStaleDays(v) })}
+                aria-label="Stale threshold in days"
               />
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                 Max search depth
               </label>
-              <Input
-                type="number"
+              <NumberInput
                 min={1}
                 max={32}
-                className="bg-background/50"
+                step={1}
                 value={draft.max_depth}
                 disabled={scanning || saving}
-                onChange={(e) => patch({ max_depth: clampMaxDepth(Number(e.target.value)) })}
+                onValueChange={(v) => patch({ max_depth: clampMaxDepth(v) })}
+                aria-label="Max search depth"
               />
             </div>
           </div>

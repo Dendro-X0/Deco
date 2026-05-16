@@ -72,3 +72,96 @@ header button {
   from { left: -100%; }
   to { left: 100%; }
 }
+
+/* Themed scrollbars for native overflow regions (modals, lists, tables) */
+.deco-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--primary) / 0.45) hsl(var(--muted) / 0.35);
+}
+
+.deco-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.deco-scrollbar::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.28);
+  border-radius: 999px;
+}
+
+.deco-scrollbar::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.38);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.deco-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.58);
+}
+
+.deco-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Themed range slider (planner target GB) */
+.deco-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(var(--muted) / 0.45);
+  cursor: pointer;
+}
+
+.deco-range:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.5);
+  outline-offset: 3px;
+}
+
+.deco-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid hsl(var(--background));
+  background: hsl(var(--primary));
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.35);
+  cursor: grab;
+}
+
+.deco-range::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.deco-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid hsl(var(--background));
+  background: hsl(var(--primary));
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.35);
+  cursor: grab;
+}
+
+.deco-range::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: hsl(var(--muted) / 0.45);
+}
+
+/* Hide native number spinners when a plain <input type="number"> is still used */
+.deco-number-input-field,
+input[type='number'].deco-hide-spinners {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.deco-number-input-field::-webkit-outer-spin-button,
+.deco-number-input-field::-webkit-inner-spin-button,
+input[type='number'].deco-hide-spinners::-webkit-outer-spin-button,
+input[type='number'].deco-hide-spinners::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

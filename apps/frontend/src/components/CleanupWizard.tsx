@@ -3,6 +3,7 @@ import { ChevronRight, HardDrive, Play, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { formatBytes } from '@/lib/format';
+import type { ScanProgress } from '@/lib/scan-progress';
 import type { ScanReport, WizardStep } from '@/types';
 
 type Props = {
@@ -14,7 +15,7 @@ type Props = {
   onOpenPreview: () => void;
   onConfigurePaths: () => void;
   scanning: boolean;
-  progress: { percent: number; text: string };
+  progress: ScanProgress;
   summary: ScanReport | null;
   selectedCount: number;
   safeBytes: number;

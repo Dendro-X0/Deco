@@ -28,6 +28,74 @@ const SIZE_UNITS: Record<string, number> = {
 };
 
 /** Parse `100`, `100MB`, `1.5 GB` into bytes; empty/invalid → null. */
+export type SizeFilterPresetId =
+  | 'any'
+  | 'min_10mb'
+  | 'min_100mb'
+  | 'min_500mb'
+  | 'min_1gb'
+  | 'range_100_500'
+  | 'custom';
+
+export type SizeFilterPreset = {
+  id: SizeFilterPresetId;
+  label: string;
+  minInput: string;
+  maxInput: string;
+  minBytes: number | null;
+  maxBytes: number | null;
+};
+
+const MB = 1024 ** 2;
+const GB = 1024 ** 3;
+
+/** Quick size presets for the results list filter bar. */
+export const SIZE_FILTER_PRESETS: readonly SizeFilterPreset[] = [
+  { id: 'any', label: 'Any', minInput: '', maxInput: '', minBytes: null, maxBytes: null },
+  { id: 'min_10mb', label: '≥10 MB', minInput: '10MB', maxInput: '', minBytes: 10 * MB, maxBytes: null },
+  { id: 'min_100mb', label: '≥100 MB', minInput: '100MB', maxInput: '', minBytes: 100 * MB, maxBytes: null },
+  { id: 'min_500mb', label: '≥500 MB', minInput: '500MB', maxInput: '', minBytes: 500 * MB, maxBytes: null },
+  { id: 'min_1gb', label: '≥1 GB', minInput: '1GB', maxInput: '', minBytes: GB, maxBytes: null },
+  {
+    id: 'range_100_500',
+    label: '100–500 MB',
+    minInput: '100MB',
+    maxInput: '500MB',
+    minBytes: 100 * MB,
+    maxBytes: 500 * MB,
+  },
+] as const;
+
+export function matchSizeFilterPreset(
+  minBytes: number | null,
+  maxBytes: number | null,
+): SizeFilterPresetId {
+  for (const preset of SIZE_FILTER_PRESETS) {
+    if (preset.minBytes === minBytes && preset.maxBytes === maxBytes) {
+      return preset.id;
+    }
+  }
+  if (minBytes === null && maxBytes === null) return 'any';
+  return 'custom';
+}
+
+export function formatSizeFilterSummary(
+  minBytes: number | null,
+  maxBytes: number | null,
+): string | null {
+  if (minBytes === null && maxBytes === null) return null;
+  const fmt = (n: number) => {
+    if (n >= GB) return `${(n / GB).toFixed(n % GB === 0 ? 0 : 1)} GB`;
+    if (n >= MB) return `${Math.round(n / MB)} MB`;
+    if (n >= 1024) return `${Math.round(n / 1024)} KB`;
+    return `${n} B`;
+  };
+  if (minBytes != null && maxBytes != null) return `${fmt(minBytes)} – ${fmt(maxBytes)}`;
+  if (minBytes != null) return `≥ ${fmt(minBytes)}`;
+  if (maxBytes != null) return `≤ ${fmt(maxBytes)}`;
+  return null;
+}
+
 export function parseSizeInput(input: string): number | null {
   const raw = input.trim().replace(/\s+/g, '');
   if (!raw) return null;

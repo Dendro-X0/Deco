@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.4.11] - 2026-05-16
+
+### Added
+
+- **Desktop**: **Keyboard shortcuts** — `Ctrl+F` search, `Ctrl+Enter` scan, `Ctrl+Shift+L` clear filters, `?` / `Ctrl+/` help dialog.
+- **Desktop**: **First-run onboarding** — welcome flow explaining scan → review → quarantine (stored in `localStorage`).
+- **Desktop**: **Free Space Planner** — reclaim bar (safe/review segments + target marker), GB slider, and themed range control.
+
+### Changed
+
+- **Desktop**: Themed **scrollbars** (`.deco-scrollbar` + Radix `ScrollArea` thumbs) and custom **`NumberInput`** stepper replace native OS controls in modals, planner, and settings.
+- **Desktop**: Results **size filter** — preset chips (≥100 MB, 100–500 MB, …) plus styled min/max range inputs and live summary.
+- **Desktop**: Shared **`CandidateFilterBar`**; **`StatusFooter`** with scan phase badge, elapsed time, and app version (replaces dev build marker).
+- **Desktop**: Scan progress shows phased status (Discover / Classify / Size / Done) in the footer.
+
 ## [0.4.10] - 2026-05-15
 
 ### Added

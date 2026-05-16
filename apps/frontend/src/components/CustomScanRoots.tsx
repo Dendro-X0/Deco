@@ -84,7 +84,7 @@ export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Pro
           No folders yet — click Browse to add paths from File Explorer.
         </p>
       ) : (
-        <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
+        <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1 deco-scrollbar">
           {roots.map((path, index) => (
             <li
               key={`${path}-${index}`}

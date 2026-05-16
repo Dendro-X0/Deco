@@ -18,8 +18,9 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 |-----|----------------|
 | [Features](product/features.md) | Desktop UX, engine capabilities, commands |
 | [Project status](product/status.md) | Handoff snapshot, completed milestones, next steps |
+| [Version roadmap](product/version-roadmap.md) | Forward plan: v0.4.x–v0.8+ (UX, ecosystems, engine, trust) |
 | [Safety model](product/safety.md) | Risk tiers, quarantine, review confirmation |
-| [Roadmap](../ROADMAP.md) | Milestone plan (repo root) |
+| [Roadmap](../ROADMAP.md) | Milestone archive M0–M8 + links to version roadmap |
 | [PROJECT.md](../PROJECT.md) | North star, goals, non-goals (repo root) |
 
 ### Desktop app

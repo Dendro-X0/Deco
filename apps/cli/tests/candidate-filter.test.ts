@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { Candidate } from '../../frontend/src/types';
 import {
   filterCandidates,
+  formatSizeFilterSummary,
+  matchSizeFilterPreset,
   parseSizeInput,
   uniqueKinds,
 } from '../../frontend/src/lib/candidate-filter';
@@ -46,6 +48,20 @@ describe('candidate-filter', () => {
       sizeMaxBytes: 500 * 1024 ** 2,
     });
     expect(filtered.map((c) => c.id)).toEqual(['a']);
+  });
+
+  it('matchSizeFilterPreset detects presets', () => {
+    const mb = 1024 ** 2;
+    expect(matchSizeFilterPreset(100 * mb, 500 * mb)).toBe('range_100_500');
+    expect(matchSizeFilterPreset(100 * mb, null)).toBe('min_100mb');
+    expect(matchSizeFilterPreset(null, null)).toBe('any');
+    expect(matchSizeFilterPreset(50 * mb, null)).toBe('custom');
+  });
+
+  it('formatSizeFilterSummary renders readable range', () => {
+    const mb = 1024 ** 2;
+    expect(formatSizeFilterSummary(100 * mb, 500 * mb)).toBe('100 MB – 500 MB');
+    expect(formatSizeFilterSummary(100 * mb, null)).toBe('≥ 100 MB');
   });
 
   it('search matches path and kind', () => {
