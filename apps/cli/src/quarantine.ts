@@ -121,7 +121,9 @@ export async function purgeQuarantine(
 ): Promise<{ purged: number; errors: readonly string[] }> {
   const errors: string[] = [];
   let purged = 0;
-  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  const cutoffMs = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  /** `retentionDays <= 0` means “expire everything now”; do not rely on fs mtime (can equal “now” on APFS/Darwin race). */
+  const expireAll = retentionDays <= 0;
 
   const quarantineRoots = getCandidateQuarantineRoots(roots, explicitRoot);
   for (const quarantineRoot of quarantineRoots) {
@@ -129,8 +131,17 @@ export async function purgeQuarantine(
     const entries = await readManifest(manifestPath);
     for (const entry of entries) {
       try {
-        const st = await stat(entry.quarantinedPath);
-        if (st.mtimeMs > cutoff) continue;
+        if (!expireAll) {
+          const anchored = Date.parse(entry.timestamp);
+          const ageMs = Number.isNaN(anchored) ? null : anchored;
+          if (ageMs !== null) {
+            if (ageMs > cutoffMs) continue;
+          } else {
+            const st = await stat(entry.quarantinedPath);
+            if (st.mtimeMs > cutoffMs) continue;
+          }
+        }
+        await stat(entry.quarantinedPath);
         await rm(entry.quarantinedPath, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 });
         purged += 1;
       } catch (error: unknown) {
