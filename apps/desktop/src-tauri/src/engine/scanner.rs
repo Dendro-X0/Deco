@@ -1,6 +1,9 @@
 use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
-use super::ecosystem_globals::{discover_ide_global_caches, discover_jvm_global_caches};
+use super::ecosystem_globals::{
+    discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
+    discover_pnpm_global_store,
+};
 use super::path_policy::PathPolicy;
 use super::types::{EcosystemScanOptions, Kind};
 use serde::{Deserialize, Serialize};
@@ -455,6 +458,16 @@ pub fn discover_targets(
         let (ide_targets, ide_warnings) = discover_ide_global_caches();
         all_targets.extend(ide_targets);
         warnings.extend(ide_warnings);
+    }
+    if eco.check_npm_cache && !canceled {
+        let (npm_targets, npm_warnings) = discover_npm_global_caches();
+        all_targets.extend(npm_targets);
+        warnings.extend(npm_warnings);
+    }
+    if eco.check_pnpm_store && !canceled {
+        let (pnpm_targets, pnpm_warnings) = discover_pnpm_global_store();
+        all_targets.extend(pnpm_targets);
+        warnings.extend(pnpm_warnings);
     }
 
     let targets = dedupe_targets_by_canonical_path(all_targets, &mut warnings);

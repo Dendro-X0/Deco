@@ -49,20 +49,22 @@ export async function classifyTargets(
 
   const classified = await Promise.all(
     discovered.map(async (target): Promise<CleanupCandidate> => {
-      const pathMatch = pathPolicy.findMatch(target.absPath);
-      if (pathMatch) {
-        return baseCandidate(target, pathMatch.risk, pathMatch.safetyClass, pathMatch.reasonCodes);
-      }
-
       if (
         target.kind === 'go-global-cache' ||
         target.kind === 'jvm-global-cache' ||
-        target.kind === 'ide-global-cache'
+        target.kind === 'ide-global-cache' ||
+        target.kind === 'npm-global-cache' ||
+        target.kind === 'pnpm-global-store'
       ) {
         return baseCandidate(target, 'review', 'global_cache', [
           'GLOBAL_CACHE_TARGET',
           'GLOBAL_CACHE_REQUIRES_OPT_IN',
         ]);
+      }
+
+      const pathMatch = pathPolicy.findMatch(target.absPath);
+      if (pathMatch) {
+        return baseCandidate(target, pathMatch.risk, pathMatch.safetyClass, pathMatch.reasonCodes);
       }
 
       if (target.kind === 'python-venv') {

@@ -5,7 +5,12 @@ import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.js';
-import { discoverIdeGlobalCachesIfEnabled, discoverJvmGlobalCachesIfEnabled } from './ecosystem-globals.js';
+import {
+  discoverIdeGlobalCachesIfEnabled,
+  discoverJvmGlobalCachesIfEnabled,
+  discoverNpmGlobalCachesIfEnabled,
+  discoverPnpmGlobalStoreIfEnabled,
+} from './ecosystem-globals.js';
 import { getGoEnv } from './go-utils.js';
 import { TaskQueue } from './concurrency.js';
 import { dedupeDiscoveredByRealpath, discoverTargets, getDirSizeBytes, SCAN_FS_CONCURRENCY, type DiscoveredTarget } from './scan.js';
@@ -64,6 +69,8 @@ type ParsedArgs = {
   readonly checkJvmGlobalCache: boolean;
   readonly includeDotnetArtifacts: boolean;
   readonly checkIdeGlobalCache: boolean;
+  readonly checkNpmCache: boolean;
+  readonly checkPnpmStore: boolean;
   readonly includeReview: boolean;
   readonly json: boolean;
   readonly showBlocked: boolean;
@@ -102,6 +109,8 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
   let checkJvmGlobalCache = false;
   let includeDotnetArtifacts = true;
   let checkIdeGlobalCache = false;
+  let checkNpmCache = false;
+  let checkPnpmStore = false;
   let includeReview = false;
   let json = false;
   let showBlocked = false;
@@ -193,6 +202,16 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
 
     if (arg === '--check-ide-global-cache') {
       checkIdeGlobalCache = true;
+      continue;
+    }
+
+    if (arg === '--check-npm-cache') {
+      checkNpmCache = true;
+      continue;
+    }
+
+    if (arg === '--check-pnpm-store') {
+      checkPnpmStore = true;
       continue;
     }
 
@@ -307,6 +326,8 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
     checkJvmGlobalCache,
     includeDotnetArtifacts,
     checkIdeGlobalCache,
+    checkNpmCache,
+    checkPnpmStore,
     includeReview,
     json,
     showBlocked,
@@ -360,6 +381,8 @@ export async function mergeConfigAndArgsV2(argv: readonly string[]): Promise<Cli
     checkJvmGlobalCache: args.checkJvmGlobalCache,
     includeDotnetArtifacts: args.includeDotnetArtifacts,
     checkIdeGlobalCache: args.checkIdeGlobalCache,
+    checkNpmCache: args.checkNpmCache,
+    checkPnpmStore: args.checkPnpmStore,
     excludeAbsPathContains: config?.excludeAbsPathContains ?? [],
     profile,
     deleteMode,
@@ -438,6 +461,8 @@ export async function buildReport(options: CliOptions, onProgress?: ProgressList
     ...(await discoverGoCachesIfEnabled(options)),
     ...(await discoverJvmGlobalCachesIfEnabled(options.checkJvmGlobalCache)),
     ...(await discoverIdeGlobalCachesIfEnabled(options.checkIdeGlobalCache)),
+    ...(await discoverNpmGlobalCachesIfEnabled(options.checkNpmCache)),
+    ...(await discoverPnpmGlobalStoreIfEnabled(options.checkPnpmStore)),
   ];
   const errors = [...discovery.errors];
   if (discovery.skippedSymlinkDirTraversal > 0) {
@@ -571,6 +596,8 @@ function getUsageText(): string {
     '  --check-go-cache            Include global Go caches (GOCACHE, GOMODCACHE)',
     '  --check-jvm-global-cache    Include ~/.m2/repository and ~/.gradle/caches',
     '  --check-ide-global-cache    Include Xcode DerivedData (macOS / Windows path)',
+    '  --check-npm-cache           Include npm cache dir (_cacache marker; review tier)',
+    '  --check-pnpm-store          Include pnpm content store (v3 marker; review tier)',
     '  --include-python-venv       Include venv/.venv (review tier; opt-in)',
     '  --no-python-artifacts       Skip Python caches/build dirs when pyproject present',
     '  --no-jvm-artifacts          Skip JVM build/ when Gradle/Maven markers present',
@@ -626,7 +653,12 @@ function getDeletableCandidates(
   includeReview: boolean,
   options: Pick<
     CliOptions,
-    'checkGoCache' | 'checkJvmGlobalCache' | 'checkIdeGlobalCache' | 'includePythonVenv'
+    | 'checkGoCache'
+    | 'checkJvmGlobalCache'
+    | 'checkIdeGlobalCache'
+    | 'checkNpmCache'
+    | 'checkPnpmStore'
+    | 'includePythonVenv'
   >
 ): CleanupCandidate[] {
   return candidates.filter((candidate) => {
@@ -634,6 +666,8 @@ function getDeletableCandidates(
     if (candidate.kind === 'go-global-cache' && !options.checkGoCache) return false;
     if (candidate.kind === 'jvm-global-cache' && !options.checkJvmGlobalCache) return false;
     if (candidate.kind === 'ide-global-cache' && !options.checkIdeGlobalCache) return false;
+    if (candidate.kind === 'npm-global-cache' && !options.checkNpmCache) return false;
+    if (candidate.kind === 'pnpm-global-store' && !options.checkPnpmStore) return false;
     if (candidate.kind === 'python-venv' && !options.includePythonVenv) return false;
     if (candidate.risk === 'review') return includeReview;
     return true;

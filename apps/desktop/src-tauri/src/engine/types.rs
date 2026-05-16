@@ -35,6 +35,8 @@ pub enum Kind {
     JvmGlobalCache,
     DotNetArtifact,
     IdeGlobalCache,
+    NpmGlobalCache,
+    PnpmGlobalStore,
 }
 
 impl Kind {
@@ -54,6 +56,8 @@ impl Kind {
             Kind::JvmGlobalCache => "jvm_global_cache",
             Kind::DotNetArtifact => "dotnet_artifact",
             Kind::IdeGlobalCache => "ide_global_cache",
+            Kind::NpmGlobalCache => "npm_global_cache",
+            Kind::PnpmGlobalStore => "pnpm_global_store",
         }
     }
 }
@@ -75,6 +79,8 @@ pub struct EcosystemScanOptions {
     pub check_jvm_global_cache: bool,
     pub include_dotnet_artifacts: bool,
     pub check_ide_global_cache: bool,
+    pub check_npm_cache: bool,
+    pub check_pnpm_store: bool,
 }
 
 impl Default for EcosystemScanOptions {
@@ -86,6 +92,8 @@ impl Default for EcosystemScanOptions {
             check_jvm_global_cache: false,
             include_dotnet_artifacts: true,
             check_ide_global_cache: false,
+            check_npm_cache: false,
+            check_pnpm_store: false,
         }
     }
 }
@@ -99,6 +107,8 @@ impl From<&ScanRequest> for EcosystemScanOptions {
             check_jvm_global_cache: req.check_jvm_global_cache,
             include_dotnet_artifacts: req.include_dotnet_artifacts,
             check_ide_global_cache: req.check_ide_global_cache,
+            check_npm_cache: req.check_npm_cache,
+            check_pnpm_store: req.check_pnpm_store,
         }
     }
 }
@@ -108,6 +118,8 @@ pub struct GlobalCacheAllow {
     pub go: bool,
     pub jvm: bool,
     pub ide: bool,
+    pub npm: bool,
+    pub pnpm: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -171,6 +183,10 @@ pub struct ScanRequest {
     #[serde(default)]
     pub check_ide_global_cache: bool,
     #[serde(default)]
+    pub check_npm_cache: bool,
+    #[serde(default)]
+    pub check_pnpm_store: bool,
+    #[serde(default)]
     pub exclude_abs_path_contains: Vec<String>,
     #[serde(default)]
     pub extra_protected_path_contains: Vec<String>,
@@ -179,7 +195,7 @@ pub struct ScanRequest {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.1.0";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.2.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {
@@ -341,6 +357,10 @@ pub struct Settings {
     pub include_dotnet_artifacts: bool,
     #[serde(default)]
     pub check_ide_global_cache: bool,
+    #[serde(default)]
+    pub check_npm_cache: bool,
+    #[serde(default)]
+    pub check_pnpm_store: bool,
     pub delete_mode: String,
     pub quarantine_retention_days: u32,
     pub advanced_mode: bool,
@@ -370,6 +390,8 @@ impl Default for Settings {
             check_jvm_global_cache: false,
             include_dotnet_artifacts: true,
             check_ide_global_cache: false,
+            check_npm_cache: false,
+            check_pnpm_store: false,
             delete_mode: "quarantine".to_string(),
             quarantine_retention_days: 30,
             advanced_mode: false,

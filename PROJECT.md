@@ -56,6 +56,43 @@ Deco is **not** a general-purpose disk browser. It competes on **developer-speci
 4. **Scope control** — At least one root; optional `cwd` default; `--max-depth` (or equivalent) to limit breadth.
 5. **Quarantine-first (desktop-aligned)** — Prefer reversible moves where the product supports them; hard-delete only behind explicit advanced policy where applicable.
 
+## Scanning philosophy (whitelist + layered rules)
+
+Deco does **not** use AI/ML to decide what is deletable. Classification must stay **deterministic**, **testable**, and **explainable** on every surface (desktop, CLI, contract JSON).
+
+### Primary gate: type whitelist
+
+- Only paths that match a documented **artifact kind** enter the candidate set (`node_modules`, `npm_global_cache`, `pnpm_global_store`, …).
+- New ecosystems are added **one kind at a time** (not a generic “cache” or “large folder” bucket).
+- Each kind ships with: discovery markers, default risk tier, opt-in flags where needed, tests, and “how to regenerate” copy.
+
+### Complementary strategies (no open-world guessing)
+
+These refine risk **inside** the whitelist; they never invent new delete targets:
+
+| Strategy | Role |
+|----------|------|
+| **Structure markers** | Subpaths prove intent (e.g. npm `_cacache`, pnpm store `v3`) |
+| **Project context** | Lockfiles / markers tie artifacts to a repo (`package.json`, `go.mod`, …) |
+| **Stale / activity signals** | mtime, `stale_days`; future dormancy hints rank only, never auto-delete alone |
+| **Path policy** | Block or downgrade system paths, IDE/Electron runtimes; global caches classified before policy |
+| **Scope** | Roots, max depth, custom folders — limit I/O and blast radius |
+| **User opt-in** | Global tool caches (npm, pnpm, Go, JVM, …) off by default; execute guard matches scan flags |
+| **Config overlays** | `.deco` excludes/allowlists merge into policy; community presets later |
+
+### Non-goals for “smarter” scanning
+
+- LLM or heuristic “this folder looks deletable” without a registered kind.
+- Scanning entire user profile or `AppData` without explicit, reviewed kind rules.
+- Bundling models or cloud inference in the desktop installer for classification.
+
+### Adding a package manager (checklist)
+
+1. New wire kind + `Kind` enum entry + schema bump if needed.
+2. Discovery: env vars, known default paths, optional CLI probe (`pnpm store path`); **never** delete store roots without structure markers.
+3. Default **review** for global caches; settings toggle + execute refusal when flag off.
+4. Rust + CLI tests; false-positive cases for IDE/system paths.
+
 ## Target types (scope)
 
 ### JS/TS
@@ -63,6 +100,7 @@ Deco is **not** a general-purpose disk browser. It competes on **developer-speci
 - `node_modules/`
 - Build outputs: `dist/`, `build/`, `dist-firefox/`, `.next/`, `.svelte-kit/`, `.astro/`, `.cache/`
 - Test artifacts: `test-results/`, `playwright-report/`
+- Global caches (opt-in, review): **npm** cache (`_cacache`), **pnpm** store (`v3`); roadmap: Yarn, bun, deno
 
 ### Rust
 

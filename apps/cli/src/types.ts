@@ -21,7 +21,9 @@ export type TargetDirKind =
   | 'jvm-artifact'
   | 'jvm-global-cache'
   | 'dotnet-artifact'
-  | 'ide-global-cache';
+  | 'ide-global-cache'
+  | 'npm-global-cache'
+  | 'pnpm-global-store';
 
 export type SafetyClass = 'project_artifact' | 'global_cache' | 'app_runtime' | 'system' | 'unknown';
 
@@ -102,6 +104,8 @@ export type CliOptions = {
   readonly checkJvmGlobalCache: boolean;
   readonly includeDotnetArtifacts: boolean;
   readonly checkIdeGlobalCache: boolean;
+  readonly checkNpmCache: boolean;
+  readonly checkPnpmStore: boolean;
   readonly excludeAbsPathContains: readonly string[];
   readonly profile: CleanupProfile;
   readonly deleteMode: DeleteMode;

@@ -47,6 +47,8 @@ export function normalizeSettings(raw: unknown): Settings {
     check_jvm_global_cache: bool('check_jvm_global_cache', 'checkJvmGlobalCache', false),
     include_dotnet_artifacts: bool('include_dotnet_artifacts', 'includeDotnetArtifacts', true),
     check_ide_global_cache: bool('check_ide_global_cache', 'checkIdeGlobalCache', false),
+    check_npm_cache: bool('check_npm_cache', 'checkNpmCache', false),
+    check_pnpm_store: bool('check_pnpm_store', 'checkPnpmStore', false),
     delete_mode: str('delete_mode', 'deleteMode', 'quarantine'),
     quarantine_retention_days: num('quarantine_retention_days', 'quarantineRetentionDays', 30),
     advanced_mode: bool('advanced_mode', 'advancedMode', false),

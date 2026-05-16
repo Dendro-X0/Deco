@@ -309,6 +309,20 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
               disabled={scanning || saving}
             />
             <ToggleRow
+              label="npm cache"
+              description="npm cache directory with _cacache (regenerate: npm cache clean)."
+              checked={draft.check_npm_cache}
+              onCheckedChange={(v) => patch({ check_npm_cache: v })}
+              disabled={scanning || saving}
+            />
+            <ToggleRow
+              label="pnpm store"
+              description="pnpm content store (v3); respects PNPM_STORE_PATH / pnpm store path."
+              checked={draft.check_pnpm_store}
+              onCheckedChange={(v) => patch({ check_pnpm_store: v })}
+              disabled={scanning || saving}
+            />
+            <ToggleRow
               label="Include Python venv"
               description="venv / .venv when a Python project is detected (high risk)."
               checked={draft.include_python_venv}

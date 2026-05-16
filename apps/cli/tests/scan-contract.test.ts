@@ -13,6 +13,8 @@ describe('scan contract wire format', () => {
     expect(targetKindToWire('go-global-cache')).toBe('go_global_cache');
     expect(targetKindToWire('python-venv')).toBe('python_venv');
     expect(targetKindToWire('jvm-global-cache')).toBe('jvm_global_cache');
+    expect(targetKindToWire('npm-global-cache')).toBe('npm_global_cache');
+    expect(targetKindToWire('pnpm-global-store')).toBe('pnpm_global_store');
   });
 
   it('summarizes reason codes like the Rust classifier', () => {

@@ -16,27 +16,13 @@ pub fn classify_targets(
     discovered
         .into_iter()
         .map(|target| {
-            if let Some(path_match) = policy.find_match(&target.abs_path) {
-                let reason_codes = path_match.reason_codes;
-                return CleanupCandidate {
-                    id: Uuid::new_v4().to_string(),
-                    kind: target.kind,
-                    abs_path: target.abs_path,
-                    size_bytes: None,
-                    mtime_ms: target.mtime_ms,
-                    risk: path_match.risk,
-                    safety_class: path_match.safety_class,
-                    display_reason_summary: Some(reason_summary(&reason_codes)),
-                    can_delete: false,
-                    reason_codes,
-                    project_root: None,
-                    stale_days: None,
-                };
-            }
-
             if matches!(
                 target.kind,
-                Kind::GoGlobalCache | Kind::JvmGlobalCache | Kind::IdeGlobalCache
+                Kind::GoGlobalCache
+                    | Kind::JvmGlobalCache
+                    | Kind::IdeGlobalCache
+                    | Kind::NpmGlobalCache
+                    | Kind::PnpmGlobalStore
             ) {
                 let reason_codes = vec![
                     "GLOBAL_CACHE_TARGET".to_string(),
@@ -52,6 +38,24 @@ pub fn classify_targets(
                     safety_class: SafetyClass::GlobalCache,
                     display_reason_summary: Some(reason_summary(&reason_codes)),
                     can_delete: true,
+                    reason_codes,
+                    project_root: None,
+                    stale_days: None,
+                };
+            }
+
+            if let Some(path_match) = policy.find_match(&target.abs_path) {
+                let reason_codes = path_match.reason_codes;
+                return CleanupCandidate {
+                    id: Uuid::new_v4().to_string(),
+                    kind: target.kind,
+                    abs_path: target.abs_path,
+                    size_bytes: None,
+                    mtime_ms: target.mtime_ms,
+                    risk: path_match.risk,
+                    safety_class: path_match.safety_class,
+                    display_reason_summary: Some(reason_summary(&reason_codes)),
+                    can_delete: false,
                     reason_codes,
                     project_root: None,
                     stale_days: None,

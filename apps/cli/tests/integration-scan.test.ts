@@ -33,6 +33,8 @@ function createOptions(root: string): CliOptions {
     checkJvmGlobalCache: false,
     includeDotnetArtifacts: true,
     checkIdeGlobalCache: false,
+    checkNpmCache: false,
+    checkPnpmStore: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',
@@ -110,6 +112,32 @@ describe('integration scan behavior', () => {
     const goBins = report.candidates.filter((c) => c.kind === 'go-artifact' && c.absPath.endsWith(`${path.sep}bin`));
     expect(goBins).toHaveLength(1);
     expect(goBins[0]?.absPath).toBe(path.join(goProject, 'bin'));
+  });
+
+  it('discovers npm cache only with --check-npm-cache and _cacache marker', async () => {
+    const root = await createTmpRoot('deco-npm-cache-flag-');
+    tmpRoots.push(root);
+    const cacheDir = path.join(path.dirname(root), `npm-cache-${path.basename(root)}`);
+    tmpRoots.push(cacheDir);
+    await mkdir(path.join(cacheDir, '_cacache'), { recursive: true });
+    const prev = process.env.NPM_CONFIG_CACHE;
+    process.env.NPM_CONFIG_CACHE = cacheDir;
+    try {
+      const without = await buildReport(createOptions(root));
+      expect(without.candidates.some((c) => c.kind === 'npm-global-cache')).toBe(false);
+
+      const withFlag = await buildReport({ ...createOptions(root), checkNpmCache: true });
+      const npmCaches = withFlag.candidates.filter((c) => c.kind === 'npm-global-cache');
+      expect(npmCaches.length).toBeGreaterThanOrEqual(1);
+      expect(npmCaches.some((c) => c.absPath === cacheDir)).toBe(true);
+      for (const c of npmCaches) {
+        expect(c.risk).toBe('review');
+        expect(c.reasonCodes).toContain('GLOBAL_CACHE_REQUIRES_OPT_IN');
+      }
+    } finally {
+      if (prev === undefined) delete process.env.NPM_CONFIG_CACHE;
+      else process.env.NPM_CONFIG_CACHE = prev;
+    }
   });
 
   it('does not include global Go caches unless --check-go-cache', async () => {

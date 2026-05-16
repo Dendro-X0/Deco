@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-16 · Release **v0.4.11** shipped
+Last updated: 2026-05-16 · Release **v0.5.0** shipped
 
 ## Current Direction
 
@@ -52,7 +52,7 @@ See **[version-roadmap.md](version-roadmap.md)** for the phased plan (HDD/SSD-ag
 | Phase | Versions | Theme |
 |-------|----------|--------|
 | A | `v0.4.11` ✓ | Dashboard/Settings UX polish (filters, progress, shortcuts, onboarding, planner) |
-| B | `v0.5.x` | Package managers & tool caches (npm, pnpm, conda, …) |
+| B | `v0.5.1` (WIP) | Yarn + pip/uv global caches (opt-in); conda next |
 | C | `v0.6.x` | Scan engine: phased sizing, adaptive concurrency, incremental inventory |
 | D | `v0.7.x` | Profiles, dormancy hints, policy packs, classification parity |
 | E | `v0.8+` | macOS/Linux GA, distribution expansion |

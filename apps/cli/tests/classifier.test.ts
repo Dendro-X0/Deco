@@ -34,6 +34,8 @@ function baseOptions(root: string): CliOptions {
     checkJvmGlobalCache: false,
     includeDotnetArtifacts: true,
     checkIdeGlobalCache: false,
+    checkNpmCache: false,
+    checkPnpmStore: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',
@@ -116,5 +118,25 @@ describe('classifier node_modules policy', () => {
     const classified = await classifyTargets(discovered, options, policy);
     expect(classified[0].risk).toBe('blocked');
     expect(classified[0].reasonCodes).toContain('NODE_MODULES_OUTSIDE_PROJECT');
+  });
+});
+
+describe('classifier global package-manager caches', () => {
+  it('marks npm and pnpm global targets as review global_cache', async () => {
+    const root = await createTmpRoot('deco-classify-pm-');
+    tmpRoots.push(root);
+    const discovered: DiscoveredTarget[] = [
+      { kind: 'npm-global-cache', absPath: path.join(root, 'npm-cache'), mtimeMs: Date.now() },
+      { kind: 'pnpm-global-store', absPath: path.join(root, 'pnpm-store'), mtimeMs: Date.now() },
+    ];
+    const options = baseOptions(root);
+    const policy = createPathPolicy({ extraProtectedPathContains: [], allowPathContains: [] });
+    const classified = await classifyTargets(discovered, options, policy);
+    expect(classified).toHaveLength(2);
+    for (const c of classified) {
+      expect(c.risk).toBe('review');
+      expect(c.safetyClass).toBe('global_cache');
+      expect(c.reasonCodes).toContain('GLOBAL_CACHE_REQUIRES_OPT_IN');
+    }
   });
 });

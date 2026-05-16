@@ -47,6 +47,20 @@ pub fn execute_cleanup(
             ));
             continue;
         }
+        if candidate.kind == Kind::NpmGlobalCache && !allow_global.npm {
+            errors.push(format!(
+                "Refused npm cache (enable “Check npm cache” in settings and re-scan): {}",
+                candidate.abs_path
+            ));
+            continue;
+        }
+        if candidate.kind == Kind::PnpmGlobalStore && !allow_global.pnpm {
+            errors.push(format!(
+                "Refused pnpm store (enable “Check pnpm store” in settings and re-scan): {}",
+                candidate.abs_path
+            ));
+            continue;
+        }
         if candidate.kind == Kind::PythonVenv && !allow_python_venv {
             errors.push(format!(
                 "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {}",

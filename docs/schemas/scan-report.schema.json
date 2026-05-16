@@ -115,7 +115,9 @@
             "jvm_artifact",
             "jvm_global_cache",
             "dotnet_artifact",
-            "ide_global_cache"
+            "ide_global_cache",
+            "npm_global_cache",
+            "pnpm_global_store"
           ]
         },
         "abs_path": { "type": "string", "minLength": 1 },

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { CleanupCandidate, ScanReportV2, TargetDirKind } from './types.js';
 
 /** Keep in sync with `SCAN_REPORT_SCHEMA_VERSION` in `apps/desktop/src-tauri/src/engine/types.rs`. */
-export const SCAN_REPORT_SCHEMA_VERSION = '2.1.0' as const;
+export const SCAN_REPORT_SCHEMA_VERSION = '2.2.0' as const;
 
 const KIND_TO_WIRE: Record<TargetDirKind, string> = {
   'node_modules': 'node_modules',
@@ -18,6 +18,8 @@ const KIND_TO_WIRE: Record<TargetDirKind, string> = {
   'jvm-global-cache': 'jvm_global_cache',
   'dotnet-artifact': 'dotnet_artifact',
   'ide-global-cache': 'ide_global_cache',
+  'npm-global-cache': 'npm_global_cache',
+  'pnpm-global-store': 'pnpm_global_store',
 };
 
 export function targetKindToWire(kind: TargetDirKind): string {

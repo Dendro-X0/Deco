@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-16 · **Current release:** `v0.4.11`
+**Last updated:** 2026-05-16 · **Current release:** `v0.5.0` · **In progress:** `v0.5.1`
 
 ---
 
@@ -111,6 +111,8 @@ flowchart TB
 
 ### Safety gates (every new kind)
 
+Follow [scanning philosophy](../../PROJECT.md#scanning-philosophy-whitelist--layered-rules): **whitelist kind first**, then markers, project context, and opt-in globals — no AI classification.
+
 1. Unit + integration tests in Rust (`scanner` + `classifier` + `path_policy`).
 2. Protected paths: **Electron IDE** runtimes, **MSVC/Windows Kits**, **Program Files**, user profile roots.
 3. Desktop: preview + quarantine default; CLI: dry-run default.
@@ -120,7 +122,8 @@ flowchart TB
 
 | Version | Scope |
 |---------|--------|
-| `v0.5.0` | npm + pnpm cache discovery, settings flags, docs, review-tier execute guard |
+| `v0.5.0` | npm + pnpm cache discovery, settings flags, docs, review-tier execute guard | Shipped |
+| `v0.5.1` | Yarn + pip/uv global caches | In progress |
 | `v0.5.1` | Yarn + pip/uv caches |
 | `v0.5.2` | Conda/Miniconda paths (opt-in wizard copy), regeneration hints |
 | `v0.5.3+` | Cargo global, NuGet global, C++ build-dir rules, community `.deco` policy examples |

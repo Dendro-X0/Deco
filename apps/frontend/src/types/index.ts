@@ -87,6 +87,8 @@ export interface Settings {
   check_jvm_global_cache: boolean;
   include_dotnet_artifacts: boolean;
   check_ide_global_cache: boolean;
+  check_npm_cache: boolean;
+  check_pnpm_store: boolean;
   delete_mode: string;
   quarantine_retention_days: number;
   advanced_mode: boolean;

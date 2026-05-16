@@ -208,6 +208,8 @@ export function useDeco() {
         check_jvm_global_cache: activeSettings.check_jvm_global_cache ?? false,
         include_dotnet_artifacts: activeSettings.include_dotnet_artifacts ?? true,
         check_ide_global_cache: activeSettings.check_ide_global_cache ?? false,
+        check_npm_cache: activeSettings.check_npm_cache ?? false,
+        check_pnpm_store: activeSettings.check_pnpm_store ?? false,
         exclude_abs_path_contains: activeSettings.exclude_abs_path_contains ?? [],
         extra_protected_path_contains: activeSettings.extra_protected_path_contains ?? [],
         allow_path_contains: activeSettings.allow_path_contains ?? [],

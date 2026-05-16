@@ -57,6 +57,8 @@ pub(crate) fn execute_cleanup_core(
                 go: settings.check_go_cache,
                 jvm: settings.check_jvm_global_cache,
                 ide: settings.check_ide_global_cache,
+                npm: settings.check_npm_cache,
+                pnpm: settings.check_pnpm_store,
             },
             settings.include_python_venv,
         )

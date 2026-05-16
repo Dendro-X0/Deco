@@ -9,6 +9,12 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.2.0 — 2026-05-16
+
+- **Added** candidate kinds: `npm_global_cache`, `pnpm_global_store`.
+- **Added** scan/settings flags: `check_npm_cache`, `check_pnpm_store` (default `false`, review tier + execute guard).
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.2.0`.
+
 ## 2.1.0 — 2026-05-15
 
 - **Added** candidate kinds: `python_artifact`, `python_venv`, `jvm_artifact`, `jvm_global_cache`, `dotnet_artifact`, `ide_global_cache`.

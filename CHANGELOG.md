@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-16
+
+### Added
+
+- **npm global cache** discovery (`check_npm_cache` / `--check-npm-cache`) — targets cache root with `_cacache` marker; review tier, opt-in execute.
+- **pnpm store** discovery (`check_pnpm_store` / `--check-pnpm-store`) — respects `PNPM_STORE_PATH` and `pnpm store path`; requires `v3` store marker.
+- **Desktop Settings**: toggles for npm cache and pnpm store under Discovery.
+- **Scan contract** `2.2.0`: kinds `npm_global_cache`, `pnpm_global_store`.
+
+### Changed
+
+- **Docs**: Documented **whitelist + layered rules** scanning philosophy (no AI classification) in `PROJECT.md`.
+- **Classifier**: Global package-manager caches are classified before path policy so AppData paths are not blocked as system paths.
+
 ## [0.4.11] - 2026-05-16
 
 ### Added
