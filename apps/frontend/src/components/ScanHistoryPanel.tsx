@@ -189,6 +189,10 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                         Drives: {volumesFromRoots(item.roots).join(', ')}
                       </p>
                     ) : null}
+                    <p className="text-[10px] text-muted-foreground/60">
+                      {item.candidate_count ?? 0} candidates · profile {item.profile}
+                      {item.safe_count != null ? ` · ${item.safe_count} safe` : ''}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3 sm:gap-6 shrink-0">
                     <div className="text-right">

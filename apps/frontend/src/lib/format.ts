@@ -1,3 +1,6 @@
+/** Shown on Dashboard metrics before any scan has completed. */
+export const NO_SCAN_BYTES_LABEL = '-.-- B';
+
 export function formatBytes(bytes = 0): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let value = bytes;
@@ -7,6 +10,15 @@ export function formatBytes(bytes = 0): string {
     idx += 1;
   }
   return `${value.toFixed(2)} ${units[idx]}`;
+}
+
+/** Dashboard stat cards: placeholder until a scan finishes, then real bytes (including 0). */
+export function formatStatBytes(
+  bytes: number | undefined,
+  hasScanResults: boolean,
+): string {
+  if (!hasScanResults) return NO_SCAN_BYTES_LABEL;
+  return formatBytes(bytes ?? 0);
 }
 
 /** True when backend has reported an explicit byte size for this candidate (including 0 for empty dirs). */

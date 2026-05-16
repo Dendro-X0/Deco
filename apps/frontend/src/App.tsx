@@ -22,7 +22,7 @@ import {
 import { useDeco } from './hooks/use-deco';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
-import { ScanTargetsSummaryCard } from './components/ScanTargetsSummaryCard';
+import { ScanTargetsDashboardCard } from './components/ScanTargetsDashboardCard';
 import { DisabledActionHint } from './components/DisabledActionHint';
 import { cleanSelectedDisabledReason } from './lib/disabled-reasons';
 import type { ScanMode } from './components/ScanModeSelector';
@@ -31,12 +31,20 @@ import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
 import { ScanHistoryPanel } from './components/ScanHistoryPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { LastScanSummaryCard } from './components/LastScanSummaryCard';
+import { SelectionActionBar } from './components/SelectionActionBar';
+import {
+  historyReuseError,
+  settingsFromHistoryItem,
+} from './lib/history-reuse';
+import type { HistoryItem } from './types';
 import { TitleBar } from './components/TitleBar';
 import { DecoLogo } from './components/DecoLogo';
 import {
   candidateSizeIsKnown,
   formatBytes,
   formatDurationMs,
+  formatStatBytes,
 } from './lib/format';
 import {
   compareCandidatesSorted,
@@ -53,7 +61,6 @@ import {
   uniqueKinds,
   type CandidateFilterState,
 } from './lib/candidate-filter';
-import { volumesFromRoots } from './lib/scan-report';
 import { normalizeSettings } from './lib/settings-normalize';
 import type { ExecutePreviewResponse, Settings, WizardStep } from './types';
 import { 
@@ -201,6 +208,37 @@ export default function App() {
     [selectedIds.size, scanning, busy, summary?.scan_id],
   );
 
+  const selectedBytes = useMemo(() => {
+    let sum = 0;
+    for (const c of candidates) {
+      if (selectedIds.has(c.id)) sum += c.size_bytes ?? 0;
+    }
+    return sum;
+  }, [candidates, selectedIds]);
+
+  const lastHistoryItem = history.length > 0 ? history[0] : null;
+
+  const applyHistoryReuse = async (item: HistoryItem) => {
+    if (!settings) return;
+    const next = settingsFromHistoryItem(item, settings);
+    const err = historyReuseError(item, next);
+    if (err) {
+      setError(err);
+      return;
+    }
+    await tauriInvoke('save_settings', { settings: next });
+    await loadSettings();
+    setActiveTab('dashboard');
+    void scan({
+      selected_volumes: next.selected_volumes,
+      include_project_folders: next.include_project_folders,
+      roots: next.roots,
+      use_custom_scan_roots: next.use_custom_scan_roots,
+      profile: next.profile,
+      stale_days: next.stale_days,
+    });
+  };
+
   const persistScanTargets = (patch: {
     selected_volumes?: string[];
     include_project_folders?: boolean;
@@ -311,10 +349,20 @@ export default function App() {
 
   const selectedCandidate = candidates.find((c) => c.id === selectedCandidateId);
 
+  const hasScanResults = Boolean(summary?.scan_id);
+
   const anySizingPending =
     scanning &&
     (candidates.length === 0 ||
       candidates.some((c) => !candidateSizeIsKnown(c.size_bytes)));
+
+  const statByteLabel = (bytes: number | undefined) =>
+    anySizingPending ? 'Sizing…' : formatStatBytes(bytes, hasScanResults);
+
+  const statCountLabel = (count: number) => {
+    if (!hasScanResults && !scanning) return 'No scan yet';
+    return `${count} items discovered`;
+  };
 
   const countByRisk = (risk: string) =>
     candidates.filter((c) => c.risk === risk).length;
@@ -491,19 +539,37 @@ export default function App() {
 
           <ScrollArea className="flex-1">
             <div className="px-8 py-6 max-w-7xl mx-auto space-y-6 pb-12">
-              <TabsContent value="dashboard" className="m-0 space-y-6">
-                <ScanTargetsSummaryCard
+              <TabsContent
+                value="dashboard"
+                className={`m-0 space-y-6 ${selectedIds.size > 0 ? 'pb-24' : ''}`}
+              >
+                <ScanTargetsDashboardCard
                   mode={scanMode}
+                  onModeChange={setScanMode}
                   selectedVolumes={selectedVolumes}
                   includeProjectFolders={includeProjectFolders}
                   customScanRoots={customScanRoots}
+                  onSelectedVolumesChange={(mounts) =>
+                    persistScanTargets({ selected_volumes: mounts })
+                  }
+                  onIncludeProjectFoldersChange={(value) =>
+                    persistScanTargets({ include_project_folders: value })
+                  }
+                  onCustomScanRootsChange={(roots) => persistScanTargets({ roots })}
                   profile={settings?.profile}
-                  scanScope={settings?.scan_scope}
                   ready={hasScanTargetsReady}
                   disabled={scanning}
                   onEditSettings={() => setActiveTab('settings')}
-                  onQuickConfigure={() => setScanTargetsModalOpen(true)}
+                  onError={setError}
                 />
+
+                {lastHistoryItem && !scanning ? (
+                  <LastScanSummaryCard
+                    item={lastHistoryItem}
+                    onViewHistory={() => setActiveTab('history')}
+                    onReuse={() => void applyHistoryReuse(lastHistoryItem)}
+                  />
+                ) : null}
 
                 {!summary && !scanning && (
                   <Card className="border-primary/20 bg-primary/5">
@@ -531,55 +597,43 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <StatCard
                     label="Safe"
-                    value={
-                      anySizingPending
-                        ? 'Sizing…'
-                        : formatBytes(summary?.totals_by_risk?.safe?.bytes)
-                    }
-                    count={
+                    value={statByteLabel(summary?.totals_by_risk?.safe?.bytes)}
+                    countLabel={statCountLabel(
                       scanning
                         ? countByRisk('safe')
-                        : (summary?.totals_by_risk?.safe?.count ?? 0)
-                    }
+                        : (summary?.totals_by_risk?.safe?.count ?? 0),
+                    )}
                     color="text-primary"
+                    muted={!hasScanResults && !scanning}
                   />
                   <StatCard
                     label="Review"
-                    value={
-                      anySizingPending
-                        ? 'Sizing…'
-                        : formatBytes(summary?.totals_by_risk?.review?.bytes)
-                    }
-                    count={
+                    value={statByteLabel(summary?.totals_by_risk?.review?.bytes)}
+                    countLabel={statCountLabel(
                       scanning
                         ? countByRisk('review')
-                        : (summary?.totals_by_risk?.review?.count ?? 0)
-                    }
+                        : (summary?.totals_by_risk?.review?.count ?? 0),
+                    )}
                     color="text-amber-500"
+                    muted={!hasScanResults && !scanning}
                   />
                   <StatCard
                     label="Blocked"
-                    value={
-                      anySizingPending
-                        ? 'Sizing…'
-                        : formatBytes(summary?.totals_by_risk?.blocked?.bytes)
-                    }
-                    count={
+                    value={statByteLabel(summary?.totals_by_risk?.blocked?.bytes)}
+                    countLabel={statCountLabel(
                       scanning
                         ? countByRisk('blocked')
-                        : (summary?.totals_by_risk?.blocked?.count ?? 0)
-                    }
+                        : (summary?.totals_by_risk?.blocked?.count ?? 0),
+                    )}
                     color="text-destructive"
+                    muted={!hasScanResults && !scanning}
                   />
                   <StatCard
                     label="Total Reclaimable"
-                    value={
-                      anySizingPending
-                        ? 'Sizing…'
-                        : formatBytes(summary?.total_bytes)
-                    }
-                    count={candidates.length}
+                    value={statByteLabel(summary?.total_bytes)}
+                    countLabel={statCountLabel(candidates.length)}
                     color="text-foreground"
+                    muted={!hasScanResults && !scanning}
                   />
                 </div>
 
@@ -895,19 +949,7 @@ export default function App() {
               <TabsContent value="history" className="m-0">
                 <ScanHistoryPanel
                   items={history}
-                  onReuse={(item) => {
-                    setActiveTab('dashboard');
-                    const volumes = volumesFromRoots(item.roots);
-                    if (volumes.length === 0) {
-                      setError('Could not map history roots to drive letters.');
-                      return;
-                    }
-                    void scan({
-                      selected_volumes: volumes,
-                      profile: item.profile,
-                      stale_days: item.stale_days,
-                    });
-                  }}
+                  onReuse={(item) => void applyHistoryReuse(item)}
                   onDelete={deleteScanHistory}
                   onClearAll={clearScanHistory}
                 />
@@ -1029,6 +1071,17 @@ export default function App() {
         }}
       />
 
+      {activeTab === 'dashboard' ? (
+        <SelectionActionBar
+          selectedCount={selectedIds.size}
+          selectedBytes={selectedBytes}
+          cleanDisabledReason={cleanSelectedReason}
+          busy={scanning || busy}
+          onClean={openCleanupPreview}
+          onClearSelection={() => setSelectedIds(new Set())}
+        />
+      ) : null}
+
       {error && (
         <div className="fixed bottom-20 right-8 max-w-md bg-destructive text-destructive-foreground p-4 rounded-lg shadow-2xl animate-in fade-in slide-in-from-bottom-5 border-2 border-white/10 z-50">
            <div className="flex items-start gap-3">
@@ -1045,15 +1098,34 @@ export default function App() {
   );
 }
 
-function StatCard({ label, value, count, color }: { label: string, value: string | undefined, count: number | undefined, color: string }) {
+function StatCard({
+  label,
+  value,
+  countLabel,
+  color,
+  muted,
+}: {
+  label: string;
+  value: string;
+  countLabel: string;
+  color: string;
+  muted?: boolean;
+}) {
   return (
     <Card className="border-border/40 bg-card/30">
       <CardHeader className="pb-2">
         <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={`text-2xl font-black ${color}`}>{value || '0.00 B'}</div>
-        <p className="text-[10px] font-bold text-muted-foreground/60">{count || 0} items discovered</p>
+        <div
+          className={cn(
+            'text-2xl font-black tabular-nums',
+            muted ? 'text-muted-foreground' : color,
+          )}
+        >
+          {value}
+        </div>
+        <p className="text-[10px] font-bold text-muted-foreground/60">{countLabel}</p>
       </CardContent>
     </Card>
   );

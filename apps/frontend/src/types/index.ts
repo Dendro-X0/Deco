@@ -52,6 +52,10 @@ export interface HistoryItem {
   profile: string;
   total_bytes: number;
   stale_days: number;
+  candidate_count?: number;
+  safe_count?: number;
+  review_count?: number;
+  scanned_dirs?: number;
 }
 
 export interface StorageVolume {

@@ -15,6 +15,7 @@ import type {
 import { normalizeCandidate, normalizeScanReport } from '../lib/scan-report';
 import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normalize';
 import { formatBytes, formatDurationMs } from '../lib/format';
+import { volumeMountsFromPaths } from '../lib/volume-from-path';
 import { toast } from '../lib/toast';
 
 export function useDeco() {
@@ -139,10 +140,28 @@ export function useDeco() {
       return null;
     }
 
-    const volumes = readSelectedVolumes({
+    const useCustom = Boolean(
+      scanSettings?.use_custom_scan_roots ?? settings.use_custom_scan_roots,
+    );
+    const rootsList = scanSettings?.roots ?? settings.roots ?? [];
+    let volumes = readSelectedVolumes({
       selected_volumes: scanSettings?.selected_volumes ?? selectedVolumes,
     });
-    if (volumes.length === 0) {
+
+    if (useCustom) {
+      if (rootsList.length === 0) {
+        setError('Add at least one custom folder in Settings.');
+        setStatus({ text: 'No custom folders configured', type: 'error' });
+        return null;
+      }
+      const fromRoots = volumeMountsFromPaths(rootsList);
+      volumes = [...new Set([...volumes, ...fromRoots])].sort();
+      if (volumes.length === 0) {
+        setError('Could not map custom folders to a drive letter.');
+        setStatus({ text: 'Invalid custom paths', type: 'error' });
+        return null;
+      }
+    } else if (volumes.length === 0) {
       setError('Select at least one partition to scan.');
       setStatus({ text: 'No partition selected', type: 'error' });
       return null;
@@ -154,7 +173,8 @@ export function useDeco() {
       selected_volumes: volumes,
       include_project_folders:
         scanSettings?.include_project_folders ?? includeProjectFolders,
-      roots: scanSettings?.roots ?? settings.roots ?? [],
+      roots: rootsList,
+      use_custom_scan_roots: useCustom,
     };
 
     setScanning(true);

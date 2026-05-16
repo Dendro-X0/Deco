@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+## [0.4.10] - 2026-05-15
+
+### Added
+
+- **Desktop**: **Last scan** summary on Dashboard (links to History, reuse & scan again).
+- **Desktop**: Floating **selection bar** when candidates are selected (count, size, clean, clear).
+- **Desktop**: Dashboard **scan targets** use toggle tabs — **Disk partitions** (default) vs **Custom directories** — with only the active panel visible.
+
+### Changed
+
+- **Desktop**: Dashboard metrics show **`-.-- B`** and “No scan yet” until a scan completes; **`0.00 B`** only after a finished scan with nothing to reclaim.
+
+### Fixed
+
+- **Desktop**: **Reuse Config** from History restores custom-folder vs partition mode and saves settings before scanning.
+- **Desktop**: History list shows candidate count and profile metadata.
+
 ## [0.4.9] - 2026-05-17
 
 ### Changed
