@@ -350,11 +350,21 @@ mod tests {
         );
     }
 
+    #[cfg(windows)]
     #[test]
     fn is_volume_mount_detects_drive_letters() {
         assert!(is_volume_mount(r"C:\"));
         assert!(is_volume_mount("D:"));
         assert!(!is_volume_mount(r"C:\Projects"));
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn is_volume_mount_detects_unix_mounts() {
+        assert!(is_volume_mount("/"));
+        assert!(is_volume_mount("/mnt/wsl"));
+        assert!(is_volume_mount("/media/usb"));
+        assert!(!is_volume_mount("/home/user/projects"));
     }
 
     #[cfg(windows)]
@@ -386,6 +396,7 @@ mod tests {
         assert!(!roots.is_empty(), "{roots:?}");
     }
 
+    #[cfg(windows)]
     #[test]
     fn effective_roots_only_on_selected_volumes() {
         let settings = Settings {

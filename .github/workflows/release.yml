@@ -17,8 +17,12 @@ permissions:
 
 jobs:
   test:
-    name: Test
-    runs-on: ubuntu-latest
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +41,7 @@ jobs:
       - run: pnpm test:cli
 
       - name: Linux Tauri dependencies
+        if: runner.os == 'Linux'
         uses: ./.github/actions/linux-tauri-deps
 
       - uses: dtolnay/rust-toolchain@stable

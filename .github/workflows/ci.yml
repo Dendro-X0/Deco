@@ -11,8 +11,12 @@ concurrency:
 
 jobs:
   test:
-    name: CLI + Rust tests
-    runs-on: ubuntu-latest
+    name: CLI + Rust tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,6 +45,7 @@ jobs:
         run: pnpm test:cli
 
       - name: Linux Tauri dependencies
+        if: runner.os == 'Linux'
         uses: ./.github/actions/linux-tauri-deps
 
       - name: Setup Rust

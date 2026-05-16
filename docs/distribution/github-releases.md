@@ -12,7 +12,13 @@ Deco ships to end users through **GitHub Releases** on tag push `v*`. This is th
 
 Built by [`.github/workflows/release.yml`](../../.github/workflows/release.yml) after `pnpm test:all`.
 
-**Platform coverage:** [CI vs release matrix](ci-and-release-platforms.md) — today **Windows installers only**; CI does not build Linux/macOS.
+**Platform coverage:** [CI vs release matrix](ci-and-release-platforms.md) — **Windows installers only**; CI runs tests on **Ubuntu + macOS** so Unix regressions surface without a local Linux machine.
+
+## GitHub “Deployments” / npm noise
+
+If the repository sidebar shows a failing deployment named **Configure NPM** (or similar), that usually comes from **GitHub’s npm / Node publishing integrations or an old environment**, not from this repo’s workflows (we only use **pnpm** for CI and ship via **Releases**, not `npm publish`).
+
+**What to do:** remove or disable any unused **Environments** under *Settings → Environments*, turn off **Packages** publishing automation if it was enabled experimentally, and delete archived workflows under *.github/workflows* on GitHub that referenced `npm publish` / `NODE_AUTH_TOKEN`. Scoped packages in this monorepo are marked **`"private": true`** where applicable so accidental registry publishes are blocked.
 
 ## End-user install paths
 
