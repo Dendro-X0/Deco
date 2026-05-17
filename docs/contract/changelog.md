@@ -9,6 +9,13 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.4.0 — 2026-05-16
+
+- **Added** candidate kind: `conda_pkgs_cache` (package cache only; `envs/` never targeted).
+- **Added** scan/settings flag: `check_conda_pkgs_cache` (default `false`, review tier + execute guard).
+- **Changed** `display_reason_summary` includes **Regenerate:** hints for global cache kinds (CLI wire + desktop).
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.4.0`.
+
 ## 2.3.0 — 2026-05-16
 
 - **Added** candidate kinds: `yarn_global_cache`, `pip_global_cache`, `uv_global_cache`.

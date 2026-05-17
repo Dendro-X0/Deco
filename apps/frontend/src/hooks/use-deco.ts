@@ -213,6 +213,7 @@ export function useDeco() {
         check_yarn_cache: activeSettings.check_yarn_cache ?? false,
         check_pip_cache: activeSettings.check_pip_cache ?? false,
         check_uv_cache: activeSettings.check_uv_cache ?? false,
+        check_conda_pkgs_cache: activeSettings.check_conda_pkgs_cache ?? false,
         exclude_abs_path_contains: activeSettings.exclude_abs_path_contains ?? [],
         extra_protected_path_contains: activeSettings.extra_protected_path_contains ?? [],
         allow_path_contains: activeSettings.allow_path_contains ?? [],

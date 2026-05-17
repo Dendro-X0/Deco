@@ -12,6 +12,7 @@ import {
   discoverPipGlobalCachesIfEnabled,
   discoverPnpmGlobalStoreIfEnabled,
   discoverUvGlobalCachesIfEnabled,
+  discoverCondaPkgsCachesIfEnabled,
   discoverYarnGlobalCachesIfEnabled,
 } from './ecosystem-globals.js';
 import { getGoEnv } from './go-utils.js';
@@ -40,7 +41,7 @@ const DEFAULT_PROFILE: CleanupProfile = 'safe';
 const DEFAULT_DELETE_MODE: DeleteMode = 'quarantine';
 const DEFAULT_STALE_DAYS = 45;
 const DEFAULT_QUARANTINE_RETENTION_DAYS = 30;
-const CLI_VERSION = '0.4.0';
+const CLI_VERSION = '0.5.2';
 
 export type TargetDir = CleanupCandidate;
 export type ScanReport = ScanReportV2;
@@ -77,6 +78,7 @@ type ParsedArgs = {
   readonly checkYarnCache: boolean;
   readonly checkPipCache: boolean;
   readonly checkUvCache: boolean;
+  readonly checkCondaPkgsCache: boolean;
   readonly includeReview: boolean;
   readonly json: boolean;
   readonly showBlocked: boolean;
@@ -120,6 +122,7 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
   let checkYarnCache = false;
   let checkPipCache = false;
   let checkUvCache = false;
+  let checkCondaPkgsCache = false;
   let includeReview = false;
   let json = false;
   let showBlocked = false;
@@ -239,6 +242,11 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--check-conda-pkgs-cache') {
+      checkCondaPkgsCache = true;
+      continue;
+    }
+
     if (arg === '--include-python-venv') {
       includePythonVenv = true;
       continue;
@@ -355,6 +363,7 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
     checkYarnCache,
     checkPipCache,
     checkUvCache,
+    checkCondaPkgsCache,
     includeReview,
     json,
     showBlocked,
@@ -413,6 +422,7 @@ export async function mergeConfigAndArgsV2(argv: readonly string[]): Promise<Cli
     checkYarnCache: args.checkYarnCache,
     checkPipCache: args.checkPipCache,
     checkUvCache: args.checkUvCache,
+    checkCondaPkgsCache: args.checkCondaPkgsCache,
     excludeAbsPathContains: config?.excludeAbsPathContains ?? [],
     profile,
     deleteMode,
@@ -496,8 +506,14 @@ export async function buildReport(options: CliOptions, onProgress?: ProgressList
     ...(await discoverYarnGlobalCachesIfEnabled(options.checkYarnCache)),
     ...(await discoverPipGlobalCachesIfEnabled(options.checkPipCache)),
     ...(await discoverUvGlobalCachesIfEnabled(options.checkUvCache)),
+    ...(await discoverCondaPkgsCachesIfEnabled(options.checkCondaPkgsCache)),
   ];
   const errors = [...discovery.errors];
+  if (options.checkCondaPkgsCache) {
+    errors.push(
+      'Conda envs/ directories are never targeted; only package caches (pkgs) with markers.'
+    );
+  }
   if (discovery.skippedSymlinkDirTraversal > 0) {
     errors.push(
       `Note: Did not traverse ${discovery.skippedSymlinkDirTraversal} symbolic link director(ies) (avoids cycles and out-of-root escapes). Targets placed directly on those links are still listed. See docs/milestones/milestone-1.md.`
@@ -634,6 +650,7 @@ function getUsageText(): string {
     '  --check-yarn-cache          Include Yarn cache (v6 or Berry cache marker; review tier)',
     '  --check-pip-cache           Include pip cache (wheels/http marker; review tier)',
     '  --check-uv-cache            Include uv cache (archive/downloads marker; review tier)',
+    '  --check-conda-pkgs-cache    Include Conda pkgs cache (urls.txt/cache marker; never envs/)',
     '  --include-python-venv       Include venv/.venv (review tier; opt-in)',
     '  --no-python-artifacts       Skip Python caches/build dirs when pyproject present',
     '  --no-jvm-artifacts          Skip JVM build/ when Gradle/Maven markers present',
@@ -697,6 +714,7 @@ function getDeletableCandidates(
     | 'checkYarnCache'
     | 'checkPipCache'
     | 'checkUvCache'
+    | 'checkCondaPkgsCache'
     | 'includePythonVenv'
   >
 ): CleanupCandidate[] {
@@ -710,6 +728,7 @@ function getDeletableCandidates(
     if (candidate.kind === 'yarn-global-cache' && !options.checkYarnCache) return false;
     if (candidate.kind === 'pip-global-cache' && !options.checkPipCache) return false;
     if (candidate.kind === 'uv-global-cache' && !options.checkUvCache) return false;
+    if (candidate.kind === 'conda-pkgs-cache' && !options.checkCondaPkgsCache) return false;
     if (candidate.kind === 'python-venv' && !options.includePythonVenv) return false;
     if (candidate.risk === 'review') return includeReview;
     return true;

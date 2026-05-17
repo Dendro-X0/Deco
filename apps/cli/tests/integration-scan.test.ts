@@ -38,6 +38,7 @@ function createOptions(root: string): CliOptions {
     checkYarnCache: false,
     checkPipCache: false,
     checkUvCache: false,
+    checkCondaPkgsCache: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',
@@ -165,6 +166,34 @@ describe('integration scan behavior', () => {
     } finally {
       if (prev === undefined) delete process.env.PIP_CACHE_DIR;
       else process.env.PIP_CACHE_DIR = prev;
+    }
+  });
+
+  it('discovers conda pkgs cache only with --check-conda-pkgs-cache and urls.txt marker', async () => {
+    const root = await createTmpRoot('deco-conda-pkgs-flag-');
+    tmpRoots.push(root);
+    const pkgsDir = path.join(path.dirname(root), `conda-pkgs-${path.basename(root)}`);
+    tmpRoots.push(pkgsDir);
+    await mkdir(pkgsDir, { recursive: true });
+    await writeFile(path.join(pkgsDir, 'urls.txt'), 'https://example.invalid\n', 'utf8');
+    const prev = process.env.CONDA_PKGS_DIRS;
+    process.env.CONDA_PKGS_DIRS = pkgsDir;
+    try {
+      const without = await buildReport(createOptions(root));
+      expect(without.candidates.some((c) => c.kind === 'conda-pkgs-cache')).toBe(false);
+
+      const withFlag = await buildReport({ ...createOptions(root), checkCondaPkgsCache: true });
+      const condaCaches = withFlag.candidates.filter((c) => c.kind === 'conda-pkgs-cache');
+      expect(condaCaches.some((c) => c.absPath === pkgsDir)).toBe(true);
+      for (const c of condaCaches) {
+        expect(c.risk).toBe('review');
+        expect(c.reasonCodes).toContain('GLOBAL_CACHE_REQUIRES_OPT_IN');
+        expect(c.reasonCodes).toContain('CONDA_PKGS_CACHE_ONLY');
+      }
+      expect(withFlag.errors.some((e) => e.includes('envs/'))).toBe(true);
+    } finally {
+      if (prev === undefined) delete process.env.CONDA_PKGS_DIRS;
+      else process.env.CONDA_PKGS_DIRS = prev;
     }
   });
 

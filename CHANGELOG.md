@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-05-16
+
+### Added
+
+- **Conda pkgs cache** (`check_conda_pkgs_cache` / `--check-conda-pkgs-cache`) — discovers `pkgs` with `urls.txt` or `cache/` marker; never targets `envs/`.
+- **Regeneration hints** in candidate `display_reason_summary` for global caches (e.g. `pnpm store prune`, `conda clean --all -p`).
+- **Desktop Settings**: Conda pkgs cache toggle under Discovery.
+- **Scan contract** `2.4.0`: kind `conda_pkgs_cache`.
+
 ## [0.5.1] - 2026-05-16
 
 ### Added

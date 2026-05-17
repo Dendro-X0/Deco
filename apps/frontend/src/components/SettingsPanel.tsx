@@ -344,6 +344,13 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
               disabled={scanning || saving}
             />
             <ToggleRow
+              label="Conda pkgs cache"
+              description="Conda/Miniconda package cache (pkgs only; never envs/). Regenerate: conda clean."
+              checked={draft.check_conda_pkgs_cache}
+              onCheckedChange={(v) => patch({ check_conda_pkgs_cache: v })}
+              disabled={scanning || saving}
+            />
+            <ToggleRow
               label="Include Python venv"
               description="venv / .venv when a Python project is detected (high risk)."
               checked={draft.include_python_venv}

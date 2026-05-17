@@ -62,6 +62,7 @@ pub(crate) fn execute_cleanup_core(
                 yarn: settings.check_yarn_cache,
                 pip: settings.check_pip_cache,
                 uv: settings.check_uv_cache,
+                conda: settings.check_conda_pkgs_cache,
             },
             settings.include_python_venv,
         )

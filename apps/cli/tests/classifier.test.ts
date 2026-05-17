@@ -39,6 +39,7 @@ function baseOptions(root: string): CliOptions {
     checkYarnCache: false,
     checkPipCache: false,
     checkUvCache: false,
+    checkCondaPkgsCache: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',
@@ -134,15 +135,18 @@ describe('classifier global package-manager caches', () => {
       { kind: 'yarn-global-cache', absPath: path.join(root, 'yarn-cache'), mtimeMs: Date.now() },
       { kind: 'pip-global-cache', absPath: path.join(root, 'pip-cache'), mtimeMs: Date.now() },
       { kind: 'uv-global-cache', absPath: path.join(root, 'uv-cache'), mtimeMs: Date.now() },
+      { kind: 'conda-pkgs-cache', absPath: path.join(root, 'miniconda3', 'pkgs'), mtimeMs: Date.now() },
     ];
     const options = baseOptions(root);
     const policy = createPathPolicy({ extraProtectedPathContains: [], allowPathContains: [] });
     const classified = await classifyTargets(discovered, options, policy);
-    expect(classified).toHaveLength(5);
+    expect(classified).toHaveLength(6);
     for (const c of classified) {
       expect(c.risk).toBe('review');
       expect(c.safetyClass).toBe('global_cache');
       expect(c.reasonCodes).toContain('GLOBAL_CACHE_REQUIRES_OPT_IN');
     }
+    const conda = classified.find((c) => c.kind === 'conda-pkgs-cache');
+    expect(conda?.reasonCodes).toContain('CONDA_PKGS_CACHE_ONLY');
   });
 });

@@ -40,6 +40,7 @@ pub enum Kind {
     YarnGlobalCache,
     PipGlobalCache,
     UvGlobalCache,
+    CondaPkgsCache,
 }
 
 impl Kind {
@@ -64,6 +65,7 @@ impl Kind {
             Kind::YarnGlobalCache => "yarn_global_cache",
             Kind::PipGlobalCache => "pip_global_cache",
             Kind::UvGlobalCache => "uv_global_cache",
+            Kind::CondaPkgsCache => "conda_pkgs_cache",
         }
     }
 }
@@ -90,6 +92,7 @@ pub struct EcosystemScanOptions {
     pub check_yarn_cache: bool,
     pub check_pip_cache: bool,
     pub check_uv_cache: bool,
+    pub check_conda_pkgs_cache: bool,
 }
 
 impl Default for EcosystemScanOptions {
@@ -106,6 +109,7 @@ impl Default for EcosystemScanOptions {
             check_yarn_cache: false,
             check_pip_cache: false,
             check_uv_cache: false,
+            check_conda_pkgs_cache: false,
         }
     }
 }
@@ -124,6 +128,7 @@ impl From<&ScanRequest> for EcosystemScanOptions {
             check_yarn_cache: req.check_yarn_cache,
             check_pip_cache: req.check_pip_cache,
             check_uv_cache: req.check_uv_cache,
+            check_conda_pkgs_cache: req.check_conda_pkgs_cache,
         }
     }
 }
@@ -138,6 +143,7 @@ pub struct GlobalCacheAllow {
     pub yarn: bool,
     pub pip: bool,
     pub uv: bool,
+    pub conda: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -211,6 +217,8 @@ pub struct ScanRequest {
     #[serde(default)]
     pub check_uv_cache: bool,
     #[serde(default)]
+    pub check_conda_pkgs_cache: bool,
+    #[serde(default)]
     pub exclude_abs_path_contains: Vec<String>,
     #[serde(default)]
     pub extra_protected_path_contains: Vec<String>,
@@ -219,7 +227,7 @@ pub struct ScanRequest {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.3.0";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.4.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {
@@ -391,6 +399,8 @@ pub struct Settings {
     pub check_pip_cache: bool,
     #[serde(default)]
     pub check_uv_cache: bool,
+    #[serde(default)]
+    pub check_conda_pkgs_cache: bool,
     pub delete_mode: String,
     pub quarantine_retention_days: u32,
     pub advanced_mode: bool,
@@ -425,6 +435,7 @@ impl Default for Settings {
             check_yarn_cache: false,
             check_pip_cache: false,
             check_uv_cache: false,
+            check_conda_pkgs_cache: false,
             delete_mode: "quarantine".to_string(),
             quarantine_retention_days: 30,
             advanced_mode: false,

@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises';
+import { access, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -204,6 +204,63 @@ export async function discoverUvGlobalCachesIfEnabled(enabled: boolean): Promise
   for (const candidate of await uvCacheCandidatePaths()) {
     if (await isUvCacheRoot(candidate)) {
       await pushDir(out, candidate, 'uv-global-cache');
+    }
+  }
+  return out;
+}
+
+function isCondaEnvsPath(dir: string): boolean {
+  const normalized = path.resolve(dir).replace(/\\/g, '/').toLowerCase();
+  return normalized.includes('/envs/') || normalized.endsWith('/envs');
+}
+
+async function isCondaPkgsCache(dir: string): Promise<boolean> {
+  if (isCondaEnvsPath(dir) || !(await pathExists(dir))) return false;
+  try {
+    await access(path.join(dir, 'urls.txt'));
+    return true;
+  } catch {
+    return hasSubdir(dir, 'cache');
+  }
+}
+
+function condaPkgsCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.CONDA_PKGS_DIRS?.trim()) {
+    for (const part of process.env.CONDA_PKGS_DIRS.split(path.delimiter)) {
+      const trimmed = part.trim();
+      if (trimmed) paths.push(trimmed);
+    }
+  }
+  return dedupePaths(paths);
+}
+
+async function condaPkgsCandidatePathsAsync(): Promise<string[]> {
+  const paths = condaPkgsCandidatePaths();
+  const fromConda = await commandStdoutPath('conda', ['info', '--base']);
+  if (fromConda) {
+    paths.push(path.join(path.dirname(fromConda), 'pkgs'));
+  }
+  const home = os.homedir();
+  for (const installName of [
+    'miniconda3',
+    'miniforge3',
+    'mambaforge',
+    'anaconda3',
+    'miniconda',
+    'anaconda',
+  ]) {
+    paths.push(path.join(home, installName, 'pkgs'));
+  }
+  return dedupePaths(paths);
+}
+
+export async function discoverCondaPkgsCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of await condaPkgsCandidatePathsAsync()) {
+    if (await isCondaPkgsCache(candidate)) {
+      await pushDir(out, candidate, 'conda-pkgs-cache');
     }
   }
   return out;

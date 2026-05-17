@@ -6,6 +6,7 @@ pub mod executor;
 pub mod path_policy;
 pub mod project_detection;
 pub mod quarantine_store;
+pub mod regeneration_hints;
 pub mod scanner;
 pub mod sizer;
 pub mod types;

@@ -120,7 +120,8 @@
             "pnpm_global_store",
             "yarn_global_cache",
             "pip_global_cache",
-            "uv_global_cache"
+            "uv_global_cache",
+            "conda_pkgs_cache"
           ]
         },
         "abs_path": { "type": "string", "minLength": 1 },

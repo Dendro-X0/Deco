@@ -1,5 +1,6 @@
 use super::path_policy::PathPolicy;
 use super::project_detection::detect_project_root;
+use super::regeneration_hints::display_with_regeneration_hint;
 use super::scanner::DiscoveredTarget;
 use super::types::{CleanupCandidate, Kind, RiskLevel, SafetyClass};
 use std::path::Path;
@@ -26,11 +27,17 @@ pub fn classify_targets(
                     | Kind::YarnGlobalCache
                     | Kind::PipGlobalCache
                     | Kind::UvGlobalCache
+                    | Kind::CondaPkgsCache
             ) {
-                let reason_codes = vec![
+                let mut reason_codes = vec![
                     "GLOBAL_CACHE_TARGET".to_string(),
                     "GLOBAL_CACHE_REQUIRES_OPT_IN".to_string(),
                 ];
+                if target.kind == Kind::CondaPkgsCache {
+                    reason_codes.push("CONDA_PKGS_CACHE_ONLY".to_string());
+                }
+                let display_summary =
+                    display_with_regeneration_hint(&target.kind, &reason_codes);
                 return CleanupCandidate {
                     id: Uuid::new_v4().to_string(),
                     kind: target.kind,
@@ -39,7 +46,7 @@ pub fn classify_targets(
                     mtime_ms: target.mtime_ms,
                     risk: RiskLevel::Review,
                     safety_class: SafetyClass::GlobalCache,
-                    display_reason_summary: Some(reason_summary(&reason_codes)),
+                    display_reason_summary: Some(display_summary),
                     can_delete: true,
                     reason_codes,
                     project_root: None,

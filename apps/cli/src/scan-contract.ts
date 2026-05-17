@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import { displayWithRegenerationHint } from './regeneration-hints.js';
 import type { CleanupCandidate, ScanReportV2, TargetDirKind } from './types.js';
 
 /** Keep in sync with `SCAN_REPORT_SCHEMA_VERSION` in `apps/desktop/src-tauri/src/engine/types.rs`. */
-export const SCAN_REPORT_SCHEMA_VERSION = '2.3.0' as const;
+export const SCAN_REPORT_SCHEMA_VERSION = '2.4.0' as const;
 
 const KIND_TO_WIRE: Record<TargetDirKind, string> = {
   'node_modules': 'node_modules',
@@ -23,6 +24,7 @@ const KIND_TO_WIRE: Record<TargetDirKind, string> = {
   'yarn-global-cache': 'yarn_global_cache',
   'pip-global-cache': 'pip_global_cache',
   'uv-global-cache': 'uv_global_cache',
+  'conda-pkgs-cache': 'conda_pkgs_cache',
 };
 
 export function targetKindToWire(kind: TargetDirKind): string {
@@ -86,7 +88,7 @@ function candidateToWire(c: CleanupCandidate): WireScanCandidate {
     risk: c.risk,
     safety_class: c.safetyClass,
     reason_codes: [...c.reasonCodes],
-    display_reason_summary: summarizeReasonCodes(c.reasonCodes),
+    display_reason_summary: displayWithRegenerationHint(c.kind, c.reasonCodes),
     can_delete: canDelete,
     project_root: c.projectRoot ?? null,
     stale_days: typeof c.staleDays === 'number' ? c.staleDays : null,

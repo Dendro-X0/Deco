@@ -296,6 +296,62 @@ pub fn discover_uv_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
     (targets, warnings)
 }
 
+fn is_conda_envs_path(path: &Path) -> bool {
+    let normalized = path.to_string_lossy().replace('\\', "/").to_lowercase();
+    normalized.contains("/envs/") || normalized.ends_with("/envs")
+}
+
+fn is_conda_pkgs_cache(path: &Path) -> bool {
+    if !path.is_dir() || is_conda_envs_path(path) {
+        return false;
+    }
+    path.join("urls.txt").is_file() || path.join("cache").is_dir()
+}
+
+fn conda_pkgs_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("CONDA_PKGS_DIRS") {
+        for part in v.split(std::path::MAIN_SEPARATOR) {
+            let trimmed = part.trim();
+            if !trimmed.is_empty() {
+                paths.push(PathBuf::from(trimmed));
+            }
+        }
+    }
+    if let Some(from_conda) = command_stdout_path("conda", &["info", "--base"]) {
+        if let Some(parent) = from_conda.parent() {
+            paths.push(parent.join("pkgs"));
+        }
+    }
+    if let Some(home) = user_home() {
+        for install_name in [
+            "miniconda3",
+            "miniforge3",
+            "mambaforge",
+            "anaconda3",
+            "miniconda",
+            "anaconda",
+        ] {
+            paths.push(home.join(install_name).join("pkgs"));
+        }
+    }
+    paths
+}
+
+pub fn discover_conda_pkgs_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![
+        "Conda envs/ directories are never targeted; only package caches (pkgs) with markers."
+            .to_string(),
+    ];
+    for path in dedupe_paths(conda_pkgs_candidate_paths()) {
+        if is_conda_pkgs_cache(&path) {
+            push_global_cache(&mut targets, path, Kind::CondaPkgsCache);
+        }
+    }
+    (targets, warnings)
+}
+
 fn push_dir_target(targets: &mut Vec<DiscoveredTarget>, path: PathBuf, kind: Kind) {
     push_global_cache(targets, path, kind);
 }
@@ -412,5 +468,15 @@ mod tests {
         let cache = root.join("uv-cache");
         create_dir_all(cache.join("downloads-v0")).expect("downloads");
         assert!(is_uv_cache_root(&cache));
+    }
+
+    #[test]
+    fn conda_pkgs_requires_urls_or_cache_subdir() {
+        let root = temp_root("conda");
+        let pkgs = root.join("pkgs");
+        create_dir_all(&pkgs).expect("pkgs dir");
+        std::fs::write(pkgs.join("urls.txt"), "https://example.invalid\n").expect("urls");
+        assert!(is_conda_pkgs_cache(&pkgs));
+        assert!(!is_conda_pkgs_cache(&root.join("envs")));
     }
 }

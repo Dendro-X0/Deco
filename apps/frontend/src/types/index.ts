@@ -92,6 +92,7 @@ export interface Settings {
   check_yarn_cache: boolean;
   check_pip_cache: boolean;
   check_uv_cache: boolean;
+  check_conda_pkgs_cache: boolean;
   delete_mode: string;
   quarantine_retention_days: number;
   advanced_mode: boolean;

@@ -57,12 +57,21 @@ export async function classifyTargets(
         target.kind === 'pnpm-global-store' ||
         target.kind === 'yarn-global-cache' ||
         target.kind === 'pip-global-cache' ||
-        target.kind === 'uv-global-cache'
+        target.kind === 'uv-global-cache' ||
+        target.kind === 'conda-pkgs-cache'
       ) {
-        return baseCandidate(target, 'review', 'global_cache', [
+        const reasonCodes: CleanupCandidate['reasonCodes'] = [
           'GLOBAL_CACHE_TARGET',
           'GLOBAL_CACHE_REQUIRES_OPT_IN',
-        ]);
+        ];
+        const candidate = baseCandidate(target, 'review', 'global_cache', reasonCodes);
+        return {
+          ...candidate,
+          reasonCodes:
+            target.kind === 'conda-pkgs-cache'
+              ? [...reasonCodes, 'CONDA_PKGS_CACHE_ONLY' as const]
+              : reasonCodes,
+        };
       }
 
       const pathMatch = pathPolicy.findMatch(target.absPath);

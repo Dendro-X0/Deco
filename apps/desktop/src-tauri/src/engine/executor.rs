@@ -82,6 +82,13 @@ pub fn execute_cleanup(
             ));
             continue;
         }
+        if candidate.kind == Kind::CondaPkgsCache && !allow_global.conda {
+            errors.push(format!(
+                "Refused Conda package cache (enable “Conda pkgs cache” in settings and re-scan): {}",
+                candidate.abs_path
+            ));
+            continue;
+        }
         if candidate.kind == Kind::PythonVenv && !allow_python_venv {
             errors.push(format!(
                 "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {}",

@@ -26,7 +26,8 @@ export type TargetDirKind =
   | 'pnpm-global-store'
   | 'yarn-global-cache'
   | 'pip-global-cache'
-  | 'uv-global-cache';
+  | 'uv-global-cache'
+  | 'conda-pkgs-cache';
 
 export type SafetyClass = 'project_artifact' | 'global_cache' | 'app_runtime' | 'system' | 'unknown';
 
@@ -45,6 +46,7 @@ export type ReasonCode =
   | 'NODE_MODULES_OUTSIDE_PROJECT'
   | 'GLOBAL_CACHE_TARGET'
   | 'GLOBAL_CACHE_REQUIRES_OPT_IN'
+  | 'CONDA_PKGS_CACHE_ONLY'
   | 'PYTHON_VENV_HIGH_RISK'
   | 'PYTHON_VENV_REQUIRES_OPT_IN'
   | 'LOW_CONFIDENCE_ARTIFACT'
@@ -112,6 +114,7 @@ export type CliOptions = {
   readonly checkYarnCache: boolean;
   readonly checkPipCache: boolean;
   readonly checkUvCache: boolean;
+  readonly checkCondaPkgsCache: boolean;
   readonly excludeAbsPathContains: readonly string[];
   readonly profile: CleanupProfile;
   readonly deleteMode: DeleteMode;

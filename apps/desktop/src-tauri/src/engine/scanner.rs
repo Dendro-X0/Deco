@@ -2,8 +2,8 @@ use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
 use super::ecosystem_globals::{
     discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
-    discover_pip_global_caches, discover_pnpm_global_store, discover_uv_global_caches,
-    discover_yarn_global_caches,
+    discover_conda_pkgs_caches, discover_pip_global_caches, discover_pnpm_global_store,
+    discover_uv_global_caches, discover_yarn_global_caches,
 };
 use super::path_policy::PathPolicy;
 use super::types::{EcosystemScanOptions, Kind};
@@ -484,6 +484,11 @@ pub fn discover_targets(
         let (uv_targets, uv_warnings) = discover_uv_global_caches();
         all_targets.extend(uv_targets);
         warnings.extend(uv_warnings);
+    }
+    if eco.check_conda_pkgs_cache && !canceled {
+        let (conda_targets, conda_warnings) = discover_conda_pkgs_caches();
+        all_targets.extend(conda_targets);
+        warnings.extend(conda_warnings);
     }
 
     let targets = dedupe_targets_by_canonical_path(all_targets, &mut warnings);
