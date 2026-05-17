@@ -4,6 +4,8 @@ import { CustomScanRoots } from '@/components/CustomScanRoots';
 import { PartitionPicker } from '@/components/PartitionPicker';
 import { ScanModeTabList } from '@/components/ScanModeTabs';
 import type { ScanMode } from '@/components/ScanModeSelector';
+import { scanStrategySummary, resolveScanStrategy } from '@/lib/scan-strategy';
+import type { Settings } from '@/types';
 
 const PROFILE_LABELS: Record<string, string> = {
   safe: 'Safe (Conservative)',
@@ -21,6 +23,7 @@ type Props = {
   onIncludeProjectFoldersChange: (value: boolean) => void;
   onCustomScanRootsChange: (roots: string[]) => void;
   profile?: string;
+  settings?: Settings | null;
   ready: boolean;
   disabled?: boolean;
   onError?: (message: string) => void;
@@ -37,6 +40,7 @@ export function ScanTargetsDashboardCard({
   onIncludeProjectFoldersChange,
   onCustomScanRootsChange,
   profile = 'safe',
+  settings,
   ready,
   disabled,
   onError,
@@ -57,6 +61,12 @@ export function ScanTargetsDashboardCard({
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
             Profile: {PROFILE_LABELS[profile] ?? profile}
           </span>
+          {settings ? (
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              Strategy:{' '}
+              {scanStrategySummary(resolveScanStrategy(settings), settings)}
+            </span>
+          ) : null}
           {!ready ? (
             <span className="text-[10px] font-bold uppercase tracking-wide text-amber-500">
               Not ready

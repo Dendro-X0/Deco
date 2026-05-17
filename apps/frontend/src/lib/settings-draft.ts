@@ -1,5 +1,6 @@
 import type { Settings } from '../types';
 import { DISCOVERY_OPTION_KEYS } from './discovery-options';
+import { patchWithStrategyTuning } from './scan-strategy';
 import { normalizeSettings } from './settings-normalize';
 import { volumeMountsFromPaths } from './volume-from-path';
 
@@ -14,7 +15,9 @@ export const SCAN_TARGET_SETTINGS_KEYS = [
 /** Fields compared for unsaved-changes detection. */
 const DRAFT_KEYS: (keyof Settings)[] = [
   'scan_scope',
+  'scan_strategy',
   'incremental_inventory_enabled',
+  'scan_concurrency_mode',
   'max_depth',
   'profile',
   'stale_days',
@@ -50,7 +53,8 @@ export function isSettingsDraftDirty(draft: Settings, saved: Settings | null): b
 }
 
 export function patchSettingsDraft(draft: Settings, patch: Partial<Settings>): Settings {
-  const next = cloneSettingsDraft({ ...draft, ...patch });
+  const enriched = patchWithStrategyTuning(draft, patch);
+  const next = cloneSettingsDraft({ ...draft, ...enriched });
   if (patch.roots) {
     const fromRoots = volumeMountsFromPaths(patch.roots);
     const volumes = next.selected_volumes ?? [];

@@ -32,6 +32,12 @@ import {
   quarantineStorageSummary,
 } from '@/lib/quarantine-storage';
 import { normalizeSettings } from '@/lib/settings-normalize';
+import {
+  SCAN_STRATEGY_PRESETS,
+  applyScanStrategyPreset,
+  resolveScanStrategy,
+  type ScanStrategyPreset,
+} from '@/lib/scan-strategy';
 import type { Settings } from '@/types';
 
 type Props = {
@@ -164,6 +170,9 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
     );
   }
 
+  const activeStrategy = resolveScanStrategy(draft);
+  const activeStrategyMeta = SCAN_STRATEGY_PRESETS.find((p) => p.id === activeStrategy);
+
   const quarantineEnabled = draft.delete_mode === 'quarantine';
   const quarantineLayout = draft.quarantine_layout ?? 'per_drive';
   const quarantinePath = draft.quarantine_custom_path ?? '';
@@ -189,10 +198,46 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
           title="Scan behavior"
           description={
             scanMode === 'partition'
-              ? 'Profile and thresholds apply to every scan. Scan scope is used when suggesting roots on empty drives.'
-              : 'Profile and thresholds apply to every scan. Custom-folder mode ignores partition layout.'
+              ? 'Pick a scan strategy for performance, then profile and thresholds. Scan scope is used when suggesting roots on empty drives.'
+              : 'Pick a scan strategy for performance, then profile and thresholds. Custom-folder mode ignores partition layout.'
           }
         >
+          <div className="space-y-4 max-w-2xl">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                Scan strategy
+              </label>
+              <Select
+                value={activeStrategy === 'custom' ? 'custom' : activeStrategy}
+                onValueChange={(v) => {
+                  if (v === 'custom') return;
+                  patch(applyScanStrategyPreset(v as ScanStrategyPreset));
+                }}
+                disabled={scanning || saving}
+              >
+                <SelectTrigger className="bg-background/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SCAN_STRATEGY_PRESETS.map((preset) => (
+                    <SelectItem key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                  {activeStrategy === 'custom' ? (
+                    <SelectItem value="custom">Custom</SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {activeStrategy === 'custom'
+                  ? 'Depth, size parallelism, or Quick update no longer match a preset — adjust below or pick a preset.'
+                  : (activeStrategyMeta?.description ??
+                    'Maps to search depth, size parallelism, and Quick update.')}
+              </p>
+            </div>
+          </div>
+
           <div className="grid gap-6 md:grid-cols-2">
             {scanMode === 'partition' ? (
               <div className="space-y-2">
@@ -248,62 +293,70 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
                 aria-label="Stale threshold in days"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                Max search depth
-              </label>
-              <NumberInput
-                min={1}
-                max={32}
-                step={1}
-                value={draft.max_depth}
-                disabled={scanning || saving}
-                onValueChange={(v) => patch({ max_depth: clampMaxDepth(v) })}
-                aria-label="Max search depth"
-              />
-            </div>
           </div>
-          <ToggleRow
-            label="Incremental inventory (Quick update)"
-            description="Reuse classify and size for unchanged paths. Run a full scan after changing profile or discovery options."
-            checked={draft.incremental_inventory_enabled ?? true}
-            onCheckedChange={(v) => patch({ incremental_inventory_enabled: v })}
-            disabled={scanning || saving}
-          />
+
+          <div className="space-y-4 rounded-lg border border-border/40 bg-muted/10 p-4">
+            <div>
+              <h4 className="text-xs font-bold tracking-tight">Performance tuning</h4>
+              <p className="text-xs text-muted-foreground mt-1">
+                Adjusting these may switch the strategy to Custom.
+              </p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                  Max search depth
+                </label>
+                <NumberInput
+                  min={1}
+                  max={32}
+                  step={1}
+                  value={draft.max_depth}
+                  disabled={scanning || saving}
+                  onValueChange={(v) => patch({ max_depth: clampMaxDepth(v) })}
+                  aria-label="Max search depth"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                  Size calculation speed
+                </label>
+                <Select
+                  value={
+                    ['auto', 'low', 'high'].includes(draft.scan_concurrency_mode ?? '')
+                      ? (draft.scan_concurrency_mode as string)
+                      : 'auto'
+                  }
+                  onValueChange={(v) => patch({ scan_concurrency_mode: v })}
+                  disabled={scanning || saving}
+                >
+                  <SelectTrigger className="bg-background/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto — balanced for your CPU</SelectItem>
+                    <SelectItem value="low">Low — gentler on HDDs / background use</SelectItem>
+                    <SelectItem value="high">High — faster on SSD / NVMe</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <ToggleRow
+              label="Incremental inventory (Quick update)"
+              description="Reuse classify and size for unchanged paths. Run a full scan after changing profile or discovery options."
+              checked={draft.incremental_inventory_enabled ?? true}
+              onCheckedChange={(v) => patch({ incremental_inventory_enabled: v })}
+              disabled={scanning || saving}
+            />
+          </div>
         </SettingsSection>
 
         <Separator />
 
         <SettingsSection
           title="Discovery"
-          description="Optional targets and performance trade-offs during scans."
+          description="Optional artifact targets during scans."
         >
-          <div className="space-y-2 max-w-md">
-            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-              Size calculation speed
-            </label>
-            <Select
-              value={
-                ['auto', 'low', 'high'].includes(draft.scan_concurrency_mode ?? '')
-                  ? (draft.scan_concurrency_mode as string)
-                  : 'auto'
-              }
-              onValueChange={(v) => patch({ scan_concurrency_mode: v })}
-              disabled={scanning || saving}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Auto — balanced for your CPU</SelectItem>
-                <SelectItem value="low">Low — gentler on HDDs / background use</SelectItem>
-                <SelectItem value="high">High — faster on SSD / NVMe</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Controls parallel folder size walks during scan. Use Low on slow disks; High when the drive can handle more concurrent reads.
-            </p>
-          </div>
           <DiscoveryOptionsPanel
             settings={draft}
             disabled={scanning || saving}

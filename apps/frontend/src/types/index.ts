@@ -83,6 +83,8 @@ export interface Settings {
   scan_concurrency_mode: string;
   /** When true, Quick update can reuse path inventory (v0.6.1). */
   incremental_inventory_enabled?: boolean;
+  /** `thorough` | `balanced` | `fast` | `background` | `custom` (v0.6.3). */
+  scan_strategy?: string;
   show_blocked: boolean;
   check_go_cache: boolean;
   include_python_artifacts: boolean;

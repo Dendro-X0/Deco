@@ -2,7 +2,18 @@
 
 ## [Unreleased]
 
-_Planned: v0.6.3+ scan strategy presets and expanded performance settings — see [docs/product/v0.6.x-roadmap.md](docs/product/v0.6.x-roadmap.md)._
+## [0.6.3] - 2026-05-15
+
+### Added
+
+- **Scan strategy presets** — `thorough`, `balanced`, `fast`, `background` (plus `custom` when tuning diverges) map to `max_depth`, `scan_concurrency_mode`, and `incremental_inventory_enabled`.
+- **Settings UI** — strategy selector at top of Scan behavior; performance tuning grouped below.
+- **Dashboard hint** — active strategy summary on Scan targets card.
+- **`scan-strategy.ts`** with unit tests; manifest `docs/product/v0.6.3-manifest.md`.
+
+### Changed
+
+- Size calculation speed moved from Discovery into Scan behavior performance tuning.
 
 ## [0.6.2] - 2026-05-15
 

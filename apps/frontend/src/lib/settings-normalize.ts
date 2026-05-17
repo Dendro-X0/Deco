@@ -1,4 +1,5 @@
 import type { Settings } from '../types';
+import { deriveScanStrategy, normalizeScanStrategyId } from './scan-strategy';
 
 type RawSettings = Record<string, unknown>;
 
@@ -29,22 +30,38 @@ export function normalizeSettings(raw: unknown): Settings {
   const use_custom_scan_roots =
     typeof useCustomRaw === 'boolean' ? useCustomRaw : roots.length > 0;
 
+  const max_depth = num('max_depth', 'maxDepth', 8);
+  const scan_concurrency_mode = str('scan_concurrency_mode', 'scanConcurrencyMode', 'auto');
+  const incremental_inventory_enabled = bool(
+    'incremental_inventory_enabled',
+    'incrementalInventoryEnabled',
+    true,
+  );
+  const tuningSlice = {
+    max_depth,
+    scan_concurrency_mode,
+    incremental_inventory_enabled,
+  };
+  const scan_strategy = deriveScanStrategy({
+    ...tuningSlice,
+    scan_strategy: normalizeScanStrategyId(
+      r.scan_strategy ?? r.scanStrategy ?? 'balanced',
+    ),
+  } as Settings);
+
   return {
     roots,
     use_custom_scan_roots,
     scan_scope: str('scan_scope', 'scanScope', 'projects'),
     selected_volumes: readSelectedVolumes(r),
     include_project_folders: bool('include_project_folders', 'includeProjectFolders', true),
-    max_depth: num('max_depth', 'maxDepth', 8),
+    max_depth,
     profile: str('profile', 'profile', 'safe'),
     stale_days: num('stale_days', 'staleDays', 45),
     include_size: bool('include_size', 'includeSize', true),
-    scan_concurrency_mode: str('scan_concurrency_mode', 'scanConcurrencyMode', 'auto'),
-    incremental_inventory_enabled: bool(
-      'incremental_inventory_enabled',
-      'incrementalInventoryEnabled',
-      true,
-    ),
+    scan_concurrency_mode,
+    incremental_inventory_enabled,
+    scan_strategy,
     show_blocked: bool('show_blocked', 'showBlocked', false),
     check_go_cache: bool('check_go_cache', 'checkGoCache', false),
     include_python_artifacts: bool('include_python_artifacts', 'includePythonArtifacts', true),

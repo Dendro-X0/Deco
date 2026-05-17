@@ -635,6 +635,7 @@ export default function App() {
                   }
                   onCustomScanRootsChange={(roots) => persistScanTargets({ roots })}
                   profile={settings?.profile}
+                  settings={settings}
                   ready={hasScanTargetsReady}
                   disabled={scanning}
                   onError={setError}

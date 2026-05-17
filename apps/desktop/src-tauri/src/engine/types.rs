@@ -165,6 +165,10 @@ fn default_scan_concurrency_mode() -> String {
     "auto".to_string()
 }
 
+fn default_scan_strategy() -> String {
+    "balanced".to_string()
+}
+
 /// Per-ecosystem discovery toggles (M7). Global caches stay opt-in via `check_*_global_cache` on scan request.
 #[derive(Debug, Clone, Copy)]
 pub struct EcosystemScanOptions {
@@ -507,6 +511,9 @@ pub struct Settings {
     /// When true, Quick update scans may reuse cached classify/size rows (v0.6.1).
     #[serde(default = "default_true")]
     pub incremental_inventory_enabled: bool,
+    /// `thorough` | `balanced` | `fast` | `background` | `custom` — UI preset label (v0.6.3).
+    #[serde(default = "default_scan_strategy")]
+    pub scan_strategy: String,
     pub show_blocked: bool,
     pub check_go_cache: bool,
     #[serde(default = "default_true")]
@@ -568,6 +575,7 @@ impl Default for Settings {
             include_size: true,
             scan_concurrency_mode: default_scan_concurrency_mode(),
             incremental_inventory_enabled: true,
+            scan_strategy: default_scan_strategy(),
             show_blocked: false,
             check_go_cache: false,
             include_python_artifacts: true,
