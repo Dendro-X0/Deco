@@ -1,3 +1,6 @@
+use super::scan_concurrency::SizeConcurrencyPlan;
+use super::types::CleanupCandidate;
+use rayon::prelude::*;
 use std::path::Path;
 use std::time::{Duration, Instant};
 use walkdir::WalkDir;
@@ -55,6 +58,45 @@ pub fn dir_size_bytes(path: &Path) -> DirSizeOutcome {
     } else {
         DirSizeOutcome::Measured(size)
     }
+}
+
+/// Parallel directory sizing for a candidate slice (shared by scan pipeline and benchmarks).
+pub fn size_candidates_parallel(
+    candidates: &mut [CleanupCandidate],
+    plan: &SizeConcurrencyPlan,
+    mut should_cancel: impl FnMut() -> bool,
+) -> (Vec<String>, bool) {
+    let mut warnings = Vec::new();
+    let total = candidates.len();
+    if total == 0 {
+        return (warnings, false);
+    }
+    let stride = plan.max_parallel_sizers().max(1);
+
+    for batch_start in (0.. total).step_by(stride) {
+        if should_cancel() {
+            return (warnings, true);
+        }
+        let batch_end = (batch_start + stride).min(total);
+        let sized: Vec<(usize, Option<u64>, Vec<String>)> = candidates[batch_start..batch_end]
+            .par_iter()
+            .enumerate()
+            .map(|(offset, candidate)| {
+                let outcome = dir_size_bytes(Path::new(&candidate.abs_path));
+                let (size, size_warnings) = match outcome {
+                    DirSizeOutcome::Measured(bytes) => (Some(bytes), vec![]),
+                    DirSizeOutcome::NotCalculated(w) => (None, w),
+                };
+                (batch_start + offset, size, size_warnings)
+            })
+            .collect();
+
+        for (idx, size, mut size_warnings) in sized {
+            warnings.append(&mut size_warnings);
+            candidates[idx].size_bytes = size;
+        }
+    }
+    (warnings, false)
 }
 
 #[cfg(test)]

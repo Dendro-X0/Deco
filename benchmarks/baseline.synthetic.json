@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "fixture_projects": 20,
+  "include_size": false,
+  "regression_ratio_max": 1.35,
+  "limits": {
+    "discover_ms_max": 90000,
+    "classify_ms_max": 45000,
+    "size_ms_max": 0,
+    "min_candidates": 18
+  }
+}

@@ -1,6 +1,6 @@
 # Experiment: scan performance (v0.6.x)
 
-**Manifest:** [v0.6.0-manifest.md](../product/v0.6.0-manifest.md)
+**Manifests:** [v0.6.0](../product/v0.6.0-manifest.md) · [v0.6.2](../product/v0.6.2-manifest.md) (benchmark suite)
 
 ## Baseline observation (2026-05)
 
@@ -22,6 +22,20 @@ Drive `E:\` scan (~80+ candidates): discover ~20–30s; classify + size + UI ~30
 4. Optional: `--no-size` CLI or uncheck Calculate sizes for discover-only timing.
 
 Record: candidate count, discover_ms, classify_ms, size_ms, total wall time.
+
+## Automated suite (v0.6.2)
+
+```bash
+pnpm benchmark:scan
+# strict CI parity:
+cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri -- \
+  --projects 20 --compare benchmarks/baseline.synthetic.json
+```
+
+- **Fixture:** `bench-proj-NNN/Cargo.toml` + `target/debug/deps/` under `target/deco-bench-runs/` (not `%LocalAppData%` — path policy prunes `AppData`).  
+- **Output:** JSON with phase ms + `candidate_count`; human summary on stderr.  
+- **Baseline:** `benchmarks/baseline.synthetic.json` — per-phase caps and `regression_ratio_max` on total.  
+- **Tune limits** only when a change intentionally improves the engine (document in PR).
 
 ## Promotion criteria (manifest C2)
 

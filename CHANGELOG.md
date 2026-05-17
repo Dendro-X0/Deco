@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+_Planned: v0.6.3+ scan strategy presets and expanded performance settings — see [docs/product/v0.6.x-roadmap.md](docs/product/v0.6.x-roadmap.md)._
+
+## [0.6.2] - 2026-05-15
+
+### Added
+
+- **`deco-bench`** — headless scan pipeline benchmark on a synthetic Rust `target/` fixture; JSON output and `--compare` against `benchmarks/baseline.synthetic.json`.
+- **`pnpm benchmark:scan`** — local/CI entry point with regression guard.
+- **CI benchmark job** (Ubuntu) after Rust tests.
+- Shared **`size_candidates_parallel`** in `engine/sizer.rs` (scan + bench).
+- Manifest `docs/product/v0.6.2-manifest.md`.
+
+### Fixed
+
+- **`tauri dev`** — `default-run = "deco-desktop"` when `deco-bench` is present in the same crate.
+- Benchmark fixtures use `target/deco-bench-runs/` (not `%LocalAppData%` paths pruned by path policy).
+
 ## [0.6.1] - 2026-05-15
 
 ### Fixed

@@ -1,7 +1,7 @@
 {
   "name": "@dendro-x0/deco-monorepo",
   "private": true,
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Monorepo for Deco: Disk Cleanup for Developers",
   "scripts": {
     "dev:cli": "pnpm -F @dendro-x0/deco-cli start",
@@ -17,6 +17,7 @@
     "typecheck": "pnpm -F @dendro-x0/deco-cli exec tsc --noEmit -p tsconfig.json && pnpm -F @dendro-x0/deco-frontend exec tsc -b --noEmit",
     "lint": "pnpm -F @dendro-x0/deco-frontend lint",
     "check": "pnpm typecheck && pnpm lint && pnpm test:all",
+    "benchmark:scan": "cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri -- --projects 20 --compare benchmarks/baseline.synthetic.json",
     "package:cli": "pnpm build:cli && node scripts/package-cli.mjs",
     "icons:generate": "python scripts/generate-deco-icon.py && pnpm -F @dendro-x0/deco-desktop exec tauri icon src-tauri/icons/app-icon.png",
     "install:all": "pnpm install",

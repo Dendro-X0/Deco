@@ -7,8 +7,7 @@ use crate::engine::inventory::{
 use crate::engine::path_policy::PathPolicy;
 use crate::engine::scan_concurrency::{size_concurrency_plan, SizeConcurrencyPlan};
 use crate::engine::scanner::{discover_targets, DiscoverProgressCallback};
-use crate::engine::sizer::{dir_size_bytes, DirSizeOutcome};
-use rayon::prelude::*;
+use crate::engine::sizer::size_candidates_parallel;
 use std::time::Instant;
 use crate::engine::types::{
     CleanupCandidate, ClearScanHistoryResponse, DeleteScanHistoryResponse, RiskLevel, RiskTotals,
@@ -23,7 +22,6 @@ use crate::util::scan_roots::{custom_scan_roots, effective_scan_roots};
 use rusqlite::params;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap, HashSet};
-use std::path::Path;
 use std::sync::Arc;
 use std::thread;
 use tauri::{AppHandle, Emitter, State};
@@ -709,36 +707,11 @@ fn size_candidates_slice(
     cancel_handles: &ScanCancelHandles,
     warnings: &mut Vec<String>,
 ) -> bool {
-    let total = candidates.len();
-    if total == 0 {
-        return false;
-    }
-    let stride = plan.max_parallel_sizers().max(1);
-
-    for batch_start in (0..total).step_by(stride) {
-        if sizing_canceled(cancel_handles) {
-            return true;
-        }
-        let batch_end = (batch_start + stride).min(total);
-        let sized: Vec<(usize, Option<u64>, Vec<String>)> = candidates[batch_start..batch_end]
-            .par_iter()
-            .enumerate()
-            .map(|(offset, candidate)| {
-                let outcome = dir_size_bytes(Path::new(&candidate.abs_path));
-                let (size, size_warnings) = match outcome {
-                    DirSizeOutcome::Measured(bytes) => (Some(bytes), vec![]),
-                    DirSizeOutcome::NotCalculated(w) => (None, w),
-                };
-                (batch_start + offset, size, size_warnings)
-            })
-            .collect();
-
-        for (idx, size, mut size_warnings) in sized {
-            warnings.append(&mut size_warnings);
-            candidates[idx].size_bytes = size;
-        }
-    }
-    false
+    let (mut size_warnings, canceled) = size_candidates_parallel(candidates, plan, || {
+        sizing_canceled(cancel_handles)
+    });
+    warnings.append(&mut size_warnings);
+    canceled
 }
 
 fn emit_progress(app: &AppHandle, payload: ScanProgressEvent) {

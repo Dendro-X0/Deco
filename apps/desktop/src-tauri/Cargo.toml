@@ -1,12 +1,13 @@
 [package]
 name = "deco-desktop"
-version = "0.6.1"
+version = "0.6.2"
 description = "Deco desktop app with native Rust cleanup engine"
 authors = ["Dendro-X0"]
 license = "MIT"
 repository = "https://github.com/Dendro-X0/Deco"
 edition = "2021"
 rust-version = "1.77"
+default-run = "deco-desktop"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -27,6 +28,18 @@ windows = { version = "0.58", features = ["Win32_Storage_FileSystem", "Win32_Fou
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[lib]
+name = "deco_desktop"
+path = "src/lib.rs"
+
+[[bin]]
+name = "deco-desktop"
+path = "src/main.rs"
+
+[[bin]]
+name = "deco-bench"
+path = "src/bin/deco-bench.rs"
 
 [features]
 default = []

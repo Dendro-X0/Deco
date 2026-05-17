@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-15 · **Current release:** `v0.6.1`
+**Last updated:** 2026-05-15 · **Current release:** `v0.6.2`
 
 ---
 
@@ -129,6 +129,8 @@ Follow [scanning philosophy](../../PROJECT.md#scanning-philosophy-whitelist--lay
 | `v0.5.7` | Composer global cache, MSVC `Debug`/`Release` trees, community `.deco` policy examples, two-step scan stop, cleanup UX | Shipped |
 | `v0.6.0` | Chunked classify+size pipeline, parallel classify + project-root cache, `scan_concurrency_mode`, phase timings, Dashboard-only scan targets | Shipped |
 | `v0.6.1` | Incremental path inventory, Quick update scan, `incremental_inventory_enabled` | Shipped |
+| `v0.6.2` | `deco-bench`, synthetic baseline, CI regression guard | Shipped |
+| `v0.6.3+` | User-tunable scan strategy + threading presets; stats/cleanup experiments | Planned — see [v0.6.x-roadmap.md](v0.6.x-roadmap.md) |
 
 **Exit criteria:** Each new kind has documented “what breaks if I delete this” text; false-positive tests for Cursor/VS Code/Electron and MSVC paths.
 
