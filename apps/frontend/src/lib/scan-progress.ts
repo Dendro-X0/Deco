@@ -4,6 +4,8 @@ export type ScanProgress = {
   percent: number;
   text: string;
   phase: ScanProgressPhase;
+  /** Secondary line for cleanup overlay / status (e.g. node_modules explanation). */
+  detail?: string;
 };
 
 export const IDLE_PROGRESS: ScanProgress = {

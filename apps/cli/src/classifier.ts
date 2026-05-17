@@ -61,7 +61,8 @@ export async function classifyTargets(
         target.kind === 'conda-pkgs-cache' ||
         target.kind === 'cargo-registry-cache' ||
         target.kind === 'bun-global-cache' ||
-        target.kind === 'nuget-global-cache'
+        target.kind === 'nuget-global-cache' ||
+        target.kind === 'composer-global-cache'
       ) {
         const reasonCodes: CleanupCandidate['reasonCodes'] = [
           'GLOBAL_CACHE_TARGET',

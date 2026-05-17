@@ -16,6 +16,7 @@ export type DiscoveryOptionKey = Extract<
   | 'check_bun_cache'
   | 'check_cargo_registry'
   | 'check_nuget_cache'
+  | 'check_composer_cache'
   | 'include_python_venv'
 >;
 
@@ -69,7 +70,7 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
   {
     id: 'package_managers',
     label: 'Package managers',
-    description: 'Global caches for Node, Python, Conda, bun, and NuGet (review tier).',
+    description: 'Global caches for Node, Python, Conda, bun, NuGet, and Composer (review tier).',
     rows: [
       {
         type: 'option',
@@ -118,6 +119,12 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
         key: 'check_nuget_cache',
         label: 'NuGet global packages',
         description: 'NuGet package store (NUGET_PACKAGES or ~/.nuget/packages).',
+      },
+      {
+        type: 'option',
+        key: 'check_composer_cache',
+        label: 'Composer cache',
+        description: 'PHP Composer cache (COMPOSER_CACHE_DIR or ~/.composer/cache).',
       },
     ],
   },

@@ -31,6 +31,7 @@ pub fn classify_targets(
                     | Kind::CargoRegistryCache
                     | Kind::BunGlobalCache
                     | Kind::NugetGlobalCache
+                    | Kind::ComposerGlobalCache
             ) {
                 let mut reason_codes = vec![
                     "GLOBAL_CACHE_TARGET".to_string(),

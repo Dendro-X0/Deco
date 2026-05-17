@@ -13,6 +13,7 @@ const HINTS: Partial<Record<TargetDirKind, string>> = {
   'cargo-registry-cache': '`cargo cache -a`; crates re-download on next build',
   'bun-global-cache': '`bun pm cache rm`; packages re-fetch on install',
   'nuget-global-cache': 'Restore with `dotnet restore` / `nuget restore`',
+  'composer-global-cache': '`composer clear-cache`; packages re-fetch on install',
 };
 
 export function regenerationHintForKind(kind: TargetDirKind): string | undefined {

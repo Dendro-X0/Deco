@@ -3,7 +3,7 @@ import { displayWithRegenerationHint } from './regeneration-hints.js';
 import type { CleanupCandidate, ScanReportV2, TargetDirKind } from './types.js';
 
 /** Keep in sync with `SCAN_REPORT_SCHEMA_VERSION` in `apps/desktop/src-tauri/src/engine/types.rs`. */
-export const SCAN_REPORT_SCHEMA_VERSION = '2.5.0' as const;
+export const SCAN_REPORT_SCHEMA_VERSION = '2.6.0' as const;
 
 const KIND_TO_WIRE: Record<TargetDirKind, string> = {
   'node_modules': 'node_modules',
@@ -28,6 +28,7 @@ const KIND_TO_WIRE: Record<TargetDirKind, string> = {
   'cargo-registry-cache': 'cargo_registry_cache',
   'bun-global-cache': 'bun_global_cache',
   'nuget-global-cache': 'nuget_global_cache',
+  'composer-global-cache': 'composer_global_cache',
 };
 
 export function targetKindToWire(kind: TargetDirKind): string {

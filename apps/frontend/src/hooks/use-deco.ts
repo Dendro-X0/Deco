@@ -12,7 +12,8 @@ import type {
   Settings,
   HistoryItem,
 } from '../types';
-import { normalizeCandidate, normalizeScanReport } from '../lib/scan-report';
+import { cleanupProgressToScanProgress, type CleanupProgressPayload } from '../lib/cleanup-progress';
+import { normalizeCandidate, normalizeScanReport, recomputeScanSummaryFromCandidates } from '../lib/scan-report';
 import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normalize';
 import { formatBytes, formatDurationMs } from '../lib/format';
 import { volumeMountsFromPaths } from '../lib/volume-from-path';
@@ -37,7 +38,24 @@ export function useDeco() {
   const [includeProjectFolders, setIncludeProjectFolders] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const activeScanIdRef = useRef<string | null>(null);
+  const activeCleanupJobIdRef = useRef<string | null>(null);
+  const cleanupWaitersRef = useRef<
+    Map<
+      string,
+      {
+        resolve: (value: ExecuteResponse | null) => void;
+        candidateCount: number;
+        candidateIds: string[];
+      }
+    >
+  >(new Map());
+  const [storageRefreshToken, setStorageRefreshToken] = useState(0);
+  const bumpStorageRefresh = useCallback(() => {
+    setStorageRefreshToken((t) => t + 1);
+  }, []);
   const operationStartedAtRef = useRef<number | null>(null);
+  const scanPhaseRef = useRef<string | null>(null);
+  const [searchStopped, setSearchStopped] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const tauriInvoke = async (command: string, payload: Record<string, unknown> = {}) => {
@@ -108,6 +126,8 @@ export function useDeco() {
   const finishScan = useCallback(() => {
     setScanning(false);
     activeScanIdRef.current = null;
+    scanPhaseRef.current = null;
+    setSearchStopped(false);
     operationStartedAtRef.current = null;
     setElapsedMs(0);
   }, []);
@@ -120,15 +140,30 @@ export function useDeco() {
       return;
     }
     try {
+      const phase = scanPhaseRef.current;
+      const stoppingAnalysis =
+        searchStopped || phase === 'size' || phase === 'classify';
       await invoke('cancel_scan', { scanId: id });
-      setStatus({ text: 'Cancel requested…', type: 'active' });
-      toast({
-        title: 'Scan stop requested',
-        description: 'Finishing the current step, then returning partial results.',
-        variant: 'info',
-      });
+      if (!stoppingAnalysis) {
+        setSearchStopped(true);
+        setStatus({
+          text: 'Search stopped — classifying and sizing found items…',
+          type: 'active',
+        });
+        toast({
+          title: 'Directory search stopped',
+          description:
+            'Deco will still classify and calculate sizes for paths already found. Use Stop analysis to skip the rest.',
+          variant: 'info',
+        });
+      } else {
+        setStatus({ text: 'Stopping analysis…', type: 'active' });
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      if (/scan not found/i.test(msg)) {
+        return;
+      }
       setError(msg);
       finishScan();
       setProgress({ percent: 0, text: 'Scan stopped', phase: null });
@@ -187,6 +222,8 @@ export function useDeco() {
     setCandidateMap(new Map());
     setSelectedIds(new Set());
     setSummary(null);
+    setSearchStopped(false);
+    scanPhaseRef.current = 'discover';
     setProgress({ percent: 2, text: 'Starting scan…', phase: 'discover' });
     setStatus({ text: 'Scan running in background', type: 'active' });
 
@@ -218,6 +255,7 @@ export function useDeco() {
         check_bun_cache: activeSettings.check_bun_cache ?? false,
         check_cargo_registry: activeSettings.check_cargo_registry ?? false,
         check_nuget_cache: activeSettings.check_nuget_cache ?? false,
+        check_composer_cache: activeSettings.check_composer_cache ?? false,
         exclude_abs_path_contains: activeSettings.exclude_abs_path_contains ?? [],
         extra_protected_path_contains: activeSettings.extra_protected_path_contains ?? [],
         allow_path_contains: activeSettings.allow_path_contains ?? [],
@@ -271,44 +309,34 @@ export function useDeco() {
     }
   };
 
-  const executeCleanup = async (
-    candidateIds: string[],
-    includeReview: boolean,
-    deleteMode = 'quarantine',
-  ): Promise<ExecuteResponse | null> => {
-    if (!summary?.scan_id) return null;
-    setBusy(true);
-    operationStartedAtRef.current = Date.now();
-    setElapsedMs(0);
-    const deleting = deleteMode === 'delete' || deleteMode === 'hard-delete';
-    setProgress({
-      percent: 15,
-      text: deleting
-        ? `Deleting ${candidateIds.length} item(s)…`
-        : `Moving ${candidateIds.length} item(s) to quarantine…`,
-      phase: 'cleanup',
-    });
-    setStatus({ text: deleting ? 'Deleting…' : 'Cleanup in progress…', type: 'active' });
-    toast({
-      title: deleting ? 'Delete started' : 'Cleanup started',
-      description: deleting
-        ? 'Removing selected folders from disk. Large trees (e.g. Rust target) may take a minute.'
-        : 'Moving to .deco-quarantine on the same drive (rename, not copy).',
-      variant: 'info',
-    });
-    try {
-      const result = (await tauriInvoke('execute_cleanup_command', {
-        req: {
-          scan_id: summary.scan_id,
-          candidate_ids: candidateIds,
-          delete_mode: deleteMode,
-          include_review: includeReview,
-        },
-      })) as ExecuteResponse;
+  const applyCleanupResult = useCallback(
+    async (result: ExecuteResponse, candidateIds: string[], durationMs?: number) => {
+      const bytesRemoved =
+        result.freed_bytes ??
+        (result as { freedBytes?: number }).freedBytes ??
+        0;
+      setCandidateMap((prev) => {
+        const next = new Map(prev);
+        for (const id of candidateIds) {
+          next.delete(id);
+        }
+        const remaining = Array.from(next.values());
+        setSummary((s) =>
+          s
+            ? {
+                ...s,
+                candidates: remaining,
+                ...recomputeScanSummaryFromCandidates(remaining),
+              }
+            : s,
+        );
+        return next;
+      });
       setSelectedIds(new Set());
       await refreshQuarantine();
       await refreshHistory();
-      const summaryMsg = formatCleanupResultSummary(result, candidateIds.length);
+      bumpStorageRefresh();
+      const summaryMsg = formatCleanupResultSummary(result, candidateIds.length, durationMs);
       toast({
         title: summaryMsg.title,
         description: summaryMsg.description,
@@ -321,26 +349,110 @@ export function useDeco() {
         percent: 100,
         text: summaryMsg.title,
         phase: 'cleanup',
+        detail: undefined,
       });
       const moved = (result.quarantined_count ?? 0) + (result.deleted_count ?? 0);
+      const timeHint =
+        durationMs != null && durationMs > 0 ? ` · ${formatDurationMs(durationMs)}` : '';
+      const freedLabel =
+        bytesRemoved > 0
+          ? `Freed ${formatBytes(bytesRemoved)}`
+          : moved > 0
+            ? 'Cleanup complete'
+            : '';
       setStatus({
         text:
           moved > 0
             ? result.deleted_count > 0
-              ? `Freed space: ${result.deleted_count} deleted`
-              : `${result.quarantined_count} in quarantine — open Quarantine tab to restore`
+              ? `${freedLabel} · ${result.deleted_count} deleted${timeHint}`
+              : `${result.quarantined_count} in quarantine — open Quarantine tab to restore${timeHint}`
             : summaryMsg.description,
         type: moved > 0 ? 'done' : 'error',
       });
-      return result;
-    } catch {
-      setProgress(IDLE_PROGRESS);
-      return null;
-    } finally {
+    },
+    [refreshQuarantine, refreshHistory, bumpStorageRefresh],
+  );
+
+  const finishCleanupJob = useCallback(
+    (jobId: string, result: ExecuteResponse | null) => {
+      if (activeCleanupJobIdRef.current !== jobId) return;
+      const startedAt = operationStartedAtRef.current;
+      const durationMs = startedAt != null ? Date.now() - startedAt : undefined;
+      activeCleanupJobIdRef.current = null;
       setBusy(false);
       operationStartedAtRef.current = null;
       setElapsedMs(0);
-    }
+      const waiter = cleanupWaitersRef.current.get(jobId);
+      const candidateIds = waiter?.candidateIds ?? [];
+      if (waiter) {
+        cleanupWaitersRef.current.delete(jobId);
+        waiter.resolve(result);
+      }
+      if (result) {
+        void applyCleanupResult(result, candidateIds, durationMs);
+      } else {
+        setProgress(IDLE_PROGRESS);
+        setStatus({ text: 'Cleanup failed', type: 'error' });
+      }
+    },
+    [applyCleanupResult],
+  );
+
+  const executeCleanup = async (
+    candidateIds: string[],
+    includeReview: boolean,
+    deleteMode = 'quarantine',
+  ): Promise<ExecuteResponse | null> => {
+    if (!summary?.scan_id) return null;
+    const deleting = deleteMode === 'delete' || deleteMode === 'hard-delete';
+    setBusy(true);
+    operationStartedAtRef.current = Date.now();
+    setElapsedMs(0);
+    setProgress({
+      percent: 5,
+      text: deleting
+        ? `Deleting ${candidateIds.length} item(s)…`
+        : `Moving ${candidateIds.length} item(s) to quarantine…`,
+      phase: 'cleanup',
+    });
+    setStatus({ text: deleting ? 'Deleting…' : 'Cleanup in progress…', type: 'active' });
+    toast({
+      title: deleting ? 'Delete started' : 'Cleanup started',
+      description: deleting
+        ? 'Removing selected folders from disk. Large trees (e.g. node_modules) may take a minute — the UI stays responsive.'
+        : 'Moving to .deco-quarantine on the same drive (rename, not copy).',
+      variant: 'info',
+    });
+
+    return new Promise<ExecuteResponse | null>((resolve) => {
+      void (async () => {
+        try {
+          const started = (await tauriInvoke('start_cleanup', {
+            req: {
+              scan_id: summary.scan_id,
+              candidate_ids: candidateIds,
+              delete_mode: deleteMode,
+              include_review: includeReview,
+            },
+          })) as { job_id?: string; jobId?: string };
+          const jobId = started.job_id ?? started.jobId ?? '';
+          if (!jobId) {
+            finishCleanupJob('', null);
+            resolve(null);
+            return;
+          }
+          activeCleanupJobIdRef.current = jobId;
+          cleanupWaitersRef.current.set(jobId, {
+            resolve,
+            candidateCount: candidateIds.length,
+            candidateIds: [...candidateIds],
+          });
+        } catch {
+          finishCleanupJob('', null);
+          resolve(null);
+        }
+      })();
+    });
   };
 
   const planFreeSpace = async (
@@ -367,6 +479,7 @@ export function useDeco() {
     try {
       const result = (await tauriInvoke('restore_quarantine_bulk', { ids })) as BulkRestoreResponse;
       await refreshQuarantine();
+      bumpStorageRefresh();
       return result;
     } catch {
       return null;
@@ -381,6 +494,7 @@ export function useDeco() {
         retentionDays: retentionDays ?? settings?.quarantine_retention_days ?? 30,
       });
       await refreshQuarantine();
+      bumpStorageRefresh();
     } catch {
       /* surfaced via tauriInvoke */
     }
@@ -433,6 +547,7 @@ export function useDeco() {
         percent = total > 0 ? 20 + (done / total) * 75 : 65;
       } else if (progressPhase === 'done') percent = 100;
 
+      scanPhaseRef.current = progressPhase;
       setProgress({ percent, text, phase: progressPhase });
       setStatus({ text, type: 'active' });
     });
@@ -473,19 +588,22 @@ export function useDeco() {
         setSummary(report);
         setProgress({ percent: 100, text: 'Scan complete', phase: 'done' });
         const canceled = (report.warnings ?? []).some((w) => w.toLowerCase().includes('cancel'));
+        const unsized = list.filter((c) => c.size_bytes === undefined).length;
         const bytes = report.total_bytes ?? 0;
-        const sizeHint = bytes > 0 ? ` · ${formatBytes(bytes)}` : '';
+        const sizeHint = bytes > 0 ? ` · ${formatBytes(bytes)} measured` : '';
+        const unsizedHint = unsized > 0 ? ` · ${unsized} not calculated` : '';
         const startedAt = operationStartedAtRef.current;
         const doneMs = startedAt != null ? Date.now() - startedAt : null;
         const timeHint = doneMs != null ? ` · ${formatDurationMs(doneMs)}` : '';
         setStatus({
           text: canceled
-            ? `Scan canceled: ${list.length} partial items${sizeHint}${timeHint}.`
-            : `Scan complete: ${list.length} items${sizeHint}${timeHint}.`,
+            ? `Scan canceled: ${list.length} partial items${sizeHint}${unsizedHint}${timeHint}.`
+            : `Scan complete: ${list.length} items${sizeHint}${unsizedHint}${timeHint}.`,
           type: 'done',
         });
         finishScan();
         void refreshHistory();
+        bumpStorageRefresh();
       } catch (err) {
         console.error('[Deco] scan-complete handler failed', err);
         setError(err instanceof Error ? err.message : 'Failed to process scan results.');
@@ -511,7 +629,63 @@ export function useDeco() {
       unlistenComplete.then((u) => u());
       unlistenError.then((u) => u());
     };
-  }, [refreshHistory, finishScan]);
+  }, [refreshHistory, finishScan, bumpStorageRefresh]);
+
+  useEffect(() => {
+    const unlistenCleanupProgress = listen('cleanup-progress', (event) => {
+      const payload = (event.payload || {}) as Record<string, unknown>;
+      const jobId = (payload.job_id ?? payload.jobId) as string | undefined;
+      if (!jobId || activeCleanupJobIdRef.current !== jobId) return;
+
+      const progressPayload: CleanupProgressPayload = {
+        index: Number(payload.index ?? 0),
+        total: Number(payload.total ?? 1),
+        abs_path: String(payload.abs_path ?? payload.absPath ?? ''),
+        action: String(payload.action ?? 'delete'),
+        stage: payload.stage as string | undefined,
+        kind: (payload.kind as string) ?? undefined,
+        message: payload.message as string | undefined,
+        detail: payload.detail as string | undefined,
+      };
+      const percent =
+        progressPayload.total > 0
+          ? Math.min(99, Math.round((progressPayload.index / progressPayload.total) * 100))
+          : 50;
+      const scanProgress = cleanupProgressToScanProgress(progressPayload, percent);
+      setProgress(scanProgress);
+      setStatus({ text: scanProgress.text, type: 'active' });
+    });
+
+    const unlistenCleanupComplete = listen('cleanup-complete', (event) => {
+      const payload = (event.payload || {}) as {
+        job_id?: string;
+        jobId?: string;
+        result?: ExecuteResponse;
+      };
+      const jobId = payload.job_id ?? payload.jobId;
+      if (!jobId || activeCleanupJobIdRef.current !== jobId || !payload.result) return;
+      finishCleanupJob(jobId, payload.result);
+    });
+
+    const unlistenCleanupError = listen('cleanup-error', (event) => {
+      const payload = (event.payload || {}) as {
+        job_id?: string;
+        jobId?: string;
+        message?: string;
+      };
+      const jobId = payload.job_id ?? payload.jobId;
+      if (!jobId || activeCleanupJobIdRef.current !== jobId) return;
+      const msg = payload.message || 'Cleanup failed';
+      setError(msg);
+      finishCleanupJob(jobId, null);
+    });
+
+    return () => {
+      unlistenCleanupProgress.then((u) => u());
+      unlistenCleanupComplete.then((u) => u());
+      unlistenCleanupError.then((u) => u());
+    };
+  }, [finishCleanupJob]);
 
   useEffect(() => {
     setCandidates(Array.from(candidateMap.values()));
@@ -550,6 +724,8 @@ export function useDeco() {
     setError,
     scan,
     cancelScan,
+    scanStopStage: searchStopped ? ('analysis' as const) : ('search' as const),
+    searchStopped,
     loadSettings,
     refreshQuarantine,
     refreshHistory,
@@ -561,5 +737,7 @@ export function useDeco() {
     bulkRestoreQuarantine,
     purgeQuarantine,
     tauriInvoke,
+    storageRefreshToken,
+    bumpStorageRefresh,
   };
 }

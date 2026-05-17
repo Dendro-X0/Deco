@@ -27,6 +27,7 @@ type Props = {
   disabled?: boolean;
   onEditSettings: () => void;
   onError?: (message: string) => void;
+  storageRefreshToken?: number;
 };
 
 export function ScanTargetsDashboardCard({
@@ -43,6 +44,7 @@ export function ScanTargetsDashboardCard({
   disabled,
   onEditSettings,
   onError,
+  storageRefreshToken,
 }: Props) {
   return (
     <Card className="border-border/40 bg-card/30">
@@ -94,6 +96,7 @@ export function ScanTargetsDashboardCard({
                 onSelectedVolumesChange={onSelectedVolumesChange}
                 onIncludeProjectFoldersChange={onIncludeProjectFoldersChange}
                 disabled={disabled}
+                storageRefreshToken={storageRefreshToken}
               />
             ) : null}
           </TabsContent>

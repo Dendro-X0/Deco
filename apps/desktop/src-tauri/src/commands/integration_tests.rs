@@ -10,13 +10,14 @@ use crate::db::init_db;
 use crate::engine::types::{
     CleanupCandidate, ExecuteRequest, Kind, RiskLevel, SafetyClass, Settings,
 };
+use crate::scan_cancel::{request_cancel, ScanCancelHandles, ScanRunPhase};
 use crate::state::AppState;
 use rusqlite::params;
 use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_dir_all, write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::Ordering;
+use std::sync::Mutex;
 use uuid::Uuid;
 
 fn temp_root(prefix: &str) -> PathBuf {
@@ -58,6 +59,7 @@ fn build_state(root: &PathBuf) -> AppState {
         db: Mutex::new(db),
         scans: Mutex::new(HashMap::new()),
         scan_cancels: Mutex::new(HashMap::new()),
+        scan_phases: Mutex::new(HashMap::new()),
         settings: Mutex::new(Settings::default()),
     }
 }
@@ -435,17 +437,23 @@ fn bulk_restore_reports_successes_and_failures() {
 }
 
 #[test]
-fn cancel_scan_sets_cancel_token() {
+fn cancel_scan_sets_phase_appropriate_token() {
     let root = temp_root("cancel-scan");
     let state = build_state(&root);
-    let token = Arc::new(AtomicBool::new(false));
+    let handles = ScanCancelHandles::new();
     {
         let mut cancels = state.scan_cancels.lock().expect("lock cancels");
-        cancels.insert("scan-cancel".to_string(), Arc::clone(&token));
+        cancels.insert("scan-cancel".to_string(), handles.clone());
+        let mut phases = state.scan_phases.lock().expect("lock phases");
+        phases.insert("scan-cancel".to_string(), ScanRunPhase::Discover);
     }
 
     cancel_scan_core("scan-cancel".to_string(), &state).expect("cancel scan");
-    assert!(token.load(Ordering::Relaxed));
+    assert!(handles.discovery.load(Ordering::Relaxed));
+    assert!(!handles.sizing.load(Ordering::Relaxed));
+
+    request_cancel(&handles, ScanRunPhase::Size);
+    assert!(handles.sizing.load(Ordering::Relaxed));
 
     drop(state);
     remove_dir_all(root).expect("cleanup");

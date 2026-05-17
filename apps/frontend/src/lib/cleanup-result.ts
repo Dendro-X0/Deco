@@ -1,10 +1,14 @@
 import type { ExecuteResponse } from '@/types';
 import type { ToastVariant } from '@/lib/toast';
+import { formatDurationMs } from '@/lib/format';
 
 export function formatCleanupResultSummary(
   result: ExecuteResponse,
   selectedCount: number,
+  durationMs?: number,
 ): { title: string; description: string; variant: ToastVariant } {
+  const timeSuffix =
+    durationMs != null && durationMs > 0 ? ` Took ${formatDurationMs(durationMs)}.` : '';
   const quarantined = result.quarantined_count ?? 0;
   const deleted = result.deleted_count ?? 0;
   const moved = quarantined + deleted;
@@ -27,15 +31,16 @@ export function formatCleanupResultSummary(
       skippedMissing > 0 ? `${skippedMissing} already missing` : null,
       skippedOptIn > 0 ? `${skippedOptIn} need opt-in in Settings` : null,
     ].filter(Boolean);
+    const body = [
+      parts.join(', '),
+      skippedParts.length > 0 ? skippedParts.join('. ') : null,
+      errorCount > 0 ? `${errorCount} error(s) — see status bar` : null,
+    ]
+      .filter(Boolean)
+      .join('. ');
     return {
       title: 'Cleanup complete',
-      description: [
-        parts.join(', '),
-        skippedParts.length > 0 ? skippedParts.join('. ') : null,
-        errorCount > 0 ? `${errorCount} error(s) — see status bar` : null,
-      ]
-        .filter(Boolean)
-        .join('. '),
+      description: body ? `${body}${timeSuffix}` : timeSuffix.trim() || body,
       variant: skippedParts.length > 0 || errorCount > 0 ? 'info' : 'default',
     };
   }

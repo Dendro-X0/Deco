@@ -438,6 +438,51 @@ pub fn discover_bun_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
     (targets, warnings)
 }
 
+fn composer_cache_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("COMPOSER_CACHE_DIR") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Ok(home) = std::env::var("COMPOSER_HOME") {
+        let trimmed = home.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed).join("cache"));
+        }
+    }
+    if let Some(home) = user_home() {
+        paths.push(home.join(".composer").join("cache"));
+        #[cfg(not(windows))]
+        {
+            paths.push(home.join(".cache").join("composer"));
+        }
+    }
+    #[cfg(windows)]
+    {
+        if let Ok(local) = std::env::var("LOCALAPPDATA") {
+            paths.push(PathBuf::from(local).join("Composer").join("cache"));
+        }
+    }
+    paths
+}
+
+fn is_composer_cache_root(path: &Path) -> bool {
+    path.is_dir() && (path.join("files").is_dir() || path.join("repo").is_dir())
+}
+
+pub fn discover_composer_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(composer_cache_candidate_paths()) {
+        if is_composer_cache_root(&path) {
+            push_global_cache(&mut targets, path, Kind::ComposerGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
 pub fn discover_nuget_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
     let mut targets = vec![];
     let warnings = vec![];
@@ -605,6 +650,15 @@ mod tests {
         let cache = root.join("bun-cache");
         create_dir_all(cache.join("abc123")).expect("entry");
         assert!(is_bun_cache_root(&cache));
+    }
+
+    #[test]
+    fn composer_cache_requires_files_or_repo() {
+        let root = temp_root("composer");
+        let cache = root.join("composer-cache");
+        create_dir_all(cache.join("files")).expect("files");
+        assert!(is_composer_cache_root(&cache));
+        assert!(!is_composer_cache_root(&root));
     }
 
     #[test]

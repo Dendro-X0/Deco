@@ -30,7 +30,8 @@ export type TargetDirKind =
   | 'conda-pkgs-cache'
   | 'cargo-registry-cache'
   | 'bun-global-cache'
-  | 'nuget-global-cache';
+  | 'nuget-global-cache'
+  | 'composer-global-cache';
 
 export type SafetyClass = 'project_artifact' | 'global_cache' | 'app_runtime' | 'system' | 'unknown';
 
@@ -121,6 +122,7 @@ export type CliOptions = {
   readonly checkCargoRegistry: boolean;
   readonly checkBunCache: boolean;
   readonly checkNugetCache: boolean;
+  readonly checkComposerCache: boolean;
   readonly excludeAbsPathContains: readonly string[];
   readonly profile: CleanupProfile;
   readonly deleteMode: DeleteMode;

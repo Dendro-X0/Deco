@@ -24,6 +24,13 @@ import { CleanupWizard } from './components/CleanupWizard';
 import { ScanTargetsDashboardCard } from './components/ScanTargetsDashboardCard';
 import { DisabledActionHint } from './components/DisabledActionHint';
 import { cleanSelectedDisabledReason } from './lib/disabled-reasons';
+import {
+  canConfirmDirectDelete,
+  directDeleteConfirmDescription,
+  directDeleteSelectionStats,
+} from './lib/direct-delete';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { CleanupBusyOverlay } from './components/CleanupBusyOverlay';
 import type { ScanMode } from './components/ScanModeSelector';
 import { volumeMountsFromPaths } from './lib/volume-from-path';
 import { ScanTargetsModal } from './components/ScanTargetsModal';
@@ -32,6 +39,7 @@ import { ScanHistoryPanel } from './components/ScanHistoryPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { LastScanSummaryCard } from './components/LastScanSummaryCard';
 import { SelectionActionBar } from './components/SelectionActionBar';
+import { ScanStopControl } from './components/ScanStopControl';
 import {
   historyReuseError,
   settingsFromHistoryItem,
@@ -42,6 +50,7 @@ import { DecoLogo } from './components/DecoLogo';
 import {
   candidateSizeIsKnown,
   formatBytes,
+  formatCandidateSize,
   formatStatBytes,
 } from './lib/format';
 import {
@@ -167,6 +176,9 @@ export default function App() {
     clearScanHistory,
     tauriInvoke,
     cancelScan,
+    scanStopStage,
+    searchStopped,
+    storageRefreshToken,
   } = useDeco();
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -182,6 +194,7 @@ export default function App() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [preview, setPreview] = useState<ExecutePreviewResponse | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [deleteDirectOpen, setDeleteDirectOpen] = useState(false);
   const [plannerGb, setPlannerGb] = useState(settings?.default_target_gb ?? 10);
   const [plannerMessage, setPlannerMessage] = useState<string | null>(null);
   const [scanTargetsModalOpen, setScanTargetsModalOpen] = useState(false);
@@ -213,10 +226,20 @@ export default function App() {
     [selectedIds.size, scanning, busy, summary?.scan_id],
   );
 
+  const deleteModeSetting = settings?.delete_mode ?? 'delete';
+  const quarantineCleanupDefault = deleteModeSetting === 'quarantine';
+
+  const directDeleteStats = useMemo(
+    () => directDeleteSelectionStats(candidates, selectedIds),
+    [candidates, selectedIds],
+  );
+
   const selectedBytes = useMemo(() => {
     let sum = 0;
     for (const c of candidates) {
-      if (selectedIds.has(c.id)) sum += c.size_bytes ?? 0;
+      if (selectedIds.has(c.id) && candidateSizeIsKnown(c.size_bytes)) {
+        sum += c.size_bytes;
+      }
     }
     return sum;
   }, [candidates, selectedIds]);
@@ -439,8 +462,19 @@ export default function App() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     setPreviewOpen(false);
-    const deleteMode = settings?.delete_mode ?? 'quarantine';
-    const result = await executeCleanup(ids, includeReview, deleteMode);
+    const result = await executeCleanup(ids, includeReview, deleteModeSetting);
+    if (result && (result.quarantined_count > 0 || result.deleted_count > 0)) {
+      setWizardStep('done');
+      if (wizardOpen) setWizardOpen(true);
+    }
+  };
+
+  const confirmDirectDelete = async () => {
+    if (!canConfirmDirectDelete(directDeleteStats)) return;
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setDeleteDirectOpen(false);
+    const result = await executeCleanup(ids, false, 'delete');
     if (result && (result.quarantined_count > 0 || result.deleted_count > 0)) {
       setWizardStep('done');
       if (wizardOpen) setWizardOpen(true);
@@ -523,14 +557,17 @@ export default function App() {
             <div className="flex flex-col">
               <h2 className="text-2xl font-bold tracking-tight capitalize">{activeTab}</h2>
               <p className="text-sm text-muted-foreground">
-                {activeTab === 'dashboard' && 'Scan, review candidates, and reclaim disk space.'}
+                {activeTab === 'dashboard' &&
+                  (searchStopped && scanning
+                    ? 'Directory search stopped. Sizing found items — click Stop analysis to skip the rest.'
+                    : 'Scan, review candidates, and reclaim disk space.')}
                 {activeTab === 'quarantine' && 'Restore or permanently purge held folders.'}
                 {activeTab === 'history' && 'Review past scans and reuse configurations.'}
                 {activeTab === 'settings' && 'Configure scan targets, safety, and discovery options.'}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 shrink-0">
               <Button
                 variant="secondary"
                 className="gap-2 font-semibold"
@@ -542,9 +579,7 @@ export default function App() {
                 <Sparkles size={16} /> Free up space
               </Button>
               {scanning ? (
-                <Button variant="destructive" className="gap-2" onClick={() => cancelScan()}>
-                  <X size={16} /> Stop scan
-                </Button>
+                <ScanStopControl stage={scanStopStage} onStop={() => void cancelScan()} />
               ) : (
                 <Button variant="default" className="gap-2 font-semibold px-6" onClick={() => requestScan()}>
                   <Play size={16} fill="currentColor" /> Scan Now
@@ -587,6 +622,7 @@ export default function App() {
                   disabled={scanning}
                   onEditSettings={() => setActiveTab('settings')}
                   onError={setError}
+                  storageRefreshToken={storageRefreshToken}
                 />
 
                 {lastHistoryItem && !scanning ? (
@@ -666,6 +702,16 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                   <Card className="lg:col-span-2 border-border/40 bg-card/30 min-w-0">
                     <CardHeader className="space-y-3 pb-4">
+                      {searchStopped && scanning && (
+                        <div
+                          role="status"
+                          className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90 leading-snug"
+                        >
+                          Directory search has stopped. Sizes are still being calculated — use{' '}
+                          <span className="font-semibold">Stop analysis</span> in the header to skip
+                          the rest. Rows without a size yet show <span className="font-semibold">Sizing…</span>.
+                        </div>
+                      )}
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="relative w-full sm:max-w-md">
                           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -773,15 +819,15 @@ export default function App() {
                               <TableCell className="font-mono text-[11px] font-semibold opacity-70 uppercase tracking-tighter">{c.kind}</TableCell>
                               <TableCell className="font-mono text-[11px] truncate max-w-xs">{c.abs_path}</TableCell>
                               <TableCell className="text-right">
-                                {candidateSizeIsKnown(c.size_bytes) ? (
-                                  <span className="font-semibold tabular-nums">
-                                    {formatBytes(c.size_bytes)}
-                                  </span>
-                                ) : (
-                                  <span className="font-medium text-muted-foreground tabular-nums text-xs">
-                                    Sizing…
-                                  </span>
-                                )}
+                                <span
+                                  className={
+                                    candidateSizeIsKnown(c.size_bytes)
+                                      ? 'font-semibold tabular-nums'
+                                      : 'font-medium text-muted-foreground tabular-nums text-xs'
+                                  }
+                                >
+                                  {formatCandidateSize(c.size_bytes, scanning)}
+                                </span>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -837,11 +883,7 @@ export default function App() {
                              <div className="space-y-1">
                                <p className="text-[10px] uppercase font-bold text-muted-foreground">Size</p>
                                <p className="text-xs font-black tabular-nums">
-                                 {candidateSizeIsKnown(selectedCandidate.size_bytes) ? (
-                                   formatBytes(selectedCandidate.size_bytes)
-                                 ) : (
-                                   <span className="font-medium text-muted-foreground">Sizing…</span>
-                                 )}
+                                 {formatCandidateSize(selectedCandidate.size_bytes, scanning)}
                                </p>
                              </div>
                              <div className="space-y-1">
@@ -962,10 +1004,22 @@ export default function App() {
           candidates={candidates}
           preview={preview}
           loading={previewLoading}
-          deleteMode={settings?.delete_mode ?? 'delete'}
+          deleteMode={deleteModeSetting}
           onConfirm={confirmCleanup}
         />
       )}
+
+      <ConfirmDialog
+        open={deleteDirectOpen}
+        title="Delete permanently?"
+        description={directDeleteConfirmDescription(directDeleteStats)}
+        confirmLabel="Delete permanently"
+        destructive
+        busy={busy}
+        confirmDisabled={!canConfirmDirectDelete(directDeleteStats)}
+        onConfirm={() => void confirmDirectDelete()}
+        onCancel={() => !busy && setDeleteDirectOpen(false)}
+      />
 
       <ScanTargetsModal
         open={scanTargetsModalOpen}
@@ -999,10 +1053,13 @@ export default function App() {
         <SelectionActionBar
           selectedCount={selectedIds.size}
           selectedBytes={selectedBytes}
-          deleteMode={settings?.delete_mode ?? 'delete'}
+          deleteMode={deleteModeSetting}
           cleanDisabledReason={cleanSelectedReason}
           busy={scanning || busy}
           onClean={openCleanupPreview}
+          onDeleteDirectly={
+            quarantineCleanupDefault ? () => setDeleteDirectOpen(true) : undefined
+          }
           onClearSelection={() => setSelectedIds(new Set())}
         />
       ) : null}
@@ -1017,6 +1074,13 @@ export default function App() {
           setWizardOpen(true);
           setWizardStep('intro');
         }}
+      />
+
+      <CleanupBusyOverlay
+        visible={busy && progress.phase === 'cleanup'}
+        message={progress.text || 'Cleanup in progress…'}
+        detail={progress.detail}
+        elapsedMs={elapsedMs}
       />
 
       {error && (

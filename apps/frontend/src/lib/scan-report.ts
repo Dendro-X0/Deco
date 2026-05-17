@@ -1,4 +1,5 @@
 import type { ScanReport, Candidate, RiskLevel } from '../types';
+import { candidateSizeIsKnown } from './format';
 
 type RiskBucket = { count: number; bytes: number };
 
@@ -63,6 +64,35 @@ export function normalizeScanReport(raw: unknown): ScanReport {
     totals_by_kind: (r.totals_by_kind ?? r.totalsByKind ?? {}) as ScanReport['totals_by_kind'],
     warnings: Array.isArray(r.warnings) ? (r.warnings as string[]) : [],
   };
+}
+
+/** Rebuild scan summary totals after candidates are removed locally (post-cleanup). */
+export function recomputeScanSummaryFromCandidates(
+  candidates: Candidate[],
+): Pick<ScanReport, 'total_bytes' | 'totals_by_risk' | 'totals_by_kind'> {
+  const totals_by_risk: ScanReport['totals_by_risk'] = {
+    safe: { count: 0, bytes: 0 },
+    review: { count: 0, bytes: 0 },
+    blocked: { count: 0, bytes: 0 },
+  };
+  const totals_by_kind: ScanReport['totals_by_kind'] = {};
+  let total_bytes = 0;
+
+  for (const c of candidates) {
+    totals_by_risk[c.risk].count += 1;
+    const kind = c.kind || 'unknown';
+    if (!totals_by_kind[kind]) {
+      totals_by_kind[kind] = { count: 0, bytes: 0 };
+    }
+    totals_by_kind[kind].count += 1;
+    if (candidateSizeIsKnown(c.size_bytes)) {
+      total_bytes += c.size_bytes;
+      totals_by_risk[c.risk].bytes += c.size_bytes;
+      totals_by_kind[kind].bytes += c.size_bytes;
+    }
+  }
+
+  return { total_bytes, totals_by_risk, totals_by_kind };
 }
 
 /** Extract Windows drive mount points (e.g. C:\) from scan root paths. */

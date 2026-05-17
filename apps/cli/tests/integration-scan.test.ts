@@ -42,6 +42,7 @@ function createOptions(root: string): CliOptions {
     checkBunCache: false,
     checkCargoRegistry: false,
     checkNugetCache: false,
+    checkComposerCache: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',

@@ -2,12 +2,15 @@ use crate::engine::classifier::classify_targets;
 use crate::engine::path_policy::PathPolicy;
 use crate::engine::disk_cleanup_config::merge_disk_cleanup_layers;
 use crate::engine::scanner::{discover_targets, DiscoverProgressCallback};
-use crate::engine::sizer::dir_size_bytes;
+use crate::engine::sizer::{dir_size_bytes, DirSizeOutcome};
 use rayon::prelude::*;
 use crate::engine::types::{
     CleanupCandidate, ClearScanHistoryResponse, DeleteScanHistoryResponse, RiskLevel, RiskTotals,
     ScanHistoryItem, ScanHistoryResponse, ScanRequest, ScanResponse, Totals,
     SCAN_REPORT_SCHEMA_VERSION,
+};
+use crate::scan_cancel::{
+    discovery_canceled, request_cancel, sizing_canceled, ScanCancelHandles, ScanRunPhase,
 };
 use crate::state::AppState;
 use crate::util::scan_roots::{custom_scan_roots, effective_scan_roots};
@@ -15,7 +18,6 @@ use rusqlite::params;
 use serde::Serialize;
 use std::collections::{BTreeSet, HashMap};
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use tauri::{AppHandle, Emitter, State};
@@ -60,21 +62,24 @@ pub fn start_scan(
     let state = state.inner().clone();
 
     let scan_id = Uuid::new_v4().to_string();
-    let cancel_token = Arc::new(AtomicBool::new(false));
+    let cancel_handles = ScanCancelHandles::new();
     {
         let mut cancels = state
             .scan_cancels
             .lock()
             .map_err(|_| "scan cancel mutex poisoned".to_string())?;
-        cancels.insert(scan_id.clone(), Arc::clone(&cancel_token));
+        cancels.insert(scan_id.clone(), cancel_handles.clone());
     }
+    set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Discover);
 
     let app_handle = app.clone();
     let scan_id_spawn = scan_id.clone();
     thread::Builder::new()
         .name(format!("deco-scan-{}", &scan_id_spawn[..8.min(scan_id_spawn.len())]))
         .spawn(move || {
-            match run_scan(scan_id_spawn.clone(), req, state, app_handle.clone(), cancel_token) {
+            let cleanup_id = scan_id_spawn.clone();
+            let cleanup_state = state.clone();
+            match run_scan(scan_id_spawn.clone(), req, state, app_handle.clone(), cancel_handles) {
                 Ok(response) => {
                     let _ = app_handle.emit("scan-complete", response);
                 }
@@ -88,6 +93,8 @@ pub fn start_scan(
                     );
                 }
             }
+            // Keep cancel handles until the UI receives the terminal event (avoids "scan not found" on late Stop clicks).
+            cleanup_scan_job(cleanup_state.as_ref(), &cleanup_id);
         })
         .map_err(|e| format!("failed to start scan thread: {e}"))?;
 
@@ -99,7 +106,7 @@ pub(crate) fn run_scan(
     req: ScanRequest,
     state: Arc<AppState>,
     app: AppHandle,
-    cancel_token: Arc<AtomicBool>,
+    cancel_handles: ScanCancelHandles,
 ) -> Result<ScanResponse, String> {
     let roots = {
         let guard = state
@@ -221,13 +228,21 @@ pub(crate) fn run_scan(
         (&req).into(),
         req.check_go_cache,
         &disk.extra_names,
-        Some(&cancel_token),
+        Some(cancel_handles.discovery.as_ref()),
         Some(progress),
     );
 
     let mut warnings = discovery.warnings;
-    let mut scan_canceled = discovery.canceled;
+    let discovery_stopped = discovery.canceled || discovery_canceled(&cancel_handles);
+    let mut sizing_stopped = false;
 
+    if discovery_stopped {
+        warnings.push(
+            "Directory search stopped; classifying and sizing items already found.".to_string(),
+        );
+    }
+
+    set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Classify);
     emit_progress(
         &app,
         ScanProgressEvent {
@@ -248,25 +263,33 @@ pub(crate) fn run_scan(
     let mut candidates = classify_targets(discovery.targets, &roots, req.stale_days, &policy);
     emit_candidate_batches(&app, &scan_id, "classify", &candidates, 50);
 
-    if req.include_size && !scan_canceled {
+    if req.include_size {
+        set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Size);
         const SIZE_BATCH: usize = 25;
         const SIZE_CONCURRENCY_BATCHES: usize = 4;
         let total = candidates.len();
         let mut processed = 0u64;
 
         for batch_start in (0..total).step_by(SIZE_BATCH * SIZE_CONCURRENCY_BATCHES) {
-            if cancel_token.load(Ordering::Relaxed) {
-                scan_canceled = true;
-                warnings.push("Scan canceled during sizing; partial sizes returned.".to_string());
+            if sizing_canceled(&cancel_handles) {
+                sizing_stopped = true;
+                warnings.push(
+                    "Size calculation canceled; items not measured show as not calculated."
+                        .to_string(),
+                );
                 break;
             }
 
             let batch_end = (batch_start + SIZE_BATCH * SIZE_CONCURRENCY_BATCHES).min(total);
-            let sized: Vec<(usize, u64, Vec<String>)> = candidates[batch_start..batch_end]
+            let sized: Vec<(usize, Option<u64>, Vec<String>)> = candidates[batch_start..batch_end]
                 .par_iter()
                 .enumerate()
                 .map(|(offset, candidate)| {
-                    let (size, size_warnings) = dir_size_bytes(Path::new(&candidate.abs_path));
+                    let outcome = dir_size_bytes(Path::new(&candidate.abs_path));
+                    let (size, size_warnings) = match outcome {
+                        DirSizeOutcome::Measured(bytes) => (Some(bytes), vec![]),
+                        DirSizeOutcome::NotCalculated(w) => (None, w),
+                    };
                     (batch_start + offset, size, size_warnings)
                 })
                 .collect();
@@ -274,7 +297,7 @@ pub(crate) fn run_scan(
             let mut chunk: Vec<CleanupCandidate> = Vec::new();
             for (idx, size, mut size_warnings) in sized {
                 warnings.append(&mut size_warnings);
-                candidates[idx].size_bytes = Some(size);
+                candidates[idx].size_bytes = size;
                 chunk.push(candidates[idx].clone());
                 processed += 1;
             }
@@ -306,7 +329,7 @@ pub(crate) fn run_scan(
         }
     }
 
-    if scan_canceled {
+    if discovery_stopped || sizing_stopped {
         warnings.push(format!(
             "Scan canceled ({scan_id}); returning partial results."
         ));
@@ -343,13 +366,16 @@ pub(crate) fn run_scan(
             scanned_dirs: discovery.scanned_dirs,
             discovered_targets: candidates.len() as u64,
             classified_targets: candidates.len() as u64,
-            processed_sizes: candidates.len() as u64,
+            processed_sizes: candidates
+                .iter()
+                .filter(|c| c.size_bytes.is_some())
+                .count() as u64,
             total_size_candidates: candidates.len() as u64,
             message: format!("Scan complete: {} candidates", candidates.len()),
         },
     );
 
-    cleanup_cancel_token_arc(&state, &scan_id);
+    set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Done);
 
     Ok(ScanResponse {
         schema_version: SCAN_REPORT_SCHEMA_VERSION.to_string(),
@@ -369,17 +395,25 @@ pub fn cancel_scan(scan_id: String, state: State<Arc<AppState>>) -> Result<(), S
 }
 
 pub(crate) fn cancel_scan_core(scan_id: String, state: &AppState) -> Result<(), String> {
-    let token = {
+    let handles = {
         let cancels = state
             .scan_cancels
             .lock()
             .map_err(|_| "scan cancel mutex poisoned".to_string())?;
-        cancels
-            .get(&scan_id)
-            .cloned()
-            .ok_or_else(|| format!("scan not found: {scan_id}"))?
+        match cancels.get(&scan_id) {
+            Some(h) => h.clone(),
+            // Scan thread already finished and emitted scan-complete / scan-error.
+            None => return Ok(()),
+        }
     };
-    token.store(true, Ordering::Relaxed);
+    let phase = {
+        let phases = state
+            .scan_phases
+            .lock()
+            .map_err(|_| "scan phase mutex poisoned".to_string())?;
+        phases.get(&scan_id).copied().unwrap_or(ScanRunPhase::Discover)
+    };
+    request_cancel(&handles, phase);
     Ok(())
 }
 
@@ -556,10 +590,23 @@ fn emit_candidate_batches(
     }
 }
 
-fn cleanup_cancel_token_arc(state: &Arc<AppState>, scan_id: &str) {
+fn set_scan_phase(state: &AppState, scan_id: &str, phase: ScanRunPhase) {
+    if let Ok(mut phases) = state.scan_phases.lock() {
+        phases.insert(scan_id.to_string(), phase);
+    }
+}
+
+fn cleanup_scan_job(state: &AppState, scan_id: &str) {
     if let Ok(mut cancels) = state.scan_cancels.lock() {
         cancels.remove(scan_id);
     }
+    if let Ok(mut phases) = state.scan_phases.lock() {
+        phases.remove(scan_id);
+    }
+}
+
+fn cleanup_cancel_token_arc(state: &Arc<AppState>, scan_id: &str) {
+    cleanup_scan_job(state.as_ref(), scan_id);
 }
 
 fn aggregate_totals(candidates: &[CleanupCandidate]) -> (RiskTotals, HashMap<String, Totals>, u64) {
@@ -573,27 +620,37 @@ fn aggregate_totals(candidates: &[CleanupCandidate]) -> (RiskTotals, HashMap<Str
 
     for c in candidates {
         let size = c.size_bytes.unwrap_or(0);
-        total = total.saturating_add(size);
+        if c.size_bytes.is_some() {
+            total = total.saturating_add(size);
+        }
 
         match c.risk {
             RiskLevel::Safe => {
                 risk.safe.count += 1;
-                risk.safe.bytes = risk.safe.bytes.saturating_add(size);
+                if c.size_bytes.is_some() {
+                    risk.safe.bytes = risk.safe.bytes.saturating_add(size);
+                }
             }
             RiskLevel::Review => {
                 risk.review.count += 1;
-                risk.review.bytes = risk.review.bytes.saturating_add(size);
+                if c.size_bytes.is_some() {
+                    risk.review.bytes = risk.review.bytes.saturating_add(size);
+                }
             }
             RiskLevel::Blocked => {
                 risk.blocked.count += 1;
-                risk.blocked.bytes = risk.blocked.bytes.saturating_add(size);
+                if c.size_bytes.is_some() {
+                    risk.blocked.bytes = risk.blocked.bytes.saturating_add(size);
+                }
             }
         }
 
         let key = c.kind.wire_key().to_string();
         let entry = kind.entry(key).or_insert(Totals { count: 0, bytes: 0 });
         entry.count += 1;
-        entry.bytes = entry.bytes.saturating_add(size);
+        if c.size_bytes.is_some() {
+            entry.bytes = entry.bytes.saturating_add(size);
+        }
     }
 
     (risk, kind, total)
@@ -607,7 +664,7 @@ fn persist_scan(
     candidates: &[CleanupCandidate],
     state: &AppState,
 ) -> Result<(), String> {
-    let total_bytes: u64 = candidates.iter().map(|c| c.size_bytes.unwrap_or(0)).sum();
+    let total_bytes: u64 = candidates.iter().filter_map(|c| c.size_bytes).sum();
     let roots_json =
         serde_json::to_string(roots).map_err(|e| format!("serialize roots failed: {e}"))?;
 

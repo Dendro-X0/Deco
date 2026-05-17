@@ -2,10 +2,15 @@ import { lstat, readdir, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { TaskQueue } from './concurrency.js';
 import {
+  dirHasCppNativeMarker,
+  hasCmakeProjectAncestor,
+  hasCppNativeProjectAncestor,
   hasDotnetProjectAncestor,
   hasGoModAncestor,
   hasJvmProjectAncestor,
   hasPythonProjectAncestor,
+  isMsvcArchDirName,
+  isMsvcConfigDirName,
 } from './project-detection.js';
 import type { CliOptions, ProgressListener, TargetDirKind } from './types.js';
 
@@ -177,6 +182,32 @@ async function shouldTargetDir(
 
   if (options.includeBuildArtifacts && buildNames.has(dirName)) {
     return 'build-artifact';
+  }
+
+  if (options.profile !== 'safe') {
+    if (
+      dirName.startsWith('cmake-build-') ||
+      (options.profile === 'aggressive' && dirName === 'out')
+    ) {
+      if (await hasCmakeProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (isMsvcConfigDirName(dirName)) {
+      const hasCpp = await hasCppNativeProjectAncestor(parentAbsPath, 6);
+      if (hasCpp) {
+        const parentName = path.basename(parentAbsPath);
+        if (
+          isMsvcArchDirName(parentName) ||
+          (await dirHasCppNativeMarker(parentAbsPath))
+        ) {
+          return 'build-artifact';
+        }
+        if (options.profile === 'aggressive') {
+          return 'build-artifact';
+        }
+      }
+    }
   }
 
   if (options.profile === 'aggressive' && AGGRESSIVE_UNKNOWN_DIR_NAMES.includes(dirName)) {

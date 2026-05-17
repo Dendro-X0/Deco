@@ -56,6 +56,7 @@ export function normalizeSettings(raw: unknown): Settings {
     check_bun_cache: bool('check_bun_cache', 'checkBunCache', false),
     check_cargo_registry: bool('check_cargo_registry', 'checkCargoRegistry', false),
     check_nuget_cache: bool('check_nuget_cache', 'checkNugetCache', false),
+    check_composer_cache: bool('check_composer_cache', 'checkComposerCache', false),
     delete_mode: str('delete_mode', 'deleteMode', 'delete'),
     quarantine_layout: str('quarantine_layout', 'quarantineLayout', 'per_drive'),
     quarantine_custom_path: str('quarantine_custom_path', 'quarantineCustomPath', ''),

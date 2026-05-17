@@ -37,10 +37,15 @@ export function StatusFooter({ progress, scanning, busy, elapsedMs }: Props) {
         </div>
         <span
           className="truncate text-[10px] font-medium leading-snug text-muted-foreground"
-          title={progress.text}
+          title={progress.detail ? `${progress.text}\n${progress.detail}` : progress.text}
         >
           {progress.text}
         </span>
+        {progress.detail && active ? (
+          <span className="line-clamp-2 text-[9px] leading-snug text-muted-foreground/80" title={progress.detail}>
+            {progress.detail}
+          </span>
+        ) : null}
       </div>
 
       <div className="relative min-w-0 flex-1">

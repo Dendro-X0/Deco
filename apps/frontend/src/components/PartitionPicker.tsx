@@ -20,6 +20,8 @@ type Props = {
   onIncludeProjectFoldersChange: (value: boolean) => void;
   disabled?: boolean;
   showQuickAddSelect?: boolean;
+  /** Increment after scan/cleanup/purge to refresh free-space figures. */
+  storageRefreshToken?: number;
 };
 
 export function PartitionPicker({
@@ -29,6 +31,7 @@ export function PartitionPicker({
   onIncludeProjectFoldersChange,
   disabled,
   showQuickAddSelect,
+  storageRefreshToken = 0,
 }: Props) {
   const [volumes, setVolumes] = useState<StorageVolume[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +49,7 @@ export function PartitionPicker({
 
   useEffect(() => {
     refresh();
-  }, [refresh]);
+  }, [refresh, storageRefreshToken]);
 
   const toggleVolume = (mount: string, checked: boolean) => {
     const next = new Set(selectedVolumes);

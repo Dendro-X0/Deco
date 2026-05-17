@@ -15,6 +15,7 @@ pub fn regeneration_hint_for_kind(kind: &Kind) -> Option<&'static str> {
         Kind::CargoRegistryCache => Some("`cargo cache -a`; crates re-download on next build"),
         Kind::BunGlobalCache => Some("`bun pm cache rm`; packages re-fetch on install"),
         Kind::NugetGlobalCache => Some("Restore with `dotnet restore` / `nuget restore`"),
+        Kind::ComposerGlobalCache => Some("`composer clear-cache`; packages re-fetch on install"),
         _ => None,
     }
 }

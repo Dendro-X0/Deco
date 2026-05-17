@@ -9,6 +9,13 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.6.0 — 2026-05-15
+
+- **Added** candidate kind: `composer_global_cache`.
+- **Added** scan/settings flag: `check_composer_cache` (default `false`, review tier + execute guard).
+- **Changed** walk discovery: MSVC-style `Debug` / `Release` (and variants) under `x64` / `Win32` / etc. when a CMake or `.vcxproj` project is present (`balanced+`; aggressive may match without arch parent).
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.6.0`.
+
 ## 2.5.0 — 2026-05-15
 
 - **Added** candidate kinds: `cargo_registry_cache`, `bun_global_cache`, `nuget_global_cache`.

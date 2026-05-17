@@ -124,7 +124,8 @@
             "conda_pkgs_cache",
             "cargo_registry_cache",
             "bun_global_cache",
-            "nuget_global_cache"
+            "nuget_global_cache",
+            "composer_global_cache"
           ]
         },
         "abs_path": { "type": "string", "minLength": 1 },

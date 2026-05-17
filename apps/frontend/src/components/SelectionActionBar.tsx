@@ -12,6 +12,8 @@ type Props = {
   busy?: boolean;
   onClean: () => void;
   onClearSelection: () => void;
+  /** When default cleanup is quarantine, offer one-click permanent delete (with separate confirm). */
+  onDeleteDirectly?: () => void;
 };
 
 export function SelectionActionBar({
@@ -22,9 +24,11 @@ export function SelectionActionBar({
   busy,
   onClean,
   onClearSelection,
+  onDeleteDirectly,
 }: Props) {
   if (selectedCount === 0) return null;
   const labels = cleanupActionLabels(deleteMode);
+  const showDirectDelete = deleteMode === 'quarantine' && onDeleteDirectly != null;
 
   return (
     <div className="fixed bottom-14 left-64 right-0 z-40 px-8 pointer-events-none">
@@ -41,6 +45,20 @@ export function SelectionActionBar({
             <X size={14} />
             Clear
           </Button>
+          {showDirectDelete && (
+            <DisabledActionHint reason={cleanDisabledReason}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 h-8 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                disabled={cleanDisabledReason !== null || busy}
+                onClick={onDeleteDirectly}
+              >
+                <Trash2 size={14} />
+                Delete permanently…
+              </Button>
+            </DisabledActionHint>
+          )}
           <DisabledActionHint reason={cleanDisabledReason}>
             <Button
               size="sm"

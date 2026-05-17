@@ -5,18 +5,66 @@ use crate::util::volume::same_volume;
 use rusqlite::Connection;
 use std::fs;
 use std::path::Path;
+use std::sync::Mutex;
+
+#[derive(Debug, Clone)]
+pub struct CleanupItemProgress {
+    pub index: u32,
+    pub total: u32,
+    pub abs_path: String,
+    pub action: &'static str,
+    pub stage: &'static str,
+    pub kind_wire: String,
+}
+
+fn is_heavy_dependency_tree(path: &Path, kind: &Kind) -> bool {
+    if matches!(kind, Kind::NodeModules) {
+        return true;
+    }
+    path.file_name()
+        .map(|n| n.eq_ignore_ascii_case("node_modules"))
+        .unwrap_or(false)
+        || path.components().any(|c| {
+            c.as_os_str()
+                .to_str()
+                .map(|s| s.eq_ignore_ascii_case("node_modules"))
+                .unwrap_or(false)
+        })
+}
+
+fn emit_item_progress(
+    on_progress: &mut Option<&mut dyn FnMut(CleanupItemProgress)>,
+    index: u32,
+    total: u32,
+    candidate: &CleanupCandidate,
+    action: &'static str,
+    stage: &'static str,
+) {
+    if let Some(progress) = on_progress.as_deref_mut() {
+        progress(CleanupItemProgress {
+            index,
+            total,
+            abs_path: candidate.abs_path.clone(),
+            action,
+            stage,
+            kind_wire: candidate.kind.wire_key().to_string(),
+        });
+    }
+}
 
 pub fn execute_cleanup(
-    conn: &Connection,
+    db: &Mutex<Connection>,
     quarantine_storage: &QuarantineStorage,
     candidates: &[CleanupCandidate],
     delete_mode: &str,
     include_review: bool,
     allow_global: GlobalCacheAllow,
     allow_python_venv: bool,
+    mut on_progress: Option<&mut dyn FnMut(CleanupItemProgress)>,
 ) -> ExecuteResponse {
     let mut deleted_count = 0u32;
     let mut quarantined_count = 0u32;
+    let mut freed_bytes = 0u64;
     let mut skipped_blocked_count = 0u32;
     let mut skipped_review_count = 0u32;
     let mut skipped_not_found_count = 0u32;
@@ -25,8 +73,19 @@ pub fn execute_cleanup(
     let mut quarantine_entries = vec![];
 
     let in_place = delete_mode == "delete" || delete_mode == "hard-delete";
+    let total = candidates.len() as u32;
 
-    for candidate in candidates {
+    for (idx, candidate) in candidates.iter().enumerate() {
+        let index = idx as u32 + 1;
+        let action = if in_place { "delete" } else { "quarantine" };
+        emit_item_progress(
+            &mut on_progress,
+            index,
+            total,
+            candidate,
+            action,
+            "prepare",
+        );
         if candidate.risk == RiskLevel::Blocked {
             skipped_blocked_count += 1;
             errors.push(format!("Refused blocked target: {}", candidate.abs_path));
@@ -51,10 +110,21 @@ pub fn execute_cleanup(
         }
 
         if in_place {
+            if is_heavy_dependency_tree(path, &candidate.kind) {
+                emit_item_progress(
+                    &mut on_progress,
+                    index,
+                    total,
+                    candidate,
+                    action,
+                    "remove_tree",
+                );
+            }
             if let Err(e) = delete_in_place(path) {
                 errors.push(format!("Failed to delete {}: {}", candidate.abs_path, e));
             } else {
                 deleted_count += 1;
+                freed_bytes = freed_bytes.saturating_add(candidate.size_bytes.unwrap_or(0));
             }
             continue;
         }
@@ -77,24 +147,53 @@ pub fn execute_cleanup(
             }
         }
 
+        if is_heavy_dependency_tree(path, &candidate.kind) {
+            emit_item_progress(
+                &mut on_progress,
+                index,
+                total,
+                candidate,
+                action,
+                "move",
+            );
+        }
+
         match move_path(path, &q_path) {
-            Ok(()) => match add_quarantine_entry(
-                conn,
-                &candidate.abs_path,
-                &q_path.to_string_lossy(),
-                candidate.size_bytes,
-                candidate.reason_codes.join(","),
-            ) {
-                Ok(entry) => {
-                    quarantined_count += 1;
-                    quarantine_entries.push(entry);
+            Ok(()) => {
+                emit_item_progress(
+                    &mut on_progress,
+                    index,
+                    total,
+                    candidate,
+                    action,
+                    "record",
+                );
+                let db_result = db
+                    .lock()
+                    .map_err(|_| "db mutex poisoned".to_string())
+                    .and_then(|conn| {
+                        add_quarantine_entry(
+                            &conn,
+                            &candidate.abs_path,
+                            &q_path.to_string_lossy(),
+                            candidate.size_bytes,
+                            candidate.reason_codes.join(","),
+                        )
+                    });
+                match db_result {
+                    Ok(entry) => {
+                        quarantined_count += 1;
+                        freed_bytes = freed_bytes.saturating_add(candidate.size_bytes.unwrap_or(0));
+                        quarantine_entries.push(entry);
+                    }
+                    Err(e) => errors.push(e),
                 }
-                Err(e) => errors.push(e),
-            },
+            }
             Err(e) if candidate.risk == RiskLevel::Safe && is_disk_full_error(&e) => {
                 match delete_in_place(path) {
                     Ok(()) => {
                         deleted_count += 1;
+                        freed_bytes = freed_bytes.saturating_add(candidate.size_bytes.unwrap_or(0));
                         errors.push(format!(
                             "Disk full for quarantine copy; deleted in place instead: {}",
                             candidate.abs_path
@@ -118,6 +217,7 @@ pub fn execute_cleanup(
     ExecuteResponse {
         deleted_count,
         quarantined_count,
+        freed_bytes,
         skipped_blocked_count,
         skipped_review_count,
         skipped_not_found_count,
@@ -186,6 +286,9 @@ fn opt_in_refusal(
         )),
         Kind::NugetGlobalCache if !allow_global.nuget => Some(format!(
             "Refused NuGet packages folder (enable “NuGet global packages” in settings and re-scan): {path}"
+        )),
+        Kind::ComposerGlobalCache if !allow_global.composer => Some(format!(
+            "Refused Composer cache (enable “Composer cache” in settings and re-scan): {path}"
         )),
         Kind::PythonVenv if !allow_python_venv => Some(format!(
             "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {path}"

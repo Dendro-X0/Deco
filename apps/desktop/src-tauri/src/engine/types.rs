@@ -44,6 +44,7 @@ pub enum Kind {
     CargoRegistryCache,
     BunGlobalCache,
     NugetGlobalCache,
+    ComposerGlobalCache,
 }
 
 impl Kind {
@@ -72,6 +73,7 @@ impl Kind {
             Kind::CargoRegistryCache => "cargo_registry_cache",
             Kind::BunGlobalCache => "bun_global_cache",
             Kind::NugetGlobalCache => "nuget_global_cache",
+            Kind::ComposerGlobalCache => "composer_global_cache",
         }
     }
 }
@@ -106,6 +108,7 @@ pub struct EcosystemScanOptions {
     pub check_cargo_registry: bool,
     pub check_bun_cache: bool,
     pub check_nuget_cache: bool,
+    pub check_composer_cache: bool,
 }
 
 impl Default for EcosystemScanOptions {
@@ -126,6 +129,7 @@ impl Default for EcosystemScanOptions {
             check_cargo_registry: false,
             check_bun_cache: false,
             check_nuget_cache: false,
+            check_composer_cache: false,
         }
     }
 }
@@ -148,6 +152,7 @@ impl From<&ScanRequest> for EcosystemScanOptions {
             check_cargo_registry: req.check_cargo_registry,
             check_bun_cache: req.check_bun_cache,
             check_nuget_cache: req.check_nuget_cache,
+            check_composer_cache: req.check_composer_cache,
         }
     }
 }
@@ -166,6 +171,7 @@ pub struct GlobalCacheAllow {
     pub cargo: bool,
     pub bun: bool,
     pub nuget: bool,
+    pub composer: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -247,6 +253,8 @@ pub struct ScanRequest {
     #[serde(default)]
     pub check_nuget_cache: bool,
     #[serde(default)]
+    pub check_composer_cache: bool,
+    #[serde(default)]
     pub exclude_abs_path_contains: Vec<String>,
     #[serde(default)]
     pub extra_protected_path_contains: Vec<String>,
@@ -255,7 +263,7 @@ pub struct ScanRequest {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.5.0";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.6.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {
@@ -299,6 +307,8 @@ pub struct ExecutePreviewResponse {
 pub struct ExecuteResponse {
     pub deleted_count: u32,
     pub quarantined_count: u32,
+    /// Sum of `size_bytes` for items successfully deleted or quarantined (skipped items excluded).
+    pub freed_bytes: u64,
     pub skipped_blocked_count: u32,
     pub skipped_review_count: u32,
     pub skipped_not_found_count: u32,
@@ -438,6 +448,7 @@ pub struct Settings {
     pub check_bun_cache: bool,
     #[serde(default)]
     pub check_nuget_cache: bool,
+    pub check_composer_cache: bool,
     pub delete_mode: String,
     /// `per_drive` (default): `{drive}\.deco-quarantine` — never `%AppData%`.
     #[serde(default = "default_quarantine_layout")]
@@ -481,6 +492,7 @@ impl Default for Settings {
             check_cargo_registry: false,
             check_bun_cache: false,
             check_nuget_cache: false,
+            check_composer_cache: false,
             delete_mode: "delete".to_string(),
             quarantine_layout: default_quarantine_layout(),
             quarantine_custom_path: String::new(),

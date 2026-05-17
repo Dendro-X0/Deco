@@ -9,6 +9,7 @@ type Props = {
   cancelLabel?: string;
   destructive?: boolean;
   busy?: boolean;
+  confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -21,6 +22,7 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   destructive = false,
   busy = false,
+  confirmDisabled = false,
   onConfirm,
   onCancel,
 }: Props) {
@@ -60,7 +62,7 @@ export function ConfirmDialog({
             variant={destructive ? 'destructive' : 'default'}
             size="sm"
             onClick={onConfirm}
-            disabled={busy}
+            disabled={busy || confirmDisabled}
           >
             {confirmLabel}
           </Button>

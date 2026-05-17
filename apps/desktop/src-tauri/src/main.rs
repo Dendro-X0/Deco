@@ -3,6 +3,7 @@
 mod commands;
 mod db;
 mod engine;
+mod scan_cancel;
 mod state;
 mod util;
 
@@ -10,7 +11,6 @@ use crate::engine::types::Settings;
 use crate::state::AppState;
 use db::init_db;
 use std::collections::HashMap;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::image::Image;
@@ -45,7 +45,8 @@ fn main() {
             app.manage(Arc::new(AppState {
                 db: Mutex::new(conn),
                 scans: Mutex::new(HashMap::new()),
-                scan_cancels: Mutex::new(HashMap::<String, Arc<AtomicBool>>::new()),
+                scan_cancels: Mutex::new(HashMap::new()),
+                scan_phases: Mutex::new(HashMap::new()),
                 settings: Mutex::new(Settings::default()),
             }));
 
@@ -57,6 +58,7 @@ fn main() {
             commands::scan::scan_history,
             commands::scan::delete_scan_history,
             commands::scan::clear_scan_history,
+            commands::execute::start_cleanup,
             commands::execute::execute_cleanup_command,
             commands::execute::preview_execute,
             commands::execute::plan_free_space,

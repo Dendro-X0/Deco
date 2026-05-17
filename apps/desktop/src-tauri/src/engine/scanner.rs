@@ -1,10 +1,13 @@
 use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
 use super::ecosystem_globals::{
-    discover_bun_global_caches, discover_cargo_registry_caches, discover_ide_global_caches,
-    discover_jvm_global_caches, discover_npm_global_caches, discover_conda_pkgs_caches,
-    discover_nuget_global_caches, discover_pip_global_caches, discover_pnpm_global_store,
-    discover_uv_global_caches, discover_yarn_global_caches,
+    discover_bun_global_caches, discover_cargo_registry_caches, discover_composer_global_caches,
+    discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
+    discover_conda_pkgs_caches, discover_nuget_global_caches, discover_pip_global_caches,
+    discover_pnpm_global_store, discover_uv_global_caches, discover_yarn_global_caches,
+};
+use super::project_detection::{
+    dir_has_cpp_native_marker, is_msvc_arch_dir_name, is_msvc_config_dir_name,
 };
 use super::path_policy::PathPolicy;
 use super::types::{EcosystemScanOptions, Kind};
@@ -125,6 +128,20 @@ fn detect_kind(
                 || (profile == "aggressive" && name == "out")) =>
         {
             if cache.has_cmake_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && is_msvc_config_dir_name(name) => {
+            if !cache.has_cpp_native_project_ancestor(entry_path, 6) {
+                return None;
+            }
+            let parent = entry_path.parent()?;
+            let parent_name = parent.file_name()?.to_str()?;
+            if is_msvc_arch_dir_name(parent_name) || dir_has_cpp_native_marker(parent) {
+                return Some(Kind::BuildArtifact);
+            }
+            if profile == "aggressive" {
                 return Some(Kind::BuildArtifact);
             }
             return None;
@@ -509,6 +526,11 @@ pub fn discover_targets(
         let (bun_targets, bun_warnings) = discover_bun_global_caches();
         all_targets.extend(bun_targets);
         warnings.extend(bun_warnings);
+    }
+    if eco.check_composer_cache && !canceled {
+        let (composer_targets, composer_warnings) = discover_composer_global_caches();
+        all_targets.extend(composer_targets);
+        warnings.extend(composer_warnings);
     }
     if eco.check_nuget_cache && !canceled {
         let (nuget_targets, nuget_warnings) = discover_nuget_global_caches();

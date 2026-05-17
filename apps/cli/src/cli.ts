@@ -16,6 +16,7 @@ import {
   discoverCargoRegistryCachesIfEnabled,
   discoverCondaPkgsCachesIfEnabled,
   discoverNugetGlobalCachesIfEnabled,
+  discoverComposerGlobalCachesIfEnabled,
   discoverYarnGlobalCachesIfEnabled,
 } from './ecosystem-globals.js';
 import { getGoEnv } from './go-utils.js';
@@ -44,7 +45,7 @@ const DEFAULT_PROFILE: CleanupProfile = 'safe';
 const DEFAULT_DELETE_MODE: DeleteMode = 'quarantine';
 const DEFAULT_STALE_DAYS = 45;
 const DEFAULT_QUARANTINE_RETENTION_DAYS = 30;
-const CLI_VERSION = '0.5.6';
+const CLI_VERSION = '0.5.7';
 
 export type TargetDir = CleanupCandidate;
 export type ScanReport = ScanReportV2;
@@ -85,6 +86,7 @@ type ParsedArgs = {
   readonly checkCargoRegistry: boolean;
   readonly checkBunCache: boolean;
   readonly checkNugetCache: boolean;
+  readonly checkComposerCache: boolean;
   readonly includeReview: boolean;
   readonly json: boolean;
   readonly showBlocked: boolean;
@@ -132,6 +134,7 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
   let checkCargoRegistry = false;
   let checkBunCache = false;
   let checkNugetCache = false;
+  let checkComposerCache = false;
   let includeReview = false;
   let json = false;
   let showBlocked = false;
@@ -271,6 +274,11 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--check-composer-cache') {
+      checkComposerCache = true;
+      continue;
+    }
+
     if (arg === '--include-python-venv') {
       includePythonVenv = true;
       continue;
@@ -391,6 +399,7 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
     checkCargoRegistry,
     checkBunCache,
     checkNugetCache,
+    checkComposerCache,
     includeReview,
     json,
     showBlocked,
@@ -453,6 +462,7 @@ export async function mergeConfigAndArgsV2(argv: readonly string[]): Promise<Cli
     checkCargoRegistry: args.checkCargoRegistry,
     checkBunCache: args.checkBunCache,
     checkNugetCache: args.checkNugetCache,
+    checkComposerCache: args.checkComposerCache,
     excludeAbsPathContains: config?.excludeAbsPathContains ?? [],
     profile,
     deleteMode,
@@ -540,6 +550,7 @@ export async function buildReport(options: CliOptions, onProgress?: ProgressList
     ...(await discoverCargoRegistryCachesIfEnabled(options.checkCargoRegistry)),
     ...(await discoverBunGlobalCachesIfEnabled(options.checkBunCache)),
     ...(await discoverNugetGlobalCachesIfEnabled(options.checkNugetCache)),
+    ...(await discoverComposerGlobalCachesIfEnabled(options.checkComposerCache)),
   ];
   const errors = [...discovery.errors];
   if (options.checkCondaPkgsCache) {
@@ -687,6 +698,7 @@ function getUsageText(): string {
     '  --check-cargo-registry      Include Cargo registry cache (CARGO_HOME/registry; review tier)',
     '  --check-bun-cache           Include bun install global cache (review tier)',
     '  --check-nuget-cache         Include NuGet global packages folder (review tier)',
+    '  --check-composer-cache      Include Composer global cache (review tier)',
     '  --include-python-venv       Include venv/.venv (review tier; opt-in)',
     '  --no-python-artifacts       Skip Python caches/build dirs when pyproject present',
     '  --no-jvm-artifacts          Skip JVM build/ when Gradle/Maven markers present',
@@ -754,6 +766,7 @@ function getDeletableCandidates(
     | 'checkCargoRegistry'
     | 'checkBunCache'
     | 'checkNugetCache'
+    | 'checkComposerCache'
     | 'includePythonVenv'
   >
 ): CleanupCandidate[] {
@@ -771,6 +784,7 @@ function getDeletableCandidates(
     if (candidate.kind === 'cargo-registry-cache' && !options.checkCargoRegistry) return false;
     if (candidate.kind === 'bun-global-cache' && !options.checkBunCache) return false;
     if (candidate.kind === 'nuget-global-cache' && !options.checkNugetCache) return false;
+    if (candidate.kind === 'composer-global-cache' && !options.checkComposerCache) return false;
     if (candidate.kind === 'python-venv' && !options.includePythonVenv) return false;
     if (candidate.risk === 'review') return includeReview;
     return true;

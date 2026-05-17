@@ -1,14 +1,103 @@
-use crate::engine::executor::execute_cleanup;
+use crate::engine::executor::{execute_cleanup, CleanupItemProgress};
 use crate::engine::quarantine_store::QuarantineStorage;
 use crate::engine::types::{
-    ExecutePreviewResponse, ExecuteRequest, ExecuteResponse, GlobalCacheAllow, PlanRequest,
-    PlanResponse, RiskLevel, RiskTotals, Totals,
+    CleanupCandidate, ExecutePreviewResponse, ExecuteRequest, ExecuteResponse, GlobalCacheAllow,
+    PlanRequest, PlanResponse, RiskLevel, RiskTotals, Totals,
 };
 use crate::state::AppState;
+use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use tauri::State;
+use std::thread;
+use tauri::{AppHandle, Emitter, State};
+use uuid::Uuid;
 
+#[derive(Debug, Clone, Serialize)]
+pub struct StartCleanupResponse {
+    pub job_id: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct CleanupProgressEvent {
+    job_id: String,
+    index: u32,
+    total: u32,
+    abs_path: String,
+    action: String,
+    stage: String,
+    kind: String,
+    message: String,
+    detail: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct CleanupCompleteEvent {
+    job_id: String,
+    result: ExecuteResponse,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct CleanupErrorEvent {
+    job_id: String,
+    message: String,
+}
+
+struct CleanupPrepared {
+    selected: Vec<CleanupCandidate>,
+    delete_mode: String,
+    include_review: bool,
+    allow_global: GlobalCacheAllow,
+    allow_python_venv: bool,
+    quarantine_storage: QuarantineStorage,
+}
+
+/// Runs cleanup on a background thread so the webview stays responsive during large deletes.
+#[tauri::command]
+pub fn start_cleanup(
+    req: ExecuteRequest,
+    state: State<Arc<AppState>>,
+    app: AppHandle,
+) -> Result<StartCleanupResponse, String> {
+    let prepared = prepare_cleanup(&req, state.inner())?;
+    let job_id = Uuid::new_v4().to_string();
+    let job_id_spawn = job_id.clone();
+    let state_arc = state.inner().clone();
+    let app_handle = app.clone();
+
+    thread::Builder::new()
+        .name(format!(
+            "deco-cleanup-{}",
+            &job_id_spawn[..8.min(job_id_spawn.len())]
+        ))
+        .spawn(move || {
+            let result = run_cleanup_background(prepared, &state_arc, &app_handle, &job_id_spawn);
+            match result {
+                Ok(response) => {
+                    let _ = app_handle.emit(
+                        "cleanup-complete",
+                        CleanupCompleteEvent {
+                            job_id: job_id_spawn.clone(),
+                            result: response,
+                        },
+                    );
+                }
+                Err(message) => {
+                    let _ = app_handle.emit(
+                        "cleanup-error",
+                        CleanupErrorEvent {
+                            job_id: job_id_spawn,
+                            message,
+                        },
+                    );
+                }
+            }
+        })
+        .map_err(|e| format!("failed to start cleanup thread: {e}"))?;
+
+    Ok(StartCleanupResponse { job_id })
+}
+
+/// Synchronous cleanup (integration tests). Prefer [`start_cleanup`] in the desktop UI.
 #[tauri::command]
 pub fn execute_cleanup_command(
     req: ExecuteRequest,
@@ -30,10 +119,117 @@ pub fn plan_free_space(req: PlanRequest, state: State<Arc<AppState>>) -> Result<
     plan_free_space_core(req, state.inner())
 }
 
+fn run_cleanup_background(
+    prepared: CleanupPrepared,
+    state: &AppState,
+    app: &AppHandle,
+    job_id: &str,
+) -> Result<ExecuteResponse, String> {
+    let mut emit_progress = |progress: CleanupItemProgress| {
+        let (message, detail) = cleanup_event_copy(&progress);
+        let _ = app.emit(
+            "cleanup-progress",
+            CleanupProgressEvent {
+                job_id: job_id.to_string(),
+                index: progress.index,
+                total: progress.total,
+                abs_path: progress.abs_path.clone(),
+                action: progress.action.to_string(),
+                stage: progress.stage.to_string(),
+                kind: progress.kind_wire.clone(),
+                message,
+                detail,
+            },
+        );
+    };
+
+    Ok(execute_cleanup(
+        &state.db,
+        &prepared.quarantine_storage,
+        &prepared.selected,
+        &prepared.delete_mode,
+        prepared.include_review,
+        prepared.allow_global,
+        prepared.allow_python_venv,
+        Some(&mut emit_progress),
+    ))
+}
+
 pub(crate) fn execute_cleanup_core(
     req: ExecuteRequest,
     state: &AppState,
 ) -> Result<ExecuteResponse, String> {
+    let prepared = prepare_cleanup(&req, state)?;
+    Ok(execute_cleanup(
+        &state.db,
+        &prepared.quarantine_storage,
+        &prepared.selected,
+        &prepared.delete_mode,
+        prepared.include_review,
+        prepared.allow_global,
+        prepared.allow_python_venv,
+        None,
+    ))
+}
+
+fn cleanup_event_copy(progress: &CleanupItemProgress) -> (String, String) {
+    let file_name = std::path::Path::new(&progress.abs_path)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| progress.abs_path.clone());
+    let prefix = if progress.total > 1 {
+        format!("Item {}/{}: ", progress.index, progress.total)
+    } else {
+        String::new()
+    };
+    let heavy = progress.kind_wire == "node_modules"
+        || progress
+            .abs_path
+            .replace('\\', "/")
+            .to_lowercase()
+            .contains("/node_modules");
+
+    match progress.stage {
+        "remove_tree" => (
+            format!("{prefix}Removing {file_name}…"),
+            if heavy {
+                "node_modules has thousands of small files — the system walks the tree before delete finishes. This can take several minutes even when the folder size looks small.".to_string()
+            } else {
+                "Walking the directory tree and deleting files. Large build folders take longer than their size suggests.".to_string()
+            },
+        ),
+        "prepare" if progress.action == "delete" => (
+            format!("{prefix}Preparing to delete {file_name}…"),
+            if heavy {
+                "About to remove a dependency folder with many nested files.".to_string()
+            } else {
+                "Verifying path and starting removal.".to_string()
+            },
+        ),
+        "move" => (
+            format!("{prefix}Moving {file_name} to quarantine…"),
+            if heavy {
+                "Same-drive rename when possible; otherwise copying many files first.".to_string()
+            } else {
+                "Renaming on the same drive when possible (fast).".to_string()
+            },
+        ),
+        "record" => (
+            format!("{prefix}Recording quarantine entry…"),
+            "Updating the local restore index.".to_string(),
+        ),
+        _ if progress.action == "delete" => (
+            format!("{prefix}Deleting {file_name}…"),
+            "Removing files from disk (not recoverable from Quarantine).".to_string(),
+        ),
+        _ => (
+            format!("{prefix}Cleaning up {file_name}…"),
+            "Working in the background — the window stays responsive.".to_string(),
+        ),
+    }
+}
+
+fn prepare_cleanup(req: &ExecuteRequest, state: &AppState) -> Result<CleanupPrepared, String> {
     if req.delete_mode == "hard-delete" {
         let settings = state
             .settings
@@ -79,22 +275,17 @@ pub(crate) fn execute_cleanup_core(
         cargo: settings.check_cargo_registry,
         bun: settings.check_bun_cache,
         nuget: settings.check_nuget_cache,
+        composer: settings.check_composer_cache,
     };
 
-    let conn = state
-        .db
-        .lock()
-        .map_err(|_| "db mutex poisoned".to_string())?;
-
-    Ok(execute_cleanup(
-        &conn,
-        &quarantine_storage,
-        &selected,
-        &req.delete_mode,
-        req.include_review,
+    Ok(CleanupPrepared {
+        selected,
+        delete_mode: req.delete_mode.clone(),
+        include_review: req.include_review,
         allow_global,
-        settings.include_python_venv,
-    ))
+        allow_python_venv: settings.include_python_venv,
+        quarantine_storage,
+    })
 }
 
 pub(crate) fn preview_execute_core(
@@ -156,7 +347,7 @@ pub(crate) fn preview_execute_core(
     Ok(ExecutePreviewResponse {
         selected_count: selected.len() as u32,
         selected_bytes,
-        mode: req.delete_mode,
+        mode: req.delete_mode.clone(),
         totals_by_risk,
         totals_by_kind,
         blocked_count,
@@ -221,7 +412,7 @@ fn resolve_selected_candidates(
     state: &AppState,
     scan_id: &str,
     candidate_ids: &[String],
-) -> Result<Vec<crate::engine::types::CleanupCandidate>, String> {
+) -> Result<Vec<CleanupCandidate>, String> {
     let scans = state
         .scans
         .lock()

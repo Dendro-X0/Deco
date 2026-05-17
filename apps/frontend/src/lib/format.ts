@@ -1,6 +1,9 @@
 /** Shown on Dashboard metrics before any scan has completed. */
 export const NO_SCAN_BYTES_LABEL = '-.-- B';
 
+/** Shown when sizing did not finish for a candidate (canceled, timeout, missing path). */
+export const SIZE_NOT_CALCULATED_LABEL = 'Not calculated';
+
 export function formatBytes(bytes = 0): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let value = bytes;
@@ -24,6 +27,13 @@ export function formatStatBytes(
 /** True when backend has reported an explicit byte size for this candidate (including 0 for empty dirs). */
 export function candidateSizeIsKnown(bytes: number | undefined): bytes is number {
   return typeof bytes === 'number' && !Number.isNaN(bytes);
+}
+
+/** Table/detail size cell: known bytes, in-progress label, or not calculated after scan ends. */
+export function formatCandidateSize(bytes: number | undefined, scanActive: boolean): string {
+  if (candidateSizeIsKnown(bytes)) return formatBytes(bytes);
+  if (scanActive) return 'Sizing…';
+  return SIZE_NOT_CALCULATED_LABEL;
 }
 
 /** Compact duration for status lines (e.g. `45s`, `2m 15s`, `1h 5m`). */

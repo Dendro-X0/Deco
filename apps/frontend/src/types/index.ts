@@ -96,6 +96,7 @@ export interface Settings {
   check_bun_cache?: boolean;
   check_cargo_registry?: boolean;
   check_nuget_cache?: boolean;
+  check_composer_cache?: boolean;
   delete_mode: string;
   /** per_drive | custom — only when delete_mode is quarantine */
   quarantine_layout?: string;
@@ -135,6 +136,8 @@ export interface BulkRestoreResponse {
 export interface ExecuteResponse {
   quarantined_count: number;
   deleted_count: number;
+  /** Bytes freed from successfully deleted or quarantined items (from scan sizing). */
+  freed_bytes?: number;
   skipped_blocked_count: number;
   skipped_review_count?: number;
   skipped_not_found_count?: number;

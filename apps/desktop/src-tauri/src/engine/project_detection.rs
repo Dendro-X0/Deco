@@ -221,8 +221,42 @@ fn dir_has_cmake_marker(dir: &Path) -> bool {
     exists(dir.join("CMakeLists.txt")) || exists(dir.join("CMakeCache.txt"))
 }
 
+fn dir_has_vcxproj_marker(dir: &Path) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return false;
+    };
+    entries.flatten().any(|entry| {
+        let name = entry.file_name().to_string_lossy().to_lowercase();
+        name.ends_with(".vcxproj")
+            || name.ends_with(".vcxproj.filters")
+            || name.ends_with(".sln")
+    })
+}
+
+pub fn dir_has_cpp_native_marker(dir: &Path) -> bool {
+    dir_has_cmake_marker(dir) || dir_has_vcxproj_marker(dir)
+}
+
 pub fn has_cmake_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
     has_marker_ancestor(start_dir, max_ascend, dir_has_cmake_marker)
+}
+
+pub fn has_cpp_native_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
+    has_marker_ancestor(start_dir, max_ascend, dir_has_cpp_native_marker)
+}
+
+pub fn is_msvc_config_dir_name(name: &str) -> bool {
+    matches!(
+        name,
+        "Debug" | "Release" | "RelWithDebInfo" | "MinSizeRel"
+    )
+}
+
+pub fn is_msvc_arch_dir_name(name: &str) -> bool {
+    matches!(
+        name,
+        "x64" | "x86" | "Win32" | "ARM64" | "ARM" | "amd64" | "i386"
+    )
 }
 
 #[cfg(test)]

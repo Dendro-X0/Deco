@@ -172,3 +172,39 @@ export function hasJvmProjectAncestor(fromDirectory: string, maxAscend = 6): Pro
 export function hasDotnetProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
   return hasMarkerAncestor(fromDirectory, maxAscend, dirHasDotnetMarker);
 }
+
+async function dirHasCmakeMarker(dir: string): Promise<boolean> {
+  return (await exists(path.join(dir, 'CMakeLists.txt'))) || (await exists(path.join(dir, 'CMakeCache.txt')));
+}
+
+async function dirHasVcxprojMarker(dir: string): Promise<boolean> {
+  try {
+    const entries = await readdir(dir);
+    return entries.some((name) => {
+      const lower = name.toLowerCase();
+      return lower.endsWith('.vcxproj') || lower.endsWith('.vcxproj.filters') || lower.endsWith('.sln');
+    });
+  } catch {
+    return false;
+  }
+}
+
+export async function dirHasCppNativeMarker(dir: string): Promise<boolean> {
+  return (await dirHasCmakeMarker(dir)) || (await dirHasVcxprojMarker(dir));
+}
+
+export function hasCmakeProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
+  return hasMarkerAncestor(fromDirectory, maxAscend, dirHasCmakeMarker);
+}
+
+export function hasCppNativeProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
+  return hasMarkerAncestor(fromDirectory, maxAscend, dirHasCppNativeMarker);
+}
+
+export function isMsvcConfigDirName(name: string): boolean {
+  return name === 'Debug' || name === 'Release' || name === 'RelWithDebInfo' || name === 'MinSizeRel';
+}
+
+export function isMsvcArchDirName(name: string): boolean {
+  return ['x64', 'x86', 'Win32', 'ARM64', 'ARM', 'amd64', 'i386'].includes(name);
+}

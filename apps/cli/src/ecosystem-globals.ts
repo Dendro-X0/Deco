@@ -344,6 +344,39 @@ export async function discoverBunGlobalCachesIfEnabled(enabled: boolean): Promis
   return out;
 }
 
+function composerCacheCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.COMPOSER_CACHE_DIR?.trim()) {
+    paths.push(process.env.COMPOSER_CACHE_DIR.trim());
+  }
+  if (process.env.COMPOSER_HOME?.trim()) {
+    paths.push(path.join(process.env.COMPOSER_HOME.trim(), 'cache'));
+  }
+  paths.push(path.join(os.homedir(), '.composer', 'cache'));
+  if (process.platform !== 'win32') {
+    paths.push(path.join(os.homedir(), '.cache', 'composer'));
+  } else if (process.env.LOCALAPPDATA) {
+    paths.push(path.join(process.env.LOCALAPPDATA, 'Composer', 'cache'));
+  }
+  return dedupePaths(paths);
+}
+
+async function isComposerCacheRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  return (await hasSubdir(dir, 'files')) || (await hasSubdir(dir, 'repo'));
+}
+
+export async function discoverComposerGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of composerCacheCandidatePaths()) {
+    if (await isComposerCacheRoot(candidate)) {
+      await pushDir(out, candidate, 'composer-global-cache');
+    }
+  }
+  return out;
+}
+
 export async function discoverNugetGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
   if (!enabled) return [];
   const out: DiscoveredTarget[] = [];

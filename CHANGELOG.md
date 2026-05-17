@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-05-15
+
+### Added
+
+- **Composer global cache** (`check_composer_cache`) — `COMPOSER_CACHE_DIR` / `COMPOSER_HOME/cache` with `files/` or `repo/` marker; regen hint `composer clear-cache`.
+- **MSVC native build outputs** — `x64/Debug`, `x64/Release`, etc. when CMake or Visual Studio project markers exist (`balanced+`).
+- **Community policy examples** under `examples/deco-policies/` (monorepo, conservative, CI quick-scan).
+- **Scan contract** `2.6.0`: kind `composer_global_cache`.
+- **Delete permanently…** on the selection bar when default cleanup is quarantine — skips quarantine after an irreversible confirmation (safe-tier only; review-tier items are skipped).
+- **Two-step scan stop** — **Stop scan** ends directory search only; **Stop analysis** ends classify/size work; header stays aligned with other actions.
+
+### Changed
+
+- Path policy blocks Visual Studio / Windows Kits toolchain paths under Program Files.
+- **Cleanup progress** — elapsed timer, stage-specific messages (especially `node_modules`), completion time in status, and overlay detail text.
+- **After cleanup/scan** — reclaimable totals and partition free-space refresh automatically (no manual page reload).
+- **Partial scan sizing** — canceled or timed-out size walks show **Not calculated** (not `0.00 B`); only confirmed empty dirs show zero.
+
+### Fixed
+
+- **Cleanup no longer freezes the UI** — delete/quarantine runs on a background thread with progress events; main content is shielded while cleanup runs.
+- **Freed space stat** — uses backend `freed_bytes` for successfully removed items (fixes doubled/wrong totals after cleanup).
+- **Stop analysis** no longer errors with `scan not found` when the job already finished.
+
 ## [0.5.6] - 2026-05-15
 
 ### Added

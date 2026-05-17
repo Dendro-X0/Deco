@@ -27,6 +27,9 @@ const SYSTEM_RULES: readonly ProtectedRule[] = [
   { pattern: '/$recycle.bin/', safetyClass: 'system', reasonCode: 'PROTECTED_SYSTEM_PATH' },
   { pattern: '/system volume information/', safetyClass: 'system', reasonCode: 'PROTECTED_SYSTEM_PATH' },
   { pattern: '/config.msi/', safetyClass: 'system', reasonCode: 'PROTECTED_SYSTEM_PATH' },
+  { pattern: '/microsoft visual studio/', safetyClass: 'system', reasonCode: 'PROTECTED_SYSTEM_PATH' },
+  { pattern: '/windows kits/', safetyClass: 'system', reasonCode: 'PROTECTED_SYSTEM_PATH' },
+  { pattern: '/vc/tools/msvc/', safetyClass: 'system', reasonCode: 'PROTECTED_SYSTEM_PATH' },
 ];
 
 const APP_RUNTIME_RULES: readonly ProtectedRule[] = [
