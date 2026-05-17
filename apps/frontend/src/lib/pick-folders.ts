@@ -2,10 +2,26 @@ import { open } from '@tauri-apps/plugin-dialog';
 
 /** Native folder picker; returns absolute paths or null if canceled. */
 export async function pickScanFolders(): Promise<string[] | null> {
+  return pickFolders({ multiple: true, title: 'Select folders to scan' });
+}
+
+/** Single folder for quarantine payload storage (must not default to AppData). */
+export async function pickQuarantineFolder(): Promise<string | null> {
+  const paths = await pickFolders({
+    multiple: false,
+    title: 'Select quarantine storage folder',
+  });
+  return paths?.[0] ?? null;
+}
+
+async function pickFolders(opts: {
+  multiple: boolean;
+  title: string;
+}): Promise<string[] | null> {
   const result = await open({
     directory: true,
-    multiple: true,
-    title: 'Select folders to scan',
+    multiple: opts.multiple,
+    title: opts.title,
   });
   if (result === null) return null;
   const paths = (Array.isArray(result) ? result : [result]).map(String);

@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-05-15
+
+### Added
+
+- **Desktop Settings → Quarantine storage**: per-source-drive `{drive}\.deco-quarantine` (default) or a **custom folder** with browse; C: path warning when chosen.
+- **Delete in place** remains the default delete mode (no quarantine disk use).
+
+### Changed
+
+- **Quarantine payloads** no longer default to `%AppData%`; they stay on the source drive or your chosen folder.
+- **Cleanup UX**: release builds hide the console window; cleanup progress shows a dedicated phase; clearer post-cleanup toasts.
+- When the disk is full, safe targets may fall back to **delete in place** instead of failing quarantine copy.
+
+### Fixed
+
+- Quarantine restore/list reliability after cleanup; same-drive rename avoids cross-volume copy failures (e.g. full E: with C: AppData quarantine).
+
 ## [0.5.3] - 2026-05-17
 
 ### Fixed

@@ -1,4 +1,4 @@
-use super::quarantine_store::{add_quarantine_entry, quarantine_item_path};
+use super::quarantine_store::{add_quarantine_entry, quarantine_item_path, QuarantineStorage};
 use super::types::{CleanupCandidate, ExecuteResponse, GlobalCacheAllow, Kind, RiskLevel};
 use crate::util::native_path::io_path;
 use crate::util::volume::same_volume;
@@ -8,7 +8,7 @@ use std::path::Path;
 
 pub fn execute_cleanup(
     conn: &Connection,
-    data_dir: &Path,
+    quarantine_storage: &QuarantineStorage,
     candidates: &[CleanupCandidate],
     delete_mode: &str,
     include_review: bool,
@@ -59,7 +59,14 @@ pub fn execute_cleanup(
             continue;
         }
 
-        let q_path = quarantine_item_path(data_dir, &candidate.id, &candidate.abs_path);
+        let q_path = match quarantine_item_path(quarantine_storage, &candidate.id, &candidate.abs_path)
+        {
+            Ok(p) => p,
+            Err(e) => {
+                errors.push(e);
+                continue;
+            }
+        };
         if let Some(parent) = q_path.parent() {
             if let Err(e) = fs::create_dir_all(parent) {
                 errors.push(format!(

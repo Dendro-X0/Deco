@@ -107,6 +107,18 @@ pub fn save_settings(settings: Settings, state: State<Arc<AppState>>) -> Result<
     if settings.delete_mode == "recycle-bin" {
         settings.delete_mode = "delete".to_string();
     }
+    if settings.quarantine_layout != "custom" {
+        settings.quarantine_layout = "per_drive".to_string();
+    }
+    settings.quarantine_custom_path = settings.quarantine_custom_path.trim().to_string();
+    if settings.delete_mode == "quarantine"
+        && settings.quarantine_layout == "custom"
+        && settings.quarantine_custom_path.is_empty()
+    {
+        return Err(
+            "Choose a custom quarantine folder or switch to “On each source drive”.".to_string(),
+        );
+    }
 
     {
         let mut guard = state

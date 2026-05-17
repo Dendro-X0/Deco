@@ -1,4 +1,5 @@
 use crate::engine::executor::execute_cleanup;
+use crate::engine::quarantine_store::QuarantineStorage;
 use crate::engine::types::{
     ExecutePreviewResponse, ExecuteRequest, ExecuteResponse, GlobalCacheAllow, PlanRequest,
     PlanResponse, RiskLevel, RiskTotals, Totals,
@@ -47,25 +48,34 @@ pub(crate) fn execute_cleanup_core(
 
     let selected = resolve_selected_candidates(state, &req.scan_id, &req.candidate_ids)?;
 
-    let (allow_global, allow_python_venv) = {
-        let settings = state
-            .settings
-            .lock()
-            .map_err(|_| "settings mutex poisoned".to_string())?;
-        (
-            GlobalCacheAllow {
-                go: settings.check_go_cache,
-                jvm: settings.check_jvm_global_cache,
-                ide: settings.check_ide_global_cache,
-                npm: settings.check_npm_cache,
-                pnpm: settings.check_pnpm_store,
-                yarn: settings.check_yarn_cache,
-                pip: settings.check_pip_cache,
-                uv: settings.check_uv_cache,
-                conda: settings.check_conda_pkgs_cache,
-            },
-            settings.include_python_venv,
-        )
+    let settings = state
+        .settings
+        .lock()
+        .map_err(|_| "settings mutex poisoned".to_string())?
+        .clone();
+
+    if settings.delete_mode == "quarantine"
+        && settings.quarantine_layout == "custom"
+        && settings.quarantine_custom_path.trim().is_empty()
+    {
+        return Err(
+            "Custom quarantine folder is empty. Set a path under Settings → Quarantine storage, \
+             or choose “On each source drive”."
+                .to_string(),
+        );
+    }
+
+    let quarantine_storage = QuarantineStorage::from_settings(&settings);
+    let allow_global = GlobalCacheAllow {
+        go: settings.check_go_cache,
+        jvm: settings.check_jvm_global_cache,
+        ide: settings.check_ide_global_cache,
+        npm: settings.check_npm_cache,
+        pnpm: settings.check_pnpm_store,
+        yarn: settings.check_yarn_cache,
+        pip: settings.check_pip_cache,
+        uv: settings.check_uv_cache,
+        conda: settings.check_conda_pkgs_cache,
     };
 
     let conn = state
@@ -75,12 +85,12 @@ pub(crate) fn execute_cleanup_core(
 
     Ok(execute_cleanup(
         &conn,
-        &state.data_dir,
+        &quarantine_storage,
         &selected,
         &req.delete_mode,
         req.include_review,
         allow_global,
-        allow_python_venv,
+        settings.include_python_venv,
     ))
 }
 

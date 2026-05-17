@@ -55,7 +55,6 @@ fn build_state(root: &PathBuf) -> AppState {
 
     AppState {
         db: Mutex::new(db),
-        data_dir,
         scans: Mutex::new(HashMap::new()),
         scan_cancels: Mutex::new(HashMap::new()),
         settings: Mutex::new(Settings::default()),

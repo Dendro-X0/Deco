@@ -13,7 +13,8 @@ export function cleanupActionLabels(deleteMode: string): {
   }
   return {
     button: 'Move to quarantine…',
-    barHint: 'Renames to .deco-quarantine on the same drive (restorable)',
-    previewHint: 'Folders move to .deco-quarantine on the same drive — no extra copy when space is low.',
+    barHint: 'Moves to your quarantine folder (see Settings — never C:\\Users\\…\\AppData by default)',
+    previewHint:
+      'Folders move to quarantine on the source drive or your custom folder — not to the OS AppData directory.',
   };
 }

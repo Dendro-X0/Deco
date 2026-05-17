@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { NumberInput } from '@/components/ui/number-input';
@@ -25,6 +26,11 @@ import {
   settingsDiscardDisabledReason,
   settingsSaveDisabledReason,
 } from '@/lib/disabled-reasons';
+import { pickQuarantineFolder } from '@/lib/pick-folders';
+import {
+  isWindowsSystemDrivePath,
+  quarantineStorageSummary,
+} from '@/lib/quarantine-storage';
 import { normalizeSettings } from '@/lib/settings-normalize';
 import type { Settings } from '@/types';
 
@@ -94,6 +100,7 @@ function ToggleRow({
 export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }: Props) {
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pickingQuarantine, setPickingQuarantine] = useState(false);
 
   const saved = useMemo(
     () => (settings ? normalizeSettings(settings) : null),
@@ -151,6 +158,10 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
       </Card>
     );
   }
+
+  const quarantineEnabled = draft.delete_mode === 'quarantine';
+  const quarantineLayout = draft.quarantine_layout ?? 'per_drive';
+  const quarantinePath = draft.quarantine_custom_path ?? '';
 
   return (
     <Card className="border-border/40 bg-card/30">
@@ -386,8 +397,83 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Quarantine never copies to another drive (avoids “not enough space” when E: is full).
+              Delete in place does not store backups. Use it when cleaning C: or when the disk is almost full.
             </p>
+          </div>
+          <div
+            className={`space-y-3 rounded-lg border p-4 ${quarantineEnabled ? 'border-border/60' : 'border-border/30 opacity-60'}`}
+          >
+            <div>
+              <p className="text-sm font-bold">Quarantine storage</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {quarantineStorageSummary(draft.delete_mode, quarantineLayout, quarantinePath)}
+              </p>
+              {!quarantineEnabled && (
+                <p className="text-xs text-amber-600/90 mt-1">
+                  Enable by choosing “Quarantine on same drive” above. Payloads are never stored under
+                  AppData unless you pick that folder yourself.
+                </p>
+              )}
+            </div>
+            <Select
+              value={quarantineLayout === 'custom' ? 'custom' : 'per_drive'}
+              onValueChange={(v) =>
+                patch({
+                  quarantine_layout: v,
+                  ...(v === 'per_drive' ? { quarantine_custom_path: '' } : {}),
+                })
+              }
+              disabled={scanning || saving || !quarantineEnabled}
+            >
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="per_drive">
+                  On each source drive — {'{drive}\\.deco-quarantine'} (recommended)
+                </SelectItem>
+                <SelectItem value="custom">Custom folder — you choose the path</SelectItem>
+              </SelectContent>
+            </Select>
+            {quarantineLayout === 'custom' && quarantineEnabled && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input
+                  value={quarantinePath}
+                  onChange={(e) => patch({ quarantine_custom_path: e.target.value })}
+                  placeholder="e.g. E:\\DecoQuarantine"
+                  className="font-mono text-sm flex-1"
+                  disabled={scanning || saving}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={scanning || saving || pickingQuarantine}
+                  onClick={() => {
+                    void (async () => {
+                      setPickingQuarantine(true);
+                      try {
+                        const picked = await pickQuarantineFolder();
+                        if (picked) patch({ quarantine_custom_path: picked, quarantine_layout: 'custom' });
+                      } finally {
+                        setPickingQuarantine(false);
+                      }
+                    })();
+                  }}
+                >
+                  {pickingQuarantine ? 'Opening…' : 'Browse…'}
+                </Button>
+              </div>
+            )}
+            {quarantineEnabled &&
+              quarantineLayout === 'custom' &&
+              quarantinePath.trim() &&
+              isWindowsSystemDrivePath(quarantinePath) && (
+                <p className="text-xs text-amber-600/90">
+                  This folder is on the system (C:) drive — quarantine will use space on C:.
+                </p>
+              )}
           </div>
           <ToggleRow
             label="Advanced mode"

@@ -44,7 +44,6 @@ fn main() {
 
             app.manage(Arc::new(AppState {
                 db: Mutex::new(conn),
-                data_dir,
                 scans: Mutex::new(HashMap::new()),
                 scan_cancels: Mutex::new(HashMap::<String, Arc<AtomicBool>>::new()),
                 settings: Mutex::new(Settings::default()),

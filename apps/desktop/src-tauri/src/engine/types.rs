@@ -78,6 +78,10 @@ fn default_scan_scope() -> String {
     "projects".to_string()
 }
 
+fn default_quarantine_layout() -> String {
+    "per_drive".to_string()
+}
+
 /// Per-ecosystem discovery toggles (M7). Global caches stay opt-in via `check_*_global_cache` on scan request.
 #[derive(Debug, Clone, Copy)]
 pub struct EcosystemScanOptions {
@@ -405,6 +409,11 @@ pub struct Settings {
     #[serde(default)]
     pub check_conda_pkgs_cache: bool,
     pub delete_mode: String,
+    /// `per_drive` (default): `{drive}\.deco-quarantine` — never `%AppData%`.
+    #[serde(default = "default_quarantine_layout")]
+    pub quarantine_layout: String,
+    #[serde(default)]
+    pub quarantine_custom_path: String,
     pub quarantine_retention_days: u32,
     pub advanced_mode: bool,
     pub default_target_gb: u32,
@@ -440,6 +449,8 @@ impl Default for Settings {
             check_uv_cache: false,
             check_conda_pkgs_cache: false,
             delete_mode: "delete".to_string(),
+            quarantine_layout: default_quarantine_layout(),
+            quarantine_custom_path: String::new(),
             quarantine_retention_days: 30,
             advanced_mode: false,
             default_target_gb: 10,

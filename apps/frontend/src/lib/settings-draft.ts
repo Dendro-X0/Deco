@@ -22,6 +22,8 @@ const DRAFT_KEYS: (keyof Settings)[] = [
   'include_dotnet_artifacts',
   'check_ide_global_cache',
   'delete_mode',
+  'quarantine_layout',
+  'quarantine_custom_path',
   'quarantine_retention_days',
   'advanced_mode',
   'default_target_gb',

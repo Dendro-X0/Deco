@@ -1,4 +1,5 @@
 use super::types::QuarantineEntry;
+use super::types::Settings;
 use crate::util::volume::volume_root;
 use chrono::Utc;
 use rusqlite::{params, Connection};
@@ -7,27 +8,76 @@ use uuid::Uuid;
 
 const VOLUME_QUARANTINE_DIR: &str = ".deco-quarantine";
 
-pub fn quarantine_root(base_data_dir: &Path) -> PathBuf {
-    base_data_dir.join("quarantine")
+/// Where quarantined payloads are stored on disk (never defaults to `%AppData%`).
+#[derive(Debug, Clone)]
+pub struct QuarantineStorage {
+    layout: QuarantineLayoutKind,
+    custom_base: Option<PathBuf>,
 }
 
-/// Prefer quarantine on the **same drive** as the source so `rename` frees space without copying.
-pub fn quarantine_root_for_source(base_data_dir: &Path, original_path: &str) -> PathBuf {
-    let original = Path::new(original_path);
-    if let Some(vol) = volume_root(original) {
-        return vol.join(VOLUME_QUARANTINE_DIR);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum QuarantineLayoutKind {
+    PerSourceDrive,
+    CustomBase,
+}
+
+impl QuarantineStorage {
+    pub fn from_settings(settings: &Settings) -> Self {
+        let trimmed = settings.quarantine_custom_path.trim();
+        if settings.quarantine_layout == "custom" && !trimmed.is_empty() {
+            Self {
+                layout: QuarantineLayoutKind::CustomBase,
+                custom_base: Some(PathBuf::from(trimmed)),
+            }
+        } else {
+            Self {
+                layout: QuarantineLayoutKind::PerSourceDrive,
+                custom_base: None,
+            }
+        }
     }
-    quarantine_root(base_data_dir)
+
+    #[cfg(test)]
+    pub fn per_source_drive() -> Self {
+        Self {
+            layout: QuarantineLayoutKind::PerSourceDrive,
+            custom_base: None,
+        }
+    }
+
+    fn resolve_root(&self, original_path: &str) -> Result<PathBuf, String> {
+        match self.layout {
+            QuarantineLayoutKind::CustomBase => {
+                self.custom_base.clone().ok_or_else(|| {
+                    "Custom quarantine folder is not set. Choose a folder in Settings → Quarantine storage."
+                        .to_string()
+                })
+            }
+            QuarantineLayoutKind::PerSourceDrive => volume_root(Path::new(original_path))
+                .map(|vol| vol.join(VOLUME_QUARANTINE_DIR))
+                .ok_or_else(|| {
+                    format!(
+                        "Could not determine drive for quarantine of {original_path}. \
+                         Set a custom quarantine folder in Settings, or use Delete in place mode."
+                    )
+                }),
+        }
+    }
 }
 
-pub fn quarantine_item_path(base_data_dir: &Path, id: &str, original_path: &str) -> PathBuf {
+pub fn quarantine_item_path(
+    storage: &QuarantineStorage,
+    id: &str,
+    original_path: &str,
+) -> Result<PathBuf, String> {
     let name = Path::new(original_path)
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "target".to_string());
-    quarantine_root_for_source(base_data_dir, original_path)
+    Ok(storage
+        .resolve_root(original_path)?
         .join("items")
-        .join(format!("{id}-{name}"))
+        .join(format!("{id}-{name}")))
 }
 
 pub fn add_quarantine_entry(
@@ -149,20 +199,28 @@ mod tests {
 
     #[test]
     fn quarantine_item_on_source_drive_windows() {
-        let app_data = PathBuf::from(r"C:\Users\dev\AppData\Roaming\deco");
+        let storage = QuarantineStorage::per_source_drive();
         let q = quarantine_item_path(
-            &app_data,
+            &storage,
             "c1",
             r"E:\repo\apps\desktop\src-tauri\target",
-        );
+        )
+        .expect("path");
         let s = q.to_string_lossy();
-        assert!(
-            s.contains(".deco-quarantine"),
-            "expected volume quarantine dir, got {s}"
-        );
+        assert!(s.contains(".deco-quarantine"), "expected volume quarantine dir, got {s}");
         assert!(
             s.starts_with("E:") || s.starts_with("e:"),
             "expected E: drive quarantine, got {s}"
         );
+    }
+
+    #[test]
+    fn custom_base_ignores_source_drive() {
+        let storage = QuarantineStorage {
+            layout: QuarantineLayoutKind::CustomBase,
+            custom_base: Some(PathBuf::from(r"D:\DecoQuarantine")),
+        };
+        let q = quarantine_item_path(&storage, "id1", r"C:\temp\target").expect("path");
+        assert!(q.starts_with(r"D:\DecoQuarantine"));
     }
 }

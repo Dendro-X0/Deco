@@ -94,6 +94,9 @@ export interface Settings {
   check_uv_cache: boolean;
   check_conda_pkgs_cache: boolean;
   delete_mode: string;
+  /** per_drive | custom — only when delete_mode is quarantine */
+  quarantine_layout?: string;
+  quarantine_custom_path?: string;
   quarantine_retention_days: number;
   advanced_mode: boolean;
   default_target_gb: number;
