@@ -364,6 +364,13 @@ pub struct ScanResponse {
     /// Candidates reused from path inventory on a quick update scan (v0.6.1).
     #[serde(default)]
     pub inventory_reused: u64,
+    /// Wall-clock phase timings in milliseconds (v0.6.4).
+    #[serde(default)]
+    pub discover_ms: u64,
+    #[serde(default)]
+    pub classify_ms: u64,
+    #[serde(default)]
+    pub size_ms: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

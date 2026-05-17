@@ -6,6 +6,11 @@ import {
   type ScanProgress,
   scanProgressPhaseLabel,
 } from '@/lib/scan-progress';
+import {
+  formatPhaseTimingLine,
+  phaseTimingTotalMs,
+  type ScanPhaseTimings,
+} from '@/lib/scan-statistics';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -13,12 +18,15 @@ type Props = {
   scanning: boolean;
   busy: boolean;
   elapsedMs: number;
+  phaseTimings?: ScanPhaseTimings | null;
 };
 
-export function StatusFooter({ progress, scanning, busy, elapsedMs }: Props) {
+export function StatusFooter({ progress, scanning, busy, elapsedMs, phaseTimings }: Props) {
   const active = scanning || busy;
   const phaseLabel = scanProgressPhaseLabel(progress.phase);
   const showElapsed = active && elapsedMs > 0;
+  const showPhaseTimings =
+    !active && phaseTimings != null && phaseTimingTotalMs(phaseTimings) > 0;
 
   return (
     <footer className="flex h-14 shrink-0 items-center gap-4 border-t bg-background/80 px-6 backdrop-blur-md">
@@ -44,6 +52,14 @@ export function StatusFooter({ progress, scanning, busy, elapsedMs }: Props) {
         {progress.detail && active ? (
           <span className="line-clamp-2 text-[9px] leading-snug text-muted-foreground/80" title={progress.detail}>
             {progress.detail}
+          </span>
+        ) : null}
+        {showPhaseTimings && phaseTimings ? (
+          <span
+            className="truncate text-[9px] leading-snug text-muted-foreground/90"
+            title={formatPhaseTimingLine(phaseTimings)}
+          >
+            {formatPhaseTimingLine(phaseTimings)}
           </span>
         ) : null}
       </div>

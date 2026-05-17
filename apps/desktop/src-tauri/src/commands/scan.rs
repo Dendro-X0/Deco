@@ -523,6 +523,9 @@ pub(crate) fn run_scan(
         totals_by_kind,
         warnings,
         inventory_reused,
+        discover_ms: timings.discover_ms,
+        classify_ms: timings.classify_ms,
+        size_ms: timings.size_ms,
     })
 }
 

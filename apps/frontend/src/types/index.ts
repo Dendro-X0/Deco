@@ -26,6 +26,12 @@ export interface ScanReport {
   };
   totals_by_kind?: Record<string, { count: number; bytes: number }>;
   warnings?: string[];
+  /** Quick-update rows reused from path inventory (v0.6.1). */
+  inventory_reused?: number;
+  /** Phase timings in ms (v0.6.4). */
+  discover_ms?: number;
+  classify_ms?: number;
+  size_ms?: number;
 }
 
 export interface QuarantineEntry {

@@ -131,7 +131,8 @@ Follow [scanning philosophy](../../PROJECT.md#scanning-philosophy-whitelist--lay
 | `v0.6.1` | Incremental path inventory, Quick update scan, `incremental_inventory_enabled` | Shipped |
 | `v0.6.2` | `deco-bench`, synthetic baseline, CI regression guard | Shipped |
 | `v0.6.3` | Scan strategy presets (`thorough` / `balanced` / `fast` / `background`) | Shipped |
-| `v0.6.4+` | Statistics panel; advanced threading | Planned — see [v0.6.x-roadmap.md](v0.6.x-roadmap.md) |
+| `v0.6.4` | Scan statistics panel (phase timings, reuse %, kinds) | In progress |
+| `v0.6.5+` | Advanced threading; history timings | Planned — see [v0.6.x-roadmap.md](v0.6.x-roadmap.md) |
 
 **Exit criteria:** Each new kind has documented “what breaks if I delete this” text; false-positive tests for Cursor/VS Code/Electron and MSVC paths.
 

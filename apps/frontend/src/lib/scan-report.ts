@@ -63,6 +63,10 @@ export function normalizeScanReport(raw: unknown): ScanReport {
     totals_by_risk: normalizeRiskTotals(r.totals_by_risk ?? r.totalsByRisk),
     totals_by_kind: (r.totals_by_kind ?? r.totalsByKind ?? {}) as ScanReport['totals_by_kind'],
     warnings: Array.isArray(r.warnings) ? (r.warnings as string[]) : [],
+    inventory_reused: Number(r.inventory_reused ?? r.inventoryReused ?? 0) || undefined,
+    discover_ms: Number(r.discover_ms ?? r.discoverMs ?? 0) || undefined,
+    classify_ms: Number(r.classify_ms ?? r.classifyMs ?? 0) || undefined,
+    size_ms: Number(r.size_ms ?? r.sizeMs ?? 0) || undefined,
   };
 }
 

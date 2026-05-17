@@ -20,6 +20,7 @@ import { volumeMountsFromPaths } from '../lib/volume-from-path';
 import { toast } from '../lib/toast';
 import { formatCleanupResultSummary } from '../lib/cleanup-result';
 import { IDLE_PROGRESS, type ScanProgress } from '../lib/scan-progress';
+import { readPhaseTimings, type ScanRunMetrics } from '../lib/scan-statistics';
 
 export function useDeco() {
   const [scanId, setScanId] = useState<string | null>(null);
@@ -57,6 +58,8 @@ export function useDeco() {
   const scanPhaseRef = useRef<string | null>(null);
   const [searchStopped, setSearchStopped] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [scanMetrics, setScanMetrics] = useState<ScanRunMetrics | null>(null);
+  const activeScanModeRef = useRef<'full' | 'quick'>('full');
 
   const tauriInvoke = async (command: string, payload: Record<string, unknown> = {}) => {
     try {
@@ -225,6 +228,8 @@ export function useDeco() {
     setCandidateMap(new Map());
     setSelectedIds(new Set());
     setSummary(null);
+    setScanMetrics(null);
+    activeScanModeRef.current = scanMode;
     setSearchStopped(false);
     scanPhaseRef.current = 'discover';
     setProgress({ percent: 2, text: 'Starting scan…', phase: 'discover' });
@@ -563,6 +568,14 @@ export function useDeco() {
           Number.isFinite(sMs) &&
           (dMs > 0 || cMs > 0 || sMs > 0)
         ) {
+          setScanMetrics((prev) => ({
+            discoverMs: dMs,
+            classifyMs: cMs,
+            sizeMs: sMs,
+            inventoryReused: prev?.inventoryReused,
+            wallMs: prev?.wallMs,
+            scanMode: activeScanModeRef.current,
+          }));
           const fmt = (ms: number) =>
             ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
           const timingSuffix = ` · discover ${fmt(dMs)}, classify ${fmt(cMs)}, size ${fmt(sMs)}`;
@@ -618,14 +631,27 @@ export function useDeco() {
         setCandidateMap(new Map(list.filter((c) => c.id).map((c) => [c.id, c])));
         setSelectedIds(new Set(list.filter((c) => c.risk === 'safe' && c.id).map((c) => c.id)));
         setSummary(report);
+        const phaseTimings = readPhaseTimings(report);
+        const startedAt = operationStartedAtRef.current;
+        const wallMs = startedAt != null ? Date.now() - startedAt : undefined;
+        const reused = report.inventory_reused ?? 0;
+        if (phaseTimings || reused > 0) {
+          setScanMetrics({
+            discoverMs: phaseTimings?.discoverMs ?? 0,
+            classifyMs: phaseTimings?.classifyMs ?? 0,
+            sizeMs: phaseTimings?.sizeMs ?? 0,
+            inventoryReused: reused > 0 ? reused : undefined,
+            wallMs,
+            scanMode: activeScanModeRef.current,
+          });
+        }
         setProgress({ percent: 100, text: 'Scan complete', phase: 'done' });
         const canceled = (report.warnings ?? []).some((w) => w.toLowerCase().includes('cancel'));
         const unsized = list.filter((c) => c.size_bytes === undefined).length;
         const bytes = report.total_bytes ?? 0;
         const sizeHint = bytes > 0 ? ` · ${formatBytes(bytes)} measured` : '';
         const unsizedHint = unsized > 0 ? ` · ${unsized} not calculated` : '';
-        const startedAt = operationStartedAtRef.current;
-        const doneMs = startedAt != null ? Date.now() - startedAt : null;
+        const doneMs = wallMs ?? null;
         const timeHint = doneMs != null ? ` · ${formatDurationMs(doneMs)}` : '';
         setStatus({
           text: canceled
@@ -745,6 +771,7 @@ export function useDeco() {
     progress,
     status,
     summary,
+    scanMetrics,
     quarantine,
     history,
     settings,

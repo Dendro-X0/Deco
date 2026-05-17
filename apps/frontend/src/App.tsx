@@ -38,6 +38,7 @@ import { QuarantinePanel } from './components/QuarantinePanel';
 import { ScanHistoryPanel } from './components/ScanHistoryPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { LastScanSummaryCard } from './components/LastScanSummaryCard';
+import { ScanStatisticsCard } from './components/ScanStatisticsCard';
 import { SelectionActionBar } from './components/SelectionActionBar';
 import { ScanStopControl } from './components/ScanStopControl';
 import {
@@ -156,6 +157,7 @@ export default function App() {
     progress,
     status,
     summary,
+    scanMetrics,
     quarantine,
     history,
     settings,
@@ -650,6 +652,10 @@ export default function App() {
                   />
                 ) : null}
 
+                {summary && !scanning ? (
+                  <ScanStatisticsCard report={summary} metrics={scanMetrics} />
+                ) : null}
+
                 {!summary && !scanning && (
                   <Card className="border-primary/20 bg-primary/5">
                     <CardContent className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -982,6 +988,15 @@ export default function App() {
             scanning={scanning}
             busy={busy}
             elapsedMs={elapsedMs}
+            phaseTimings={
+              scanMetrics
+                ? {
+                    discoverMs: scanMetrics.discoverMs,
+                    classifyMs: scanMetrics.classifyMs,
+                    sizeMs: scanMetrics.sizeMs,
+                  }
+                : null
+            }
           />
         </div>
       </Tabs>

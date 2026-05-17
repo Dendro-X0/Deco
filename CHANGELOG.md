@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+_Planned: v0.6.5 smart discovery patterns + classify parallelism — see [docs/product/v0.6.5-manifest.md](docs/product/v0.6.5-manifest.md)._
+
+## [0.6.4] - 2026-05-17
+
+### Added
+
+- **Scan statistics card** on Dashboard after each scan — phase time bars, Quick update reuse %, top kinds by size.
+- **Copy diagnostics** — clipboard snippet for support (scan id, timings, kinds, warnings).
+- **`discover_ms` / `classify_ms` / `size_ms`** on `ScanResponse` returned with `scan-complete`.
+- **`scan-statistics.ts`** helpers and tests; manifest `docs/product/v0.6.4-manifest.md`.
+
+### Changed
+
+- Status footer shows discover / classify / size breakdown when idle after a scan.
+
 ## [0.6.3] - 2026-05-15
 
 ### Added
