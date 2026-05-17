@@ -25,9 +25,10 @@ fn temp_root(prefix: &str) -> PathBuf {
         .join("..")
         .join(".tmp-rust-tests");
     create_dir_all(&base).expect("create base");
+    let base = std::fs::canonicalize(&base).unwrap_or(base);
     let root = base.join(format!("deco-command-tests-{prefix}-{}", Uuid::new_v4()));
     create_dir_all(&root).expect("create root");
-    root
+    std::fs::canonicalize(&root).unwrap_or(root)
 }
 
 fn candidate(id: &str, abs_path: String, risk: RiskLevel) -> CleanupCandidate {

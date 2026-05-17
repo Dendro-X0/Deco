@@ -1,4 +1,5 @@
 import type { Settings } from '../types';
+import { DISCOVERY_OPTION_KEYS } from './discovery-options';
 import { normalizeSettings } from './settings-normalize';
 import { volumeMountsFromPaths } from './volume-from-path';
 
@@ -12,15 +13,11 @@ const DRAFT_KEYS: (keyof Settings)[] = [
   'max_depth',
   'profile',
   'stale_days',
-  'include_size',
   'show_blocked',
-  'check_go_cache',
   'include_python_artifacts',
-  'include_python_venv',
   'include_jvm_artifacts',
-  'check_jvm_global_cache',
   'include_dotnet_artifacts',
-  'check_ide_global_cache',
+  ...DISCOVERY_OPTION_KEYS,
   'delete_mode',
   'quarantine_layout',
   'quarantine_custom_path',

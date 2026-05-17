@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { DiscoveryOptionsPanel } from '@/components/DiscoveryOptionsPanel';
 import { ScanTargetsPanel } from '@/components/ScanTargetsPanel';
 import type { ScanMode } from '@/components/ScanModeSelector';
 import {
@@ -290,85 +291,11 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
           title="Discovery"
           description="Optional targets and performance trade-offs during scans."
         >
-          <div className="space-y-2">
-            <ToggleRow
-              label="Calculate sizes"
-              description="Turn off for a faster scan (CLI: --no-size)."
-              checked={draft.include_size}
-              onCheckedChange={(v) => patch({ include_size: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="Check global Go cache"
-              description="Opt-in scan for GOCACHE and GOMODCACHE via go env."
-              checked={draft.check_go_cache}
-              onCheckedChange={(v) => patch({ check_go_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="Global JVM caches"
-              description="~/.m2/repository and ~/.gradle/caches (review tier)."
-              checked={draft.check_jvm_global_cache}
-              onCheckedChange={(v) => patch({ check_jvm_global_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="Xcode DerivedData"
-              description="IDE global cache (review tier; opt-in)."
-              checked={draft.check_ide_global_cache}
-              onCheckedChange={(v) => patch({ check_ide_global_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="npm cache"
-              description="npm cache directory with _cacache (regenerate: npm cache clean)."
-              checked={draft.check_npm_cache}
-              onCheckedChange={(v) => patch({ check_npm_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="pnpm store"
-              description="pnpm content store (v3); respects PNPM_STORE_PATH / pnpm store path."
-              checked={draft.check_pnpm_store}
-              onCheckedChange={(v) => patch({ check_pnpm_store: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="Yarn cache"
-              description="Yarn Classic (v6) or Berry global cache; uses yarn cache dir when available."
-              checked={draft.check_yarn_cache}
-              onCheckedChange={(v) => patch({ check_yarn_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="pip cache"
-              description="pip download cache (wheels/http); regen with pip cache purge."
-              checked={draft.check_pip_cache}
-              onCheckedChange={(v) => patch({ check_pip_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="uv cache"
-              description="uv package cache; respects UV_CACHE_DIR / uv cache dir."
-              checked={draft.check_uv_cache}
-              onCheckedChange={(v) => patch({ check_uv_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="Conda pkgs cache"
-              description="Conda/Miniconda package cache (pkgs only; never envs/). Regenerate: conda clean."
-              checked={draft.check_conda_pkgs_cache}
-              onCheckedChange={(v) => patch({ check_conda_pkgs_cache: v })}
-              disabled={scanning || saving}
-            />
-            <ToggleRow
-              label="Include Python venv"
-              description="venv / .venv when a Python project is detected (high risk)."
-              checked={draft.include_python_venv}
-              onCheckedChange={(v) => patch({ include_python_venv: v })}
-              disabled={scanning || saving}
-            />
-          </div>
+          <DiscoveryOptionsPanel
+            settings={draft}
+            disabled={scanning || saving}
+            onPatch={patch}
+          />
         </SettingsSection>
 
         <Separator />
