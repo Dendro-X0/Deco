@@ -7,6 +7,9 @@ import type { DiscoveredTarget } from './scan.js';
 
 const execFileAsync = promisify(execFile);
 
+/** Avoid hanging scans/CI when a toolchain binary is missing or blocks on first run. */
+const COMMAND_TIMEOUT_MS = 3_000;
+
 async function pathExists(dir: string): Promise<boolean> {
   try {
     const st = await stat(dir);
@@ -67,7 +70,11 @@ async function pnpmStoreCandidatePaths(): Promise<string[]> {
     paths.push(process.env.PNPM_STORE_PATH.trim());
   }
   try {
-    const { stdout } = await execFileAsync('pnpm', ['store', 'path'], { windowsHide: true });
+    const { stdout } = await execFileAsync('pnpm', ['store', 'path'], {
+      windowsHide: true,
+      timeout: COMMAND_TIMEOUT_MS,
+      killSignal: 'SIGKILL',
+    });
     const value = stdout.trim();
     if (value) paths.push(value);
   } catch {
@@ -107,7 +114,11 @@ export async function discoverPnpmGlobalStoreIfEnabled(enabled: boolean): Promis
 
 async function commandStdoutPath(bin: string, args: string[]): Promise<string | null> {
   try {
-    const { stdout } = await execFileAsync(bin, args, { windowsHide: true });
+    const { stdout } = await execFileAsync(bin, args, {
+      windowsHide: true,
+      timeout: COMMAND_TIMEOUT_MS,
+      killSignal: 'SIGKILL',
+    });
     const value = stdout.trim();
     return value || null;
   } catch {
@@ -237,9 +248,11 @@ function condaPkgsCandidatePaths(): string[] {
 
 async function condaPkgsCandidatePathsAsync(): Promise<string[]> {
   const paths = condaPkgsCandidatePaths();
-  const fromConda = await commandStdoutPath('conda', ['info', '--base']);
-  if (fromConda) {
-    paths.push(path.join(path.dirname(fromConda), 'pkgs'));
+  if (!process.env.CONDA_PKGS_DIRS?.trim()) {
+    const fromConda = await commandStdoutPath('conda', ['info', '--base']);
+    if (fromConda) {
+      paths.push(path.join(path.dirname(fromConda), 'pkgs'));
+    }
   }
   const home = os.homedir();
   for (const installName of [
