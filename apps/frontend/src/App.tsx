@@ -962,6 +962,7 @@ export default function App() {
           candidates={candidates}
           preview={preview}
           loading={previewLoading}
+          deleteMode={settings?.delete_mode ?? 'delete'}
           onConfirm={confirmCleanup}
         />
       )}
@@ -998,6 +999,7 @@ export default function App() {
         <SelectionActionBar
           selectedCount={selectedIds.size}
           selectedBytes={selectedBytes}
+          deleteMode={settings?.delete_mode ?? 'delete'}
           cleanDisabledReason={cleanSelectedReason}
           busy={scanning || busy}
           onClean={openCleanupPreview}

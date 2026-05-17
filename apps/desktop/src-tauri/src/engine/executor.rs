@@ -1,6 +1,7 @@
 use super::quarantine_store::{add_quarantine_entry, quarantine_item_path};
 use super::types::{CleanupCandidate, ExecuteResponse, GlobalCacheAllow, Kind, RiskLevel};
 use crate::util::native_path::io_path;
+use crate::util::volume::same_volume;
 use rusqlite::Connection;
 use std::fs;
 use std::path::Path;
@@ -22,6 +23,8 @@ pub fn execute_cleanup(
     let mut skipped_opt_in_count = 0u32;
     let mut errors = vec![];
     let mut quarantine_entries = vec![];
+
+    let in_place = delete_mode == "delete" || delete_mode == "hard-delete";
 
     for candidate in candidates {
         if candidate.risk == RiskLevel::Blocked {
@@ -47,16 +50,9 @@ pub fn execute_cleanup(
             continue;
         }
 
-        if delete_mode == "hard-delete" {
-            let io = io_path(path);
-            let result = if io.is_dir() {
-                fs::remove_dir_all(&io)
-            } else {
-                fs::remove_file(&io)
-            };
-
-            if let Err(e) = result {
-                errors.push(format!("Failed hard-delete {}: {}", candidate.abs_path, e));
+        if in_place {
+            if let Err(e) = delete_in_place(path) {
+                errors.push(format!("Failed to delete {}: {}", candidate.abs_path, e));
             } else {
                 deleted_count += 1;
             }
@@ -74,26 +70,41 @@ pub fn execute_cleanup(
             }
         }
 
-        if let Err(e) = move_path(path, &q_path) {
-            errors.push(format!(
+        match move_path(path, &q_path) {
+            Ok(()) => match add_quarantine_entry(
+                conn,
+                &candidate.abs_path,
+                &q_path.to_string_lossy(),
+                candidate.size_bytes,
+                candidate.reason_codes.join(","),
+            ) {
+                Ok(entry) => {
+                    quarantined_count += 1;
+                    quarantine_entries.push(entry);
+                }
+                Err(e) => errors.push(e),
+            },
+            Err(e) if candidate.risk == RiskLevel::Safe && is_disk_full_error(&e) => {
+                match delete_in_place(path) {
+                    Ok(()) => {
+                        deleted_count += 1;
+                        errors.push(format!(
+                            "Disk full for quarantine copy; deleted in place instead: {}",
+                            candidate.abs_path
+                        ));
+                    }
+                    Err(del_err) => {
+                        errors.push(format!(
+                            "Failed to quarantine {} ({}); in-place delete also failed: {}",
+                            candidate.abs_path, e, del_err
+                        ));
+                    }
+                }
+            }
+            Err(e) => errors.push(format!(
                 "Failed to quarantine {}: {}",
                 candidate.abs_path, e
-            ));
-            continue;
-        }
-
-        match add_quarantine_entry(
-            conn,
-            &candidate.abs_path,
-            &q_path.to_string_lossy(),
-            candidate.size_bytes,
-            candidate.reason_codes.join(","),
-        ) {
-            Ok(entry) => {
-                quarantined_count += 1;
-                quarantine_entries.push(entry);
-            }
-            Err(e) => errors.push(e),
+            )),
         }
     }
 
@@ -107,6 +118,23 @@ pub fn execute_cleanup(
         errors,
         quarantine_entries,
     }
+}
+
+fn delete_in_place(path: &Path) -> Result<(), String> {
+    let io = io_path(path);
+    if io.is_dir() {
+        fs::remove_dir_all(&io).map_err(|e| format!("{e}"))
+    } else {
+        fs::remove_file(&io).map_err(|e| format!("{e}"))
+    }
+}
+
+fn is_disk_full_error(message: &str) -> bool {
+    let lower = message.to_lowercase();
+    lower.contains("not enough space")
+        || lower.contains("no space left")
+        || lower.contains("os error 112")
+        || lower.contains("os error 28")
 }
 
 fn opt_in_refusal(
@@ -151,18 +179,28 @@ fn opt_in_refusal(
 }
 
 fn move_path(src: &Path, dst: &Path) -> Result<(), String> {
+    if !same_volume(src, dst) {
+        return Err(
+            "quarantine destination is on a different drive (would require copying). \
+             Use Settings → Delete mode → “Delete in place” when the disk is full."
+                .to_string(),
+        );
+    }
+
     let src_io = io_path(src);
     let dst_io = io_path(dst);
     match fs::rename(&src_io, &dst_io) {
         Ok(_) => Ok(()),
-        Err(_) => {
+        Err(rename_err) => {
             if src_io.is_dir() {
                 copy_dir_all(&src_io, &dst_io)?;
-                fs::remove_dir_all(&src_io).map_err(|e| format!("remove source dir failed: {e}"))?;
+                fs::remove_dir_all(&src_io)
+                    .map_err(|e| format!("remove source dir failed: {e}"))?;
             } else {
                 fs::copy(&src_io, &dst_io).map_err(|e| format!("copy file failed: {e}"))?;
                 fs::remove_file(&src_io).map_err(|e| format!("remove source file failed: {e}"))?;
             }
+            let _ = rename_err;
             Ok(())
         }
     }

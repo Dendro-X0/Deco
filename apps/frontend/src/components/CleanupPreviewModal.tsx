@@ -3,6 +3,7 @@ import { AlertTriangle, ShieldCheck, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { cleanupActionLabels } from '@/lib/delete-mode';
 import { formatBytes } from '@/lib/format';
 import type { Candidate, ExecutePreviewResponse } from '@/types';
 
@@ -15,6 +16,7 @@ type Props = {
   candidates: Candidate[];
   preview: ExecutePreviewResponse | null;
   loading: boolean;
+  deleteMode: string;
   onConfirm: (includeReview: boolean) => void;
 };
 
@@ -29,8 +31,11 @@ function CleanupPreviewModalBody({
   candidates,
   preview,
   loading,
+  deleteMode,
   onConfirm,
 }: Props) {
+  const modeLabels = cleanupActionLabels(deleteMode);
+  const isDeleteMode = deleteMode === 'delete' || deleteMode === 'hard-delete';
   const selectedReviewCount = candidates.filter(
     (c) => selectedIds.has(c.id) && c.risk === 'review',
   ).length;
@@ -63,9 +68,7 @@ function CleanupPreviewModalBody({
             <h3 id="preview-cleanup-title" className="text-lg font-bold">
               Preview cleanup
             </h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Files go to quarantine first — you can restore them anytime.
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{modeLabels.previewHint}</p>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X size={18} />
@@ -154,8 +157,12 @@ function CleanupPreviewModalBody({
           </Button>
           <Button disabled={!canConfirm} onClick={() => onConfirm(includeReview && hasReviewSelected)}>
             {willQuarantineCount > 0
-              ? `Move ${willQuarantineCount} to quarantine`
-              : 'Nothing to quarantine'}
+              ? isDeleteMode
+                ? `Delete ${willQuarantineCount} now`
+                : `Move ${willQuarantineCount} to quarantine`
+              : isDeleteMode
+                ? 'Nothing to delete'
+                : 'Nothing to quarantine'}
           </Button>
         </div>
       </div>

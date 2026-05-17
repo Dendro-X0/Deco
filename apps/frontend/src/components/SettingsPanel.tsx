@@ -362,10 +362,36 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
 
         <Separator />
 
-        <SettingsSection title="Safety">
+        <SettingsSection
+          title="Safety"
+          description="How cleanup frees space. Use Delete when the drive is almost full."
+        >
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Delete mode</label>
+            <Select
+              value={draft.delete_mode === 'quarantine' ? 'quarantine' : 'delete'}
+              onValueChange={(v) => patch({ delete_mode: v })}
+              disabled={scanning || saving}
+            >
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="delete">
+                  Delete in place (recommended) — frees space immediately, no copy
+                </SelectItem>
+                <SelectItem value="quarantine">
+                  Quarantine on same drive — moves to .deco-quarantine, restorable
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Quarantine never copies to another drive (avoids “not enough space” when E: is full).
+            </p>
+          </div>
           <ToggleRow
             label="Advanced mode"
-            description="Enables destructive actions and experimental classifiers."
+            description="Enables hard-delete and experimental classifiers."
             checked={draft.advanced_mode}
             onCheckedChange={(v) => patch({ advanced_mode: v })}
             disabled={scanning || saving}

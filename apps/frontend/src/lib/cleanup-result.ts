@@ -16,8 +16,11 @@ export function formatCleanupResultSummary(
 
   if (moved > 0) {
     const parts = [
-      `${quarantined} moved to quarantine`,
-      deleted > 0 ? `${deleted} deleted` : null,
+      deleted > 0 && quarantined === 0
+        ? `${deleted} deleted (freed space immediately)`
+        : quarantined > 0 && deleted === 0
+          ? `${quarantined} moved to quarantine`
+          : `${quarantined} quarantined, ${deleted} deleted in place`,
     ].filter(Boolean);
     const skippedParts = [
       skippedReview > 0 ? `${skippedReview} review-tier skipped (enable in preview)` : null,

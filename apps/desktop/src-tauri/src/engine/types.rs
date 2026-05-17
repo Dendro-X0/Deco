@@ -439,7 +439,7 @@ impl Default for Settings {
             check_pip_cache: false,
             check_uv_cache: false,
             check_conda_pkgs_cache: false,
-            delete_mode: "quarantine".to_string(),
+            delete_mode: "delete".to_string(),
             quarantine_retention_days: 30,
             advanced_mode: false,
             default_target_gb: 10,

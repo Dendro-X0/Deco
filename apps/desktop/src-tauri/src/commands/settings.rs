@@ -102,7 +102,10 @@ pub fn save_settings(settings: Settings, state: State<Arc<AppState>>) -> Result<
         settings.default_target_gb = 10;
     }
     if settings.delete_mode == "hard-delete" && !settings.advanced_mode {
-        settings.delete_mode = "quarantine".to_string();
+        settings.delete_mode = "delete".to_string();
+    }
+    if settings.delete_mode == "recycle-bin" {
+        settings.delete_mode = "delete".to_string();
     }
 
     {

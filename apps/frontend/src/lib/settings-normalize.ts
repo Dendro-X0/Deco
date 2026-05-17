@@ -53,7 +53,7 @@ export function normalizeSettings(raw: unknown): Settings {
     check_pip_cache: bool('check_pip_cache', 'checkPipCache', false),
     check_uv_cache: bool('check_uv_cache', 'checkUvCache', false),
     check_conda_pkgs_cache: bool('check_conda_pkgs_cache', 'checkCondaPkgsCache', false),
-    delete_mode: str('delete_mode', 'deleteMode', 'quarantine'),
+    delete_mode: str('delete_mode', 'deleteMode', 'delete'),
     quarantine_retention_days: num('quarantine_retention_days', 'quarantineRetentionDays', 30),
     advanced_mode: bool('advanced_mode', 'advancedMode', false),
     default_target_gb: num('default_target_gb', 'defaultTargetGb', 10),

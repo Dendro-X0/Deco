@@ -1,11 +1,23 @@
 use super::types::QuarantineEntry;
+use crate::util::volume::volume_root;
 use chrono::Utc;
 use rusqlite::{params, Connection};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
+const VOLUME_QUARANTINE_DIR: &str = ".deco-quarantine";
+
 pub fn quarantine_root(base_data_dir: &Path) -> PathBuf {
     base_data_dir.join("quarantine")
+}
+
+/// Prefer quarantine on the **same drive** as the source so `rename` frees space without copying.
+pub fn quarantine_root_for_source(base_data_dir: &Path, original_path: &str) -> PathBuf {
+    let original = Path::new(original_path);
+    if let Some(vol) = volume_root(original) {
+        return vol.join(VOLUME_QUARANTINE_DIR);
+    }
+    quarantine_root(base_data_dir)
 }
 
 pub fn quarantine_item_path(base_data_dir: &Path, id: &str, original_path: &str) -> PathBuf {
@@ -13,7 +25,7 @@ pub fn quarantine_item_path(base_data_dir: &Path, id: &str, original_path: &str)
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "target".to_string());
-    quarantine_root(base_data_dir)
+    quarantine_root_for_source(base_data_dir, original_path)
         .join("items")
         .join(format!("{id}-{name}"))
 }
@@ -129,4 +141,28 @@ pub fn get_entry_by_id(conn: &Connection, id: &str) -> Result<Option<QuarantineE
     }
 
     Ok(None)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn quarantine_item_on_source_drive_windows() {
+        let app_data = PathBuf::from(r"C:\Users\dev\AppData\Roaming\deco");
+        let q = quarantine_item_path(
+            &app_data,
+            "c1",
+            r"E:\repo\apps\desktop\src-tauri\target",
+        );
+        let s = q.to_string_lossy();
+        assert!(
+            s.contains(".deco-quarantine"),
+            "expected volume quarantine dir, got {s}"
+        );
+        assert!(
+            s.starts_with("E:") || s.starts_with("e:"),
+            "expected E: drive quarantine, got {s}"
+        );
+    }
 }

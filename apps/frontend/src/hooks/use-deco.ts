@@ -277,15 +277,20 @@ export function useDeco() {
     setBusy(true);
     operationStartedAtRef.current = Date.now();
     setElapsedMs(0);
+    const deleting = deleteMode === 'delete' || deleteMode === 'hard-delete';
     setProgress({
       percent: 15,
-      text: `Moving ${candidateIds.length} item(s) to quarantine…`,
+      text: deleting
+        ? `Deleting ${candidateIds.length} item(s)…`
+        : `Moving ${candidateIds.length} item(s) to quarantine…`,
       phase: 'cleanup',
     });
-    setStatus({ text: 'Cleanup in progress…', type: 'active' });
+    setStatus({ text: deleting ? 'Deleting…' : 'Cleanup in progress…', type: 'active' });
     toast({
-      title: 'Cleanup started',
-      description: 'Moving selected folders to quarantine. Large trees may take several minutes.',
+      title: deleting ? 'Delete started' : 'Cleanup started',
+      description: deleting
+        ? 'Removing selected folders from disk. Large trees (e.g. Rust target) may take a minute.'
+        : 'Moving to .deco-quarantine on the same drive (rename, not copy).',
       variant: 'info',
     });
     try {
@@ -314,12 +319,15 @@ export function useDeco() {
         text: summaryMsg.title,
         phase: 'cleanup',
       });
+      const moved = (result.quarantined_count ?? 0) + (result.deleted_count ?? 0);
       setStatus({
         text:
-          result.quarantined_count > 0
-            ? `${result.quarantined_count} in quarantine — open Quarantine tab to restore`
+          moved > 0
+            ? result.deleted_count > 0
+              ? `Freed space: ${result.deleted_count} deleted`
+              : `${result.quarantined_count} in quarantine — open Quarantine tab to restore`
             : summaryMsg.description,
-        type: result.quarantined_count > 0 ? 'done' : 'error',
+        type: moved > 0 ? 'done' : 'error',
       });
       return result;
     } catch {
