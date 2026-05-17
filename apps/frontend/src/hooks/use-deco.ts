@@ -17,6 +17,7 @@ import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normaliz
 import { formatBytes, formatDurationMs } from '../lib/format';
 import { volumeMountsFromPaths } from '../lib/volume-from-path';
 import { toast } from '../lib/toast';
+import { formatCleanupResultSummary } from '../lib/cleanup-result';
 import { IDLE_PROGRESS, type ScanProgress } from '../lib/scan-progress';
 
 export function useDeco() {
@@ -276,9 +277,15 @@ export function useDeco() {
     setBusy(true);
     operationStartedAtRef.current = Date.now();
     setElapsedMs(0);
+    setProgress({
+      percent: 15,
+      text: `Moving ${candidateIds.length} item(s) to quarantine…`,
+      phase: 'cleanup',
+    });
+    setStatus({ text: 'Cleanup in progress…', type: 'active' });
     toast({
       title: 'Cleanup started',
-      description: 'Quarantining selected items. This may take a few minutes.',
+      description: 'Moving selected folders to quarantine. Large trees may take several minutes.',
       variant: 'info',
     });
     try {
@@ -293,12 +300,30 @@ export function useDeco() {
       setSelectedIds(new Set());
       await refreshQuarantine();
       await refreshHistory();
+      const summaryMsg = formatCleanupResultSummary(result, candidateIds.length);
+      toast({
+        title: summaryMsg.title,
+        description: summaryMsg.description,
+        variant: summaryMsg.variant,
+      });
+      if (result.errors?.length) {
+        setError(result.errors.slice(0, 3).join(' · '));
+      }
+      setProgress({
+        percent: 100,
+        text: summaryMsg.title,
+        phase: 'cleanup',
+      });
       setStatus({
-        text: `Cleanup complete: ${result.quarantined_count} quarantined.`,
-        type: 'done',
+        text:
+          result.quarantined_count > 0
+            ? `${result.quarantined_count} in quarantine — open Quarantine tab to restore`
+            : summaryMsg.description,
+        type: result.quarantined_count > 0 ? 'done' : 'error',
       });
       return result;
     } catch {
+      setProgress(IDLE_PROGRESS);
       return null;
     } finally {
       setBusy(false);
@@ -370,7 +395,8 @@ export function useDeco() {
         rawPhase === 'discover' ||
         rawPhase === 'classify' ||
         rawPhase === 'size' ||
-        rawPhase === 'done'
+        rawPhase === 'done' ||
+        rawPhase === 'cleanup'
           ? rawPhase
           : null;
       let percent = 0;

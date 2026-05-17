@@ -439,8 +439,9 @@ export default function App() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     setPreviewOpen(false);
-    const result = await executeCleanup(ids, includeReview);
-    if (result) {
+    const deleteMode = settings?.delete_mode ?? 'quarantine';
+    const result = await executeCleanup(ids, includeReview, deleteMode);
+    if (result && (result.quarantined_count > 0 || result.deleted_count > 0)) {
       setWizardStep('done');
       if (wizardOpen) setWizardOpen(true);
     }

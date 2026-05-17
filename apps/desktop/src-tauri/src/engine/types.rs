@@ -272,6 +272,9 @@ pub struct ExecuteResponse {
     pub deleted_count: u32,
     pub quarantined_count: u32,
     pub skipped_blocked_count: u32,
+    pub skipped_review_count: u32,
+    pub skipped_not_found_count: u32,
+    pub skipped_opt_in_count: u32,
     pub errors: Vec<String>,
     pub quarantine_entries: Vec<QuarantineEntry>,
 }

@@ -30,7 +30,7 @@ export function SelectionActionBar({
             {selectedCount} selected
             <span className="text-muted-foreground font-medium"> · {formatBytes(selectedBytes)}</span>
           </p>
-          <p className="text-[10px] text-muted-foreground">Ready to preview cleanup</p>
+          <p className="text-[10px] text-muted-foreground">Moves to quarantine (restorable) — not permanent delete</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Button variant="ghost" size="sm" className="gap-1 h-8" disabled={busy} onClick={onClearSelection}>
@@ -45,7 +45,7 @@ export function SelectionActionBar({
               onClick={onClean}
             >
               <Trash2 size={14} />
-              Clean selected…
+              Move to quarantine…
             </Button>
           </DisabledActionHint>
         </div>

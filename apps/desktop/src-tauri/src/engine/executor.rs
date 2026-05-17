@@ -1,5 +1,6 @@
 use super::quarantine_store::{add_quarantine_entry, quarantine_item_path};
 use super::types::{CleanupCandidate, ExecuteResponse, GlobalCacheAllow, Kind, RiskLevel};
+use crate::util::native_path::io_path;
 use rusqlite::Connection;
 use std::fs;
 use std::path::Path;
@@ -16,6 +17,9 @@ pub fn execute_cleanup(
     let mut deleted_count = 0u32;
     let mut quarantined_count = 0u32;
     let mut skipped_blocked_count = 0u32;
+    let mut skipped_review_count = 0u32;
+    let mut skipped_not_found_count = 0u32;
+    let mut skipped_opt_in_count = 0u32;
     let mut errors = vec![];
     let mut quarantine_entries = vec![];
 
@@ -26,91 +30,29 @@ pub fn execute_cleanup(
             continue;
         }
 
-        if candidate.kind == Kind::GoGlobalCache && !allow_global.go {
-            errors.push(format!(
-                "Refused global Go cache (enable “Check global Go cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::JvmGlobalCache && !allow_global.jvm {
-            errors.push(format!(
-                "Refused global JVM cache (enable “Check global JVM cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::IdeGlobalCache && !allow_global.ide {
-            errors.push(format!(
-                "Refused IDE global cache (enable “Check IDE global cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::NpmGlobalCache && !allow_global.npm {
-            errors.push(format!(
-                "Refused npm cache (enable “Check npm cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::PnpmGlobalStore && !allow_global.pnpm {
-            errors.push(format!(
-                "Refused pnpm store (enable “Check pnpm store” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::YarnGlobalCache && !allow_global.yarn {
-            errors.push(format!(
-                "Refused Yarn cache (enable “Check Yarn cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::PipGlobalCache && !allow_global.pip {
-            errors.push(format!(
-                "Refused pip cache (enable “Check pip cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::UvGlobalCache && !allow_global.uv {
-            errors.push(format!(
-                "Refused uv cache (enable “Check uv cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::CondaPkgsCache && !allow_global.conda {
-            errors.push(format!(
-                "Refused Conda package cache (enable “Conda pkgs cache” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
-            continue;
-        }
-        if candidate.kind == Kind::PythonVenv && !allow_python_venv {
-            errors.push(format!(
-                "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {}",
-                candidate.abs_path
-            ));
+        if let Some(msg) = opt_in_refusal(&candidate, &allow_global, allow_python_venv) {
+            skipped_opt_in_count += 1;
+            errors.push(msg);
             continue;
         }
 
         if candidate.risk == RiskLevel::Review && !include_review {
+            skipped_review_count += 1;
             continue;
         }
 
         let path = Path::new(&candidate.abs_path);
         if !path.exists() {
+            skipped_not_found_count += 1;
             continue;
         }
 
         if delete_mode == "hard-delete" {
-            let result = if path.is_dir() {
-                fs::remove_dir_all(path)
+            let io = io_path(path);
+            let result = if io.is_dir() {
+                fs::remove_dir_all(&io)
             } else {
-                fs::remove_file(path)
+                fs::remove_file(&io)
             };
 
             if let Err(e) = result {
@@ -159,21 +101,67 @@ pub fn execute_cleanup(
         deleted_count,
         quarantined_count,
         skipped_blocked_count,
+        skipped_review_count,
+        skipped_not_found_count,
+        skipped_opt_in_count,
         errors,
         quarantine_entries,
     }
 }
 
+fn opt_in_refusal(
+    candidate: &CleanupCandidate,
+    allow_global: &GlobalCacheAllow,
+    allow_python_venv: bool,
+) -> Option<String> {
+    let path = &candidate.abs_path;
+    match candidate.kind {
+        Kind::GoGlobalCache if !allow_global.go => Some(format!(
+            "Refused global Go cache (enable “Check global Go cache” in settings and re-scan): {path}"
+        )),
+        Kind::JvmGlobalCache if !allow_global.jvm => Some(format!(
+            "Refused global JVM cache (enable “Check global JVM cache” in settings and re-scan): {path}"
+        )),
+        Kind::IdeGlobalCache if !allow_global.ide => Some(format!(
+            "Refused IDE global cache (enable “Check IDE global cache” in settings and re-scan): {path}"
+        )),
+        Kind::NpmGlobalCache if !allow_global.npm => Some(format!(
+            "Refused npm cache (enable “Check npm cache” in settings and re-scan): {path}"
+        )),
+        Kind::PnpmGlobalStore if !allow_global.pnpm => Some(format!(
+            "Refused pnpm store (enable “Check pnpm store” in settings and re-scan): {path}"
+        )),
+        Kind::YarnGlobalCache if !allow_global.yarn => Some(format!(
+            "Refused Yarn cache (enable “Check Yarn cache” in settings and re-scan): {path}"
+        )),
+        Kind::PipGlobalCache if !allow_global.pip => Some(format!(
+            "Refused pip cache (enable “Check pip cache” in settings and re-scan): {path}"
+        )),
+        Kind::UvGlobalCache if !allow_global.uv => Some(format!(
+            "Refused uv cache (enable “Check uv cache” in settings and re-scan): {path}"
+        )),
+        Kind::CondaPkgsCache if !allow_global.conda => Some(format!(
+            "Refused Conda package cache (enable “Conda pkgs cache” in settings and re-scan): {path}"
+        )),
+        Kind::PythonVenv if !allow_python_venv => Some(format!(
+            "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {path}"
+        )),
+        _ => None,
+    }
+}
+
 fn move_path(src: &Path, dst: &Path) -> Result<(), String> {
-    match fs::rename(src, dst) {
+    let src_io = io_path(src);
+    let dst_io = io_path(dst);
+    match fs::rename(&src_io, &dst_io) {
         Ok(_) => Ok(()),
         Err(_) => {
-            if src.is_dir() {
-                copy_dir_all(src, dst)?;
-                fs::remove_dir_all(src).map_err(|e| format!("remove source dir failed: {e}"))?;
+            if src_io.is_dir() {
+                copy_dir_all(&src_io, &dst_io)?;
+                fs::remove_dir_all(&src_io).map_err(|e| format!("remove source dir failed: {e}"))?;
             } else {
-                fs::copy(src, dst).map_err(|e| format!("copy file failed: {e}"))?;
-                fs::remove_file(src).map_err(|e| format!("remove source file failed: {e}"))?;
+                fs::copy(&src_io, &dst_io).map_err(|e| format!("copy file failed: {e}"))?;
+                fs::remove_file(&src_io).map_err(|e| format!("remove source file failed: {e}"))?;
             }
             Ok(())
         }

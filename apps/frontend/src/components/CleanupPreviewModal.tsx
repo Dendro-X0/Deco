@@ -18,8 +18,12 @@ type Props = {
   onConfirm: (includeReview: boolean) => void;
 };
 
-export function CleanupPreviewModal({
-  open,
+export function CleanupPreviewModal(props: Props) {
+  if (!props.open) return null;
+  return <CleanupPreviewModalBody {...props} />;
+}
+
+function CleanupPreviewModalBody({
   onClose,
   selectedIds,
   candidates,
@@ -27,22 +31,24 @@ export function CleanupPreviewModal({
   loading,
   onConfirm,
 }: Props) {
-  const [includeReview, setIncludeReview] = useState(false);
-  const [phrase, setPhrase] = useState('');
-
   const selectedReviewCount = candidates.filter(
     (c) => selectedIds.has(c.id) && c.risk === 'review',
   ).length;
   const hasReviewSelected = selectedReviewCount > 0;
-  const phraseOk = !includeReview || phrase.trim() === REVIEW_PHRASE;
+  const [includeReview, setIncludeReview] = useState(hasReviewSelected);
+  const [phrase, setPhrase] = useState('');
+
+  const safeSelectedCount = preview?.totals_by_risk?.safe?.count ?? 0;
+  const willQuarantineCount = includeReview
+    ? (preview?.selected_count ?? 0)
+    : safeSelectedCount;
+  const phraseOk = !includeReview || !hasReviewSelected || phrase.trim() === REVIEW_PHRASE;
   const canConfirm =
     !loading &&
     preview &&
     preview.blocked_count === 0 &&
     phraseOk &&
-    (!includeReview || hasReviewSelected);
-
-  if (!open) return null;
+    willQuarantineCount > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -147,7 +153,9 @@ export function CleanupPreviewModal({
             Cancel
           </Button>
           <Button disabled={!canConfirm} onClick={() => onConfirm(includeReview && hasReviewSelected)}>
-            Quarantine selected
+            {willQuarantineCount > 0
+              ? `Move ${willQuarantineCount} to quarantine`
+              : 'Nothing to quarantine'}
           </Button>
         </div>
       </div>

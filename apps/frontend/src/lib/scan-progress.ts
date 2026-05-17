@@ -1,4 +1,4 @@
-export type ScanProgressPhase = 'discover' | 'classify' | 'size' | 'done' | null;
+export type ScanProgressPhase = 'discover' | 'classify' | 'size' | 'done' | 'cleanup' | null;
 
 export type ScanProgress = {
   percent: number;
@@ -17,6 +17,7 @@ const PHASE_LABELS: Record<Exclude<ScanProgressPhase, null>, string> = {
   classify: 'Classify',
   size: 'Size',
   done: 'Done',
+  cleanup: 'Cleanup',
 };
 
 export function scanProgressPhaseLabel(phase: ScanProgressPhase): string | null {

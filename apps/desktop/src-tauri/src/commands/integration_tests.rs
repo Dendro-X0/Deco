@@ -180,6 +180,7 @@ fn review_targets_are_skipped_without_include_review() {
 
     let result = execute_cleanup_core(req, &state).expect("execute cleanup");
     assert_eq!(result.quarantined_count, 0);
+    assert_eq!(result.skipped_review_count, 1);
     assert!(target.exists());
 
     drop(state);

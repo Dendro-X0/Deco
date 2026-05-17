@@ -130,6 +130,9 @@ export interface ExecuteResponse {
   quarantined_count: number;
   deleted_count: number;
   skipped_blocked_count: number;
+  skipped_review_count?: number;
+  skipped_not_found_count?: number;
+  skipped_opt_in_count?: number;
   errors: string[];
 }
 
