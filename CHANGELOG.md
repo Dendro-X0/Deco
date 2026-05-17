@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-05-17
+
+### Fixed
+
+- **CLI**: Cap toolchain subprocess probes at 3s; skip `conda info --base` when `CONDA_PKGS_DIRS` is set (fixes Ubuntu CI timeout and hung scans without conda).
+
+### Added
+
+- Same as **0.5.2** (Conda pkgs cache, regeneration hints, scan contract `2.4.0`) — that tag did not ship installers due to CI; **0.5.3** is the first published release with those features.
+
 ## [0.5.2] - 2026-05-16
 
 ### Added
