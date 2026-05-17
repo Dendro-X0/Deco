@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-05-15
+
+### Added
+
+- **Settings → Discovery**: categorized tabs (package managers, runtimes, IDE), **Select all / Clear all**, **Shift+click** range selection; bun cache placeholder.
+
+### Fixed
+
+- **Quarantine on macOS/Linux CI**: writable per-user quarantine base (not `/.deco-quarantine`); Windows-style `E:\` paths parsed before absolutize.
+- **Discovery tab UI**: active tab ring no longer clipped by scroll container.
+
 ## [0.5.4] - 2026-05-15
 
 ### Added

@@ -105,39 +105,6 @@ fn unix_quarantine_base(abs: &Path) -> Option<PathBuf> {
     }
 }
 
-/// Drive root for volume comparisons (`E:\` on Windows, `/` on Unix for absolute paths).
-pub fn volume_root(path: &Path) -> Option<PathBuf> {
-    let raw = path.as_os_str().to_string_lossy();
-    if let Some(drive) = windows_drive_root(&raw) {
-        return Some(drive);
-    }
-    if let Some(unc) = unc_share_root(&raw) {
-        return Some(unc);
-    }
-
-    let abs = absolutize(path);
-    let abs_raw = abs.to_string_lossy();
-    if let Some(drive) = windows_drive_root(&abs_raw) {
-        return Some(drive);
-    }
-    if let Some(unc) = unc_share_root(&abs_raw) {
-        return Some(unc);
-    }
-
-    if abs.is_absolute() {
-        #[cfg(unix)]
-        {
-            return Some(PathBuf::from("/"));
-        }
-        #[cfg(windows)]
-        {
-            return None;
-        }
-    }
-
-    None
-}
-
 pub fn same_volume(a: &Path, b: &Path) -> bool {
     match (quarantine_volume_base(a), quarantine_volume_base(b)) {
         (Some(va), Some(vb)) => va == vb,
@@ -151,8 +118,6 @@ mod tests {
 
     #[test]
     fn windows_style_drive_on_unix_ci() {
-        let root = volume_root(Path::new(r"E:\repo\target"));
-        assert_eq!(root, Some(PathBuf::from(r"E:\")));
         let q = quarantine_volume_base(Path::new(r"E:\repo\target"));
         assert_eq!(q, Some(PathBuf::from(r"E:\")));
     }
@@ -161,8 +126,8 @@ mod tests {
     fn relative_path_resolves_against_cwd() {
         let cwd = std::env::current_dir().expect("cwd");
         let rel = Path::new(".");
-        let root = volume_root(rel).expect("volume for cwd-relative path");
-        let expected = volume_root(&cwd).expect("volume for cwd");
+        let root = quarantine_volume_base(rel).expect("volume for cwd-relative path");
+        let expected = quarantine_volume_base(&cwd).expect("volume for cwd");
         assert_eq!(root, expected);
     }
 
