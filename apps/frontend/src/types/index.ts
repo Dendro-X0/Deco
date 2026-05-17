@@ -93,6 +93,9 @@ export interface Settings {
   check_pip_cache: boolean;
   check_uv_cache: boolean;
   check_conda_pkgs_cache: boolean;
+  check_bun_cache?: boolean;
+  check_cargo_registry?: boolean;
+  check_nuget_cache?: boolean;
   delete_mode: string;
   /** per_drive | custom — only when delete_mode is quarantine */
   quarantine_layout?: string;

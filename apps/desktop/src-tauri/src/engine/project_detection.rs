@@ -217,6 +217,14 @@ pub fn has_dotnet_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
     has_marker_ancestor(start_dir, max_ascend, dir_has_dotnet_marker)
 }
 
+fn dir_has_cmake_marker(dir: &Path) -> bool {
+    exists(dir.join("CMakeLists.txt")) || exists(dir.join("CMakeCache.txt"))
+}
+
+pub fn has_cmake_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
+    has_marker_ancestor(start_dir, max_ascend, dir_has_cmake_marker)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

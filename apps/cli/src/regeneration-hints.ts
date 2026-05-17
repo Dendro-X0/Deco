@@ -10,6 +10,9 @@ const HINTS: Partial<Record<TargetDirKind, string>> = {
   'pip-global-cache': '`pip cache purge`',
   'uv-global-cache': '`uv cache clean`',
   'conda-pkgs-cache': '`conda clean --all -p` (package cache only; does not remove envs)',
+  'cargo-registry-cache': '`cargo cache -a`; crates re-download on next build',
+  'bun-global-cache': '`bun pm cache rm`; packages re-fetch on install',
+  'nuget-global-cache': 'Restore with `dotnet restore` / `nuget restore`',
 };
 
 export function regenerationHintForKind(kind: TargetDirKind): string | undefined {

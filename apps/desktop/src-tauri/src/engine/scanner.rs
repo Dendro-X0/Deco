@@ -1,8 +1,9 @@
 use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
 use super::ecosystem_globals::{
-    discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
-    discover_conda_pkgs_caches, discover_pip_global_caches, discover_pnpm_global_store,
+    discover_bun_global_caches, discover_cargo_registry_caches, discover_ide_global_caches,
+    discover_jvm_global_caches, discover_npm_global_caches, discover_conda_pkgs_caches,
+    discover_nuget_global_caches, discover_pip_global_caches, discover_pnpm_global_store,
     discover_uv_global_caches, discover_yarn_global_caches,
 };
 use super::path_policy::PathPolicy;
@@ -118,6 +119,15 @@ fn detect_kind(
         "target" | ".cargo-target" | "pkg" => return Some(Kind::RustArtifact),
         ".next" | ".svelte-kit" | ".astro" | ".cache" | "dist-firefox" => {
             return Some(Kind::BuildArtifact);
+        }
+        name if profile != "safe"
+            && (name.starts_with("cmake-build-")
+                || (profile == "aggressive" && name == "out")) =>
+        {
+            if cache.has_cmake_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
         }
         ".turbo" | ".vite" | ".nuxt" | ".parcel-cache" | ".eslintcache" | ".tmp" | "tmp"
         | "temp" | "cache"
@@ -489,6 +499,21 @@ pub fn discover_targets(
         let (conda_targets, conda_warnings) = discover_conda_pkgs_caches();
         all_targets.extend(conda_targets);
         warnings.extend(conda_warnings);
+    }
+    if eco.check_cargo_registry && !canceled {
+        let (cargo_targets, cargo_warnings) = discover_cargo_registry_caches();
+        all_targets.extend(cargo_targets);
+        warnings.extend(cargo_warnings);
+    }
+    if eco.check_bun_cache && !canceled {
+        let (bun_targets, bun_warnings) = discover_bun_global_caches();
+        all_targets.extend(bun_targets);
+        warnings.extend(bun_warnings);
+    }
+    if eco.check_nuget_cache && !canceled {
+        let (nuget_targets, nuget_warnings) = discover_nuget_global_caches();
+        all_targets.extend(nuget_targets);
+        warnings.extend(nuget_warnings);
     }
 
     let targets = dedupe_targets_by_canonical_path(all_targets, &mut warnings);

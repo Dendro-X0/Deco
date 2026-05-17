@@ -14,7 +14,10 @@ describe('discovery-options', () => {
     expect(next.check_npm_cache).toBe(true);
     expect(next.check_pnpm_store).toBe(true);
     expect(next.check_conda_pkgs_cache).toBe(true);
-    expect(countEnabledInCategory(next, 'package_managers').enabled).toBe(6);
+    expect(next.check_bun_cache).toBe(true);
+    expect(next.check_nuget_cache).toBe(true);
+    expect(next.check_cargo_registry).toBe(false);
+    expect(countEnabledInCategory(next, 'package_managers').enabled).toBe(8);
   });
 
   it('marks draft dirty when a discovery toggle changes', () => {

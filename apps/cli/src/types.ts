@@ -27,7 +27,10 @@ export type TargetDirKind =
   | 'yarn-global-cache'
   | 'pip-global-cache'
   | 'uv-global-cache'
-  | 'conda-pkgs-cache';
+  | 'conda-pkgs-cache'
+  | 'cargo-registry-cache'
+  | 'bun-global-cache'
+  | 'nuget-global-cache';
 
 export type SafetyClass = 'project_artifact' | 'global_cache' | 'app_runtime' | 'system' | 'unknown';
 
@@ -115,6 +118,9 @@ export type CliOptions = {
   readonly checkPipCache: boolean;
   readonly checkUvCache: boolean;
   readonly checkCondaPkgsCache: boolean;
+  readonly checkCargoRegistry: boolean;
+  readonly checkBunCache: boolean;
+  readonly checkNugetCache: boolean;
   readonly excludeAbsPathContains: readonly string[];
   readonly profile: CleanupProfile;
   readonly deleteMode: DeleteMode;

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-05-15
+
+### Added
+
+- **Cargo registry cache** (`check_cargo_registry`) — `CARGO_HOME/registry` with `cache/` marker; regen hint `cargo cache -a`.
+- **bun global cache** (`check_bun_cache`) — `BUN_INSTALL_CACHE_DIR` or `~/.bun/install/cache`.
+- **NuGet global packages** (`check_nuget_cache`) — `NUGET_PACKAGES` or `~/.nuget/packages`.
+- **CMake build trees** — `cmake-build-*` (balanced+) and `out/` (aggressive) when `CMakeLists.txt` is in the project tree.
+- **Scan contract** `2.5.0`: kinds `cargo_registry_cache`, `bun_global_cache`, `nuget_global_cache`.
+
+### Changed
+
+- Settings **bun cache** is a real Discovery toggle (no longer “Soon” placeholder).
+
 ## [0.5.5] - 2026-05-15
 
 ### Added

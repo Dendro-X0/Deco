@@ -76,6 +76,9 @@ pub(crate) fn execute_cleanup_core(
         pip: settings.check_pip_cache,
         uv: settings.check_uv_cache,
         conda: settings.check_conda_pkgs_cache,
+        cargo: settings.check_cargo_registry,
+        bun: settings.check_bun_cache,
+        nuget: settings.check_nuget_cache,
     };
 
     let conn = state

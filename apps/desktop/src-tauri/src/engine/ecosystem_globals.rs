@@ -338,6 +338,117 @@ fn conda_pkgs_candidate_paths() -> Vec<PathBuf> {
     paths
 }
 
+fn cargo_home_dir() -> Option<PathBuf> {
+    if let Ok(v) = std::env::var("CARGO_HOME") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            return Some(PathBuf::from(trimmed));
+        }
+    }
+    user_home().map(|h| h.join(".cargo"))
+}
+
+fn is_cargo_registry_root(path: &Path) -> bool {
+    path.is_dir() && path.join("cache").is_dir()
+}
+
+fn bun_cache_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("BUN_INSTALL_CACHE_DIR") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(home) = user_home() {
+        paths.push(home.join(".bun").join("install").join("cache"));
+    }
+    paths
+}
+
+fn is_bun_cache_root(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    std::fs::read_dir(path)
+        .ok()
+        .and_then(|mut entries| entries.next())
+        .is_some()
+}
+
+fn nuget_packages_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("NUGET_PACKAGES") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(home) = user_home() {
+        paths.push(home.join(".nuget").join("packages"));
+    }
+    paths
+}
+
+fn is_nuget_packages_root(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+    if name != "packages" {
+        return false;
+    }
+    let Ok(mut packages) = std::fs::read_dir(path) else {
+        return false;
+    };
+    let Some(Ok(pkg)) = packages.next() else {
+        return false;
+    };
+    if !pkg.path().is_dir() {
+        return false;
+    }
+    std::fs::read_dir(pkg.path())
+        .ok()
+        .and_then(|mut vers| vers.next())
+        .and_then(|e| e.ok())
+        .map(|v| v.path().is_dir())
+        .unwrap_or(false)
+}
+
+pub fn discover_cargo_registry_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    if let Some(home) = cargo_home_dir() {
+        let registry = home.join("registry");
+        if is_cargo_registry_root(&registry) {
+            push_global_cache(&mut targets, registry, Kind::CargoRegistryCache);
+        }
+    }
+    (targets, warnings)
+}
+
+pub fn discover_bun_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(bun_cache_candidate_paths()) {
+        if is_bun_cache_root(&path) {
+            push_global_cache(&mut targets, path, Kind::BunGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
+pub fn discover_nuget_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(nuget_packages_candidate_paths()) {
+        if is_nuget_packages_root(&path) {
+            push_global_cache(&mut targets, path, Kind::NugetGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
 pub fn discover_conda_pkgs_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
     let mut targets = vec![];
     let warnings = vec![
@@ -478,5 +589,29 @@ mod tests {
         std::fs::write(pkgs.join("urls.txt"), "https://example.invalid\n").expect("urls");
         assert!(is_conda_pkgs_cache(&pkgs));
         assert!(!is_conda_pkgs_cache(&root.join("envs")));
+    }
+
+    #[test]
+    fn cargo_registry_requires_cache_subdir() {
+        let root = temp_root("cargo");
+        let registry = root.join("registry");
+        create_dir_all(registry.join("cache")).expect("cache");
+        assert!(is_cargo_registry_root(&registry));
+    }
+
+    #[test]
+    fn bun_cache_requires_content() {
+        let root = temp_root("bun");
+        let cache = root.join("bun-cache");
+        create_dir_all(cache.join("abc123")).expect("entry");
+        assert!(is_bun_cache_root(&cache));
+    }
+
+    #[test]
+    fn nuget_packages_requires_version_folder() {
+        let root = temp_root("nuget");
+        let packages = root.join("packages");
+        create_dir_all(packages.join("Newtonsoft.Json").join("13.0.3")).expect("pkg");
+        assert!(is_nuget_packages_root(&packages));
     }
 }

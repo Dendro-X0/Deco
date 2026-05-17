@@ -9,6 +9,13 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.5.0 — 2026-05-15
+
+- **Added** candidate kinds: `cargo_registry_cache`, `bun_global_cache`, `nuget_global_cache`.
+- **Added** scan/settings flags: `check_cargo_registry`, `check_bun_cache`, `check_nuget_cache` (default `false`, review tier + execute guard).
+- **Changed** walk discovery: `cmake-build-*` and aggressive-profile `out/` dirs when `CMakeLists.txt` is present in the project tree.
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.5.0`.
+
 ## 2.4.0 — 2026-05-16
 
 - **Added** candidate kind: `conda_pkgs_cache` (package cache only; `envs/` never targeted).

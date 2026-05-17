@@ -12,6 +12,9 @@ pub fn regeneration_hint_for_kind(kind: &Kind) -> Option<&'static str> {
         Kind::PipGlobalCache => Some("`pip cache purge`"),
         Kind::UvGlobalCache => Some("`uv cache clean`"),
         Kind::CondaPkgsCache => Some("`conda clean --all -p` (package cache only; does not remove envs)"),
+        Kind::CargoRegistryCache => Some("`cargo cache -a`; crates re-download on next build"),
+        Kind::BunGlobalCache => Some("`bun pm cache rm`; packages re-fetch on install"),
+        Kind::NugetGlobalCache => Some("Restore with `dotnet restore` / `nuget restore`"),
         _ => None,
     }
 }

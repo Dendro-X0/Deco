@@ -121,7 +121,10 @@
             "yarn_global_cache",
             "pip_global_cache",
             "uv_global_cache",
-            "conda_pkgs_cache"
+            "conda_pkgs_cache",
+            "cargo_registry_cache",
+            "bun_global_cache",
+            "nuget_global_cache"
           ]
         },
         "abs_path": { "type": "string", "minLength": 1 },

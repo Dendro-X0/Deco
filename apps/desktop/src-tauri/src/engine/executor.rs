@@ -178,6 +178,15 @@ fn opt_in_refusal(
         Kind::CondaPkgsCache if !allow_global.conda => Some(format!(
             "Refused Conda package cache (enable “Conda pkgs cache” in settings and re-scan): {path}"
         )),
+        Kind::CargoRegistryCache if !allow_global.cargo => Some(format!(
+            "Refused Cargo registry cache (enable “Cargo registry cache” in settings and re-scan): {path}"
+        )),
+        Kind::BunGlobalCache if !allow_global.bun => Some(format!(
+            "Refused bun cache (enable “bun cache” in settings and re-scan): {path}"
+        )),
+        Kind::NugetGlobalCache if !allow_global.nuget => Some(format!(
+            "Refused NuGet packages folder (enable “NuGet global packages” in settings and re-scan): {path}"
+        )),
         Kind::PythonVenv if !allow_python_venv => Some(format!(
             "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {path}"
         )),

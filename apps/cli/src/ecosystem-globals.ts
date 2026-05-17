@@ -1,4 +1,4 @@
-import { access, stat } from 'node:fs/promises';
+import { access, readdir, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -266,6 +266,93 @@ async function condaPkgsCandidatePathsAsync(): Promise<string[]> {
     paths.push(path.join(home, installName, 'pkgs'));
   }
   return dedupePaths(paths);
+}
+
+function cargoHomeDir(): string | undefined {
+  if (process.env.CARGO_HOME?.trim()) {
+    return process.env.CARGO_HOME.trim();
+  }
+  return path.join(os.homedir(), '.cargo');
+}
+
+async function isCargoRegistryRoot(dir: string): Promise<boolean> {
+  return hasSubdir(dir, 'cache');
+}
+
+async function bunCacheCandidatePaths(): Promise<string[]> {
+  const paths: string[] = [];
+  if (process.env.BUN_INSTALL_CACHE_DIR?.trim()) {
+    paths.push(process.env.BUN_INSTALL_CACHE_DIR.trim());
+  }
+  paths.push(path.join(os.homedir(), '.bun', 'install', 'cache'));
+  return dedupePaths(paths);
+}
+
+async function isBunCacheRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  try {
+    const entries = await readdir(dir);
+    return entries.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+function nugetPackagesCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.NUGET_PACKAGES?.trim()) {
+    paths.push(process.env.NUGET_PACKAGES.trim());
+  }
+  paths.push(path.join(os.homedir(), '.nuget', 'packages'));
+  return dedupePaths(paths);
+}
+
+async function isNugetPackagesRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  if (path.basename(dir) !== 'packages') return false;
+  try {
+    const packages = await readdir(dir, { withFileTypes: true });
+    const pkg = packages.find((e) => e.isDirectory());
+    if (!pkg) return false;
+    const versions = await readdir(path.join(dir, pkg.name), { withFileTypes: true });
+    return versions.some((e) => e.isDirectory());
+  } catch {
+    return false;
+  }
+}
+
+export async function discoverCargoRegistryCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  const home = cargoHomeDir();
+  if (!home) return out;
+  const registry = path.join(home, 'registry');
+  if (await isCargoRegistryRoot(registry)) {
+    await pushDir(out, registry, 'cargo-registry-cache');
+  }
+  return out;
+}
+
+export async function discoverBunGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of await bunCacheCandidatePaths()) {
+    if (await isBunCacheRoot(candidate)) {
+      await pushDir(out, candidate, 'bun-global-cache');
+    }
+  }
+  return out;
+}
+
+export async function discoverNugetGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of nugetPackagesCandidatePaths()) {
+    if (await isNugetPackagesRoot(candidate)) {
+      await pushDir(out, candidate, 'nuget-global-cache');
+    }
+  }
+  return out;
 }
 
 export async function discoverCondaPkgsCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {

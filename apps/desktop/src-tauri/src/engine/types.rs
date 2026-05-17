@@ -41,6 +41,9 @@ pub enum Kind {
     PipGlobalCache,
     UvGlobalCache,
     CondaPkgsCache,
+    CargoRegistryCache,
+    BunGlobalCache,
+    NugetGlobalCache,
 }
 
 impl Kind {
@@ -66,6 +69,9 @@ impl Kind {
             Kind::PipGlobalCache => "pip_global_cache",
             Kind::UvGlobalCache => "uv_global_cache",
             Kind::CondaPkgsCache => "conda_pkgs_cache",
+            Kind::CargoRegistryCache => "cargo_registry_cache",
+            Kind::BunGlobalCache => "bun_global_cache",
+            Kind::NugetGlobalCache => "nuget_global_cache",
         }
     }
 }
@@ -97,6 +103,9 @@ pub struct EcosystemScanOptions {
     pub check_pip_cache: bool,
     pub check_uv_cache: bool,
     pub check_conda_pkgs_cache: bool,
+    pub check_cargo_registry: bool,
+    pub check_bun_cache: bool,
+    pub check_nuget_cache: bool,
 }
 
 impl Default for EcosystemScanOptions {
@@ -114,6 +123,9 @@ impl Default for EcosystemScanOptions {
             check_pip_cache: false,
             check_uv_cache: false,
             check_conda_pkgs_cache: false,
+            check_cargo_registry: false,
+            check_bun_cache: false,
+            check_nuget_cache: false,
         }
     }
 }
@@ -133,6 +145,9 @@ impl From<&ScanRequest> for EcosystemScanOptions {
             check_pip_cache: req.check_pip_cache,
             check_uv_cache: req.check_uv_cache,
             check_conda_pkgs_cache: req.check_conda_pkgs_cache,
+            check_cargo_registry: req.check_cargo_registry,
+            check_bun_cache: req.check_bun_cache,
+            check_nuget_cache: req.check_nuget_cache,
         }
     }
 }
@@ -148,6 +163,9 @@ pub struct GlobalCacheAllow {
     pub pip: bool,
     pub uv: bool,
     pub conda: bool,
+    pub cargo: bool,
+    pub bun: bool,
+    pub nuget: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -223,6 +241,12 @@ pub struct ScanRequest {
     #[serde(default)]
     pub check_conda_pkgs_cache: bool,
     #[serde(default)]
+    pub check_cargo_registry: bool,
+    #[serde(default)]
+    pub check_bun_cache: bool,
+    #[serde(default)]
+    pub check_nuget_cache: bool,
+    #[serde(default)]
     pub exclude_abs_path_contains: Vec<String>,
     #[serde(default)]
     pub extra_protected_path_contains: Vec<String>,
@@ -231,7 +255,7 @@ pub struct ScanRequest {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.4.0";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.5.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {
@@ -408,6 +432,12 @@ pub struct Settings {
     pub check_uv_cache: bool,
     #[serde(default)]
     pub check_conda_pkgs_cache: bool,
+    #[serde(default)]
+    pub check_cargo_registry: bool,
+    #[serde(default)]
+    pub check_bun_cache: bool,
+    #[serde(default)]
+    pub check_nuget_cache: bool,
     pub delete_mode: String,
     /// `per_drive` (default): `{drive}\.deco-quarantine` — never `%AppData%`.
     #[serde(default = "default_quarantine_layout")]
@@ -448,6 +478,9 @@ impl Default for Settings {
             check_pip_cache: false,
             check_uv_cache: false,
             check_conda_pkgs_cache: false,
+            check_cargo_registry: false,
+            check_bun_cache: false,
+            check_nuget_cache: false,
             delete_mode: "delete".to_string(),
             quarantine_layout: default_quarantine_layout(),
             quarantine_custom_path: String::new(),

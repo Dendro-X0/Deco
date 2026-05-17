@@ -13,6 +13,9 @@ export type DiscoveryOptionKey = Extract<
   | 'check_pip_cache'
   | 'check_uv_cache'
   | 'check_conda_pkgs_cache'
+  | 'check_bun_cache'
+  | 'check_cargo_registry'
+  | 'check_nuget_cache'
   | 'include_python_venv'
 >;
 
@@ -66,7 +69,7 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
   {
     id: 'package_managers',
     label: 'Package managers',
-    description: 'Global caches for Node, Python, and Conda toolchains (review tier).',
+    description: 'Global caches for Node, Python, Conda, bun, and NuGet (review tier).',
     rows: [
       {
         type: 'option',
@@ -105,10 +108,16 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
         description: 'Conda/Miniconda package cache (pkgs only; never envs/). Regenerate: conda clean.',
       },
       {
-        type: 'placeholder',
-        id: 'bun_cache',
+        type: 'option',
+        key: 'check_bun_cache',
         label: 'bun cache',
-        description: 'Global bun install cache (planned for a future release).',
+        description: 'Global bun install cache; respects BUN_INSTALL_CACHE_DIR.',
+      },
+      {
+        type: 'option',
+        key: 'check_nuget_cache',
+        label: 'NuGet global packages',
+        description: 'NuGet package store (NUGET_PACKAGES or ~/.nuget/packages).',
       },
     ],
   },
@@ -122,6 +131,12 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
         key: 'check_go_cache',
         label: 'Global Go cache',
         description: 'Opt-in scan for GOCACHE and GOMODCACHE via go env.',
+      },
+      {
+        type: 'option',
+        key: 'check_cargo_registry',
+        label: 'Cargo registry cache',
+        description: 'CARGO_HOME/registry with downloaded crates (regenerate: cargo cache -a).',
       },
       {
         type: 'option',
