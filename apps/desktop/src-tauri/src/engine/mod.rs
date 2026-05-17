@@ -2,6 +2,7 @@ pub mod ancestor_cache;
 pub mod classifier;
 pub mod disk_cleanup_config;
 pub mod ecosystem_globals;
+pub mod inventory;
 pub mod executor;
 pub mod path_policy;
 pub mod project_detection;

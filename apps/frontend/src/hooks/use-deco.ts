@@ -170,7 +170,10 @@ export function useDeco() {
     }
   };
 
-  const scan = async (scanSettings?: Partial<Settings>) => {
+  const scan = async (
+    scanSettings?: Partial<Settings>,
+    scanMode: 'full' | 'quick' = 'full',
+  ) => {
     if (scanning) return null;
     if (!settings) {
       setError('Settings are still loading. Try again in a moment.');
@@ -259,6 +262,7 @@ export function useDeco() {
         exclude_abs_path_contains: activeSettings.exclude_abs_path_contains ?? [],
         extra_protected_path_contains: activeSettings.extra_protected_path_contains ?? [],
         allow_path_contains: activeSettings.allow_path_contains ?? [],
+        scan_mode: scanMode,
       };
 
       const started = (await invoke('start_scan', { req })) as {
@@ -274,8 +278,11 @@ export function useDeco() {
       activeScanIdRef.current = id;
       setScanId(id);
       toast({
-        title: 'Scan started',
-        description: 'This may take a few minutes on large drives. You can stop anytime.',
+        title: scanMode === 'quick' ? 'Quick update started' : 'Scan started',
+        description:
+          scanMode === 'quick'
+            ? 'Reusing cached sizes where paths are unchanged. Run a full scan after changing profile or discovery options.'
+            : 'This may take a few minutes on large drives. You can stop anytime.',
         variant: 'info',
       });
       return { scan_id: id };

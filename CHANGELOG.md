@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-05-15
+
+### Fixed
+
+- **Quick update** no longer fails with `UNIQUE constraint failed: candidates.id` — reused inventory rows get new candidate IDs per scan.
+
+### Added
+
+- **Incremental path inventory** (`path_inventory` SQLite table) — caches classify + size metadata per path and config fingerprint.
+- **Quick update** scan — skips classify/size when `mtime` matches inventory; **Scan Now** remains a full rescan.
+- **`incremental_inventory_enabled`** setting (default on) and manifest `docs/product/v0.6.1-manifest.md`.
+
+### Changed
+
+- Scan completion reports `inventory_reused` count in warnings and `ScanResponse`.
+
 ## [0.6.0] - 2026-05-15
 
 ### Added

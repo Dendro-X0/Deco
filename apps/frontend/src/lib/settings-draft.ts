@@ -14,6 +14,7 @@ export const SCAN_TARGET_SETTINGS_KEYS = [
 /** Fields compared for unsaved-changes detection. */
 const DRAFT_KEYS: (keyof Settings)[] = [
   'scan_scope',
+  'incremental_inventory_enabled',
   'max_depth',
   'profile',
   'stale_days',

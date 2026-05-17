@@ -76,6 +76,77 @@ impl Kind {
             Kind::ComposerGlobalCache => "composer_global_cache",
         }
     }
+
+    pub fn from_wire_key(key: &str) -> Option<Self> {
+        Some(match key {
+            "node_modules" => Kind::NodeModules,
+            "build_artifact" => Kind::BuildArtifact,
+            "rust_artifact" => Kind::RustArtifact,
+            "go_artifact" => Kind::GoArtifact,
+            "go_global_cache" => Kind::GoGlobalCache,
+            "playwright_artifact" => Kind::PlaywrightArtifact,
+            "unknown_artifact" => Kind::UnknownArtifact,
+            "python_artifact" => Kind::PythonArtifact,
+            "python_venv" => Kind::PythonVenv,
+            "jvm_artifact" => Kind::JvmArtifact,
+            "jvm_global_cache" => Kind::JvmGlobalCache,
+            "dotnet_artifact" => Kind::DotNetArtifact,
+            "ide_global_cache" => Kind::IdeGlobalCache,
+            "npm_global_cache" => Kind::NpmGlobalCache,
+            "pnpm_global_store" => Kind::PnpmGlobalStore,
+            "yarn_global_cache" => Kind::YarnGlobalCache,
+            "pip_global_cache" => Kind::PipGlobalCache,
+            "uv_global_cache" => Kind::UvGlobalCache,
+            "conda_pkgs_cache" => Kind::CondaPkgsCache,
+            "cargo_registry_cache" => Kind::CargoRegistryCache,
+            "bun_global_cache" => Kind::BunGlobalCache,
+            "nuget_global_cache" => Kind::NugetGlobalCache,
+            "composer_global_cache" => Kind::ComposerGlobalCache,
+            _ => return None,
+        })
+    }
+}
+
+impl RiskLevel {
+    pub fn wire_key(&self) -> &'static str {
+        match self {
+            RiskLevel::Safe => "safe",
+            RiskLevel::Review => "review",
+            RiskLevel::Blocked => "blocked",
+        }
+    }
+
+    pub fn from_wire_key(key: &str) -> Option<Self> {
+        Some(match key {
+            "safe" => RiskLevel::Safe,
+            "review" => RiskLevel::Review,
+            "blocked" => RiskLevel::Blocked,
+            _ => return None,
+        })
+    }
+}
+
+impl SafetyClass {
+    pub fn wire_key(&self) -> &'static str {
+        match self {
+            SafetyClass::ProjectArtifact => "project_artifact",
+            SafetyClass::GlobalCache => "global_cache",
+            SafetyClass::AppRuntime => "app_runtime",
+            SafetyClass::System => "system",
+            SafetyClass::Unknown => "unknown",
+        }
+    }
+
+    pub fn from_wire_key(key: &str) -> Option<Self> {
+        Some(match key {
+            "project_artifact" => SafetyClass::ProjectArtifact,
+            "global_cache" => SafetyClass::GlobalCache,
+            "app_runtime" => SafetyClass::AppRuntime,
+            "system" => SafetyClass::System,
+            "unknown" => SafetyClass::Unknown,
+            _ => return None,
+        })
+    }
 }
 
 fn default_true() -> bool {
@@ -264,6 +335,13 @@ pub struct ScanRequest {
     pub extra_protected_path_contains: Vec<String>,
     #[serde(default)]
     pub allow_path_contains: Vec<String>,
+    /// `full` (default) re-classifies all targets; `quick` reuses path inventory when enabled.
+    #[serde(default = "default_scan_mode_full")]
+    pub scan_mode: String,
+}
+
+fn default_scan_mode_full() -> String {
+    "full".to_string()
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
@@ -279,6 +357,9 @@ pub struct ScanResponse {
     pub totals_by_risk: RiskTotals,
     pub totals_by_kind: HashMap<String, Totals>,
     pub warnings: Vec<String>,
+    /// Candidates reused from path inventory on a quick update scan (v0.6.1).
+    #[serde(default)]
+    pub inventory_reused: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -423,6 +504,9 @@ pub struct Settings {
     /// `auto` | `low` | `high` — parallel directory sizing during scan (v0.6.0).
     #[serde(default = "default_scan_concurrency_mode")]
     pub scan_concurrency_mode: String,
+    /// When true, Quick update scans may reuse cached classify/size rows (v0.6.1).
+    #[serde(default = "default_true")]
+    pub incremental_inventory_enabled: bool,
     pub show_blocked: bool,
     pub check_go_cache: bool,
     #[serde(default = "default_true")]
@@ -483,6 +567,7 @@ impl Default for Settings {
             stale_days: 45,
             include_size: true,
             scan_concurrency_mode: default_scan_concurrency_mode(),
+            incremental_inventory_enabled: true,
             show_blocked: false,
             check_go_cache: false,
             include_python_artifacts: true,

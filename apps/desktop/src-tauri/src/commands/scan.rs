@@ -1,6 +1,10 @@
 use crate::engine::classifier::classify_targets;
-use crate::engine::path_policy::PathPolicy;
 use crate::engine::disk_cleanup_config::merge_disk_cleanup_layers;
+use crate::engine::inventory::{
+    inventory_fingerprint, normalize_abs_path, prune_inventory_under_roots,
+    split_targets_with_inventory, upsert_candidates, ScanMode,
+};
+use crate::engine::path_policy::PathPolicy;
 use crate::engine::scan_concurrency::{size_concurrency_plan, SizeConcurrencyPlan};
 use crate::engine::scanner::{discover_targets, DiscoverProgressCallback};
 use crate::engine::sizer::{dir_size_bytes, DirSizeOutcome};
@@ -18,7 +22,7 @@ use crate::state::AppState;
 use crate::util::scan_roots::{custom_scan_roots, effective_scan_roots};
 use rusqlite::params;
 use serde::Serialize;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::path::Path;
 use std::sync::Arc;
 use std::thread;
@@ -295,10 +299,53 @@ pub(crate) fn run_scan(
     };
 
     let size_plan = size_concurrency_plan(&settings_snapshot.scan_concurrency_mode);
-    let targets = discovery.targets;
-    let total_targets = targets.len();
-    let mut candidates = Vec::with_capacity(total_targets);
+    let inventory_fingerprint = inventory_fingerprint(&req);
+    let scan_mode = ScanMode::parse(&req.scan_mode);
+    let use_quick =
+        scan_mode == ScanMode::Quick && settings_snapshot.incremental_inventory_enabled;
+
+    let mut targets = discovery.targets;
+    let discovery_target_count = targets.len();
+    let mut candidates = Vec::with_capacity(discovery_target_count);
     let mut processed_sizes = 0u64;
+    let mut inventory_reused = 0u64;
+
+    if scan_mode == ScanMode::Quick && !settings_snapshot.incremental_inventory_enabled {
+        warnings.push(
+            "Quick update is disabled in Settings — running a full classify and size pass."
+                .to_string(),
+        );
+    }
+
+    if use_quick {
+        let conn = state
+            .db
+            .lock()
+            .map_err(|_| "db mutex poisoned".to_string())?;
+        let split = split_targets_with_inventory(&conn, &inventory_fingerprint, targets)?;
+        inventory_reused = split.reused.len() as u64;
+        if inventory_reused > 0 {
+            emit_candidate_batches(&app, &scan_id, "classify", &split.reused, 50);
+            processed_sizes = split
+                .reused
+                .iter()
+                .filter(|c| c.size_bytes.is_some())
+                .count() as u64;
+            candidates.extend(split.reused);
+            warnings.push(format!(
+                "Quick update: reused {inventory_reused} unchanged candidates from inventory."
+            ));
+        } else {
+            warnings.push(
+                "Quick update: no matching inventory for this configuration — classifying all discovered targets."
+                    .to_string(),
+            );
+        }
+        targets = split.remaining;
+    }
+
+    let total_targets = discovery_target_count;
+    let pipeline_targets = targets.len();
 
     set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Classify);
 
@@ -329,7 +376,7 @@ pub(crate) fn run_scan(
                 &scan_id,
                 "classify",
                 format!(
-                    "Classifying… {classified_so_far}/{total_targets} (pipeline)"
+                    "Classifying… {classified_so_far}/{total_targets} ({pipeline_targets} remaining in pipeline)"
                 ),
             )
             .with_counts(
@@ -417,6 +464,19 @@ pub(crate) fn run_scan(
     )?;
 
     {
+        let keep: HashSet<String> = candidates
+            .iter()
+            .map(|c| normalize_abs_path(&c.abs_path))
+            .collect();
+        let conn = state
+            .db
+            .lock()
+            .map_err(|_| "db mutex poisoned".to_string())?;
+        upsert_candidates(&conn, &inventory_fingerprint, &scan_id, &candidates)?;
+        let _ = prune_inventory_under_roots(&conn, &inventory_fingerprint, &roots, &keep)?;
+    }
+
+    {
         let mut scans = state
             .scans
             .lock()
@@ -432,8 +492,9 @@ pub(crate) fn run_scan(
             &scan_id,
             "done",
             format!(
-                "Scan complete: {} candidates (discover {}ms, classify {}ms, size {}ms)",
+                "Scan complete: {} candidates ({} reused from inventory; discover {}ms, classify {}ms, size {}ms)",
                 candidates.len(),
+                inventory_reused,
                 timings.discover_ms,
                 timings.classify_ms,
                 timings.size_ms
@@ -463,6 +524,7 @@ pub(crate) fn run_scan(
         totals_by_risk,
         totals_by_kind,
         warnings,
+        inventory_reused,
     })
 }
 
@@ -651,10 +713,7 @@ fn size_candidates_slice(
     if total == 0 {
         return false;
     }
-    let stride = plan
-        .batch_size
-        .saturating_mul(plan.max_in_flight_batches)
-        .max(1);
+    let stride = plan.max_parallel_sizers().max(1);
 
     for batch_start in (0..total).step_by(stride) {
         if sizing_canceled(cancel_handles) {

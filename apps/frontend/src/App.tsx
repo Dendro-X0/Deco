@@ -303,18 +303,21 @@ export default function App() {
     persistScanTargets({ use_custom_scan_roots: mode === 'custom' });
   };
 
-  const runScan = async (afterWizard = false) => {
-    const started = await scan({
-      selected_volumes: selectedVolumes,
-      include_project_folders: includeProjectFolders,
-    });
+  const runScan = async (afterWizard = false, scanMode: 'full' | 'quick' = 'full') => {
+    const started = await scan(
+      {
+        selected_volumes: selectedVolumes,
+        include_project_folders: includeProjectFolders,
+      },
+      scanMode,
+    );
     if (started && afterWizard) {
       setWizardOpen(true);
       setWizardStep('scanning');
     }
   };
 
-  const requestScan = (opts?: { wizard?: boolean }) => {
+  const requestScan = (opts?: { wizard?: boolean; mode?: 'full' | 'quick' }) => {
     if (scanning) return;
     if (!hasScanTargetsReady) {
       setScanTargetsAfterWizard(!!opts?.wizard);
@@ -326,7 +329,7 @@ export default function App() {
       setWizardOpen(true);
       setWizardStep('scanning');
     }
-    void runScan(!!opts?.wizard);
+    void runScan(!!opts?.wizard, opts?.mode ?? 'full');
   };
 
   const scanScopeLabel =
@@ -581,9 +584,23 @@ export default function App() {
               {scanning ? (
                 <ScanStopControl stage={scanStopStage} onStop={() => void cancelScan()} />
               ) : (
-                <Button variant="default" className="gap-2 font-semibold px-6" onClick={() => requestScan()}>
-                  <Play size={16} fill="currentColor" /> Scan Now
-                </Button>
+                <>
+                  <Button
+                    variant="default"
+                    className="gap-2 font-semibold px-6"
+                    onClick={() => requestScan({ mode: 'full' })}
+                  >
+                    <Play size={16} fill="currentColor" /> Scan Now
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="gap-2 font-semibold"
+                    onClick={() => requestScan({ mode: 'quick' })}
+                    title="Reuse cached classify/size for unchanged paths. Run a full scan after changing profile or discovery options."
+                  >
+                    Quick update
+                  </Button>
+                </>
               )}
               <DisabledActionHint reason={cleanSelectedReason}>
                 <Button

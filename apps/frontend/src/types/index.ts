@@ -81,6 +81,8 @@ export interface Settings {
   include_size: boolean;
   /** `auto` | `low` | `high` — parallel sizing during scan (v0.6.0). */
   scan_concurrency_mode: string;
+  /** When true, Quick update can reuse path inventory (v0.6.1). */
+  incremental_inventory_enabled?: boolean;
   show_blocked: boolean;
   check_go_cache: boolean;
   include_python_artifacts: boolean;

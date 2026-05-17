@@ -263,6 +263,13 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
               />
             </div>
           </div>
+          <ToggleRow
+            label="Incremental inventory (Quick update)"
+            description="Reuse classify and size for unchanged paths. Run a full scan after changing profile or discovery options."
+            checked={draft.incremental_inventory_enabled ?? true}
+            onCheckedChange={(v) => patch({ incremental_inventory_enabled: v })}
+            disabled={scanning || saving}
+          />
         </SettingsSection>
 
         <Separator />
