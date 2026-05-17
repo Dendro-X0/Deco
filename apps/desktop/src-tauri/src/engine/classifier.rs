@@ -1,10 +1,13 @@
 use super::path_policy::PathPolicy;
-use super::project_detection::detect_project_root;
+use super::project_root_cache::ProjectRootCache;
 use super::regeneration_hints::display_with_regeneration_hint;
 use super::scanner::DiscoveredTarget;
 use super::types::{CleanupCandidate, Kind, RiskLevel, SafetyClass};
 use std::path::Path;
+use std::sync::Mutex;
 use uuid::Uuid;
+
+const PARALLEL_CLASSIFY_MIN: usize = 8;
 
 pub fn classify_targets(
     discovered: Vec<DiscoveredTarget>,
@@ -13,187 +16,220 @@ pub fn classify_targets(
     policy: &PathPolicy,
 ) -> Vec<CleanupCandidate> {
     let now_ms = chrono::Utc::now().timestamp_millis();
+    if discovered.len() < PARALLEL_CLASSIFY_MIN {
+        let mut cache = ProjectRootCache::default();
+        return discovered
+            .into_iter()
+            .map(|target| {
+                classify_discovered_target(
+                    target,
+                    roots,
+                    stale_days_threshold,
+                    policy,
+                    now_ms,
+                    &mut cache,
+                )
+            })
+            .collect();
+    }
 
+    use rayon::prelude::*;
+    let cache = Mutex::new(ProjectRootCache::default());
     discovered
-        .into_iter()
+        .into_par_iter()
         .map(|target| {
-            if matches!(
-                target.kind,
-                Kind::GoGlobalCache
-                    | Kind::JvmGlobalCache
-                    | Kind::IdeGlobalCache
-                    | Kind::NpmGlobalCache
-                    | Kind::PnpmGlobalStore
-                    | Kind::YarnGlobalCache
-                    | Kind::PipGlobalCache
-                    | Kind::UvGlobalCache
-                    | Kind::CondaPkgsCache
-                    | Kind::CargoRegistryCache
-                    | Kind::BunGlobalCache
-                    | Kind::NugetGlobalCache
-                    | Kind::ComposerGlobalCache
-            ) {
-                let mut reason_codes = vec![
-                    "GLOBAL_CACHE_TARGET".to_string(),
-                    "GLOBAL_CACHE_REQUIRES_OPT_IN".to_string(),
-                ];
-                if target.kind == Kind::CondaPkgsCache {
-                    reason_codes.push("CONDA_PKGS_CACHE_ONLY".to_string());
-                }
-                let display_summary =
-                    display_with_regeneration_hint(&target.kind, &reason_codes);
-                return CleanupCandidate {
-                    id: Uuid::new_v4().to_string(),
-                    kind: target.kind,
-                    abs_path: target.abs_path,
-                    size_bytes: None,
-                    mtime_ms: target.mtime_ms,
-                    risk: RiskLevel::Review,
-                    safety_class: SafetyClass::GlobalCache,
-                    display_reason_summary: Some(display_summary),
-                    can_delete: true,
-                    reason_codes,
-                    project_root: None,
-                    stale_days: None,
-                };
-            }
-
-            if let Some(path_match) = policy.find_match(&target.abs_path) {
-                let reason_codes = path_match.reason_codes;
-                return CleanupCandidate {
-                    id: Uuid::new_v4().to_string(),
-                    kind: target.kind,
-                    abs_path: target.abs_path,
-                    size_bytes: None,
-                    mtime_ms: target.mtime_ms,
-                    risk: path_match.risk,
-                    safety_class: path_match.safety_class,
-                    display_reason_summary: Some(reason_summary(&reason_codes)),
-                    can_delete: false,
-                    reason_codes,
-                    project_root: None,
-                    stale_days: None,
-                };
-            }
-
-            if target.kind == Kind::PythonVenv {
-                let reason_codes = vec![
-                    "PYTHON_VENV_HIGH_RISK".to_string(),
-                    "PYTHON_VENV_REQUIRES_OPT_IN".to_string(),
-                ];
-                return CleanupCandidate {
-                    id: Uuid::new_v4().to_string(),
-                    kind: target.kind,
-                    abs_path: target.abs_path,
-                    size_bytes: None,
-                    mtime_ms: target.mtime_ms,
-                    risk: RiskLevel::Review,
-                    safety_class: SafetyClass::Unknown,
-                    display_reason_summary: Some(reason_summary(&reason_codes)),
-                    can_delete: true,
-                    reason_codes,
-                    project_root: None,
-                    stale_days: None,
-                };
-            }
-
-            let containing_root = find_containing_root(&target.abs_path, roots);
-            let start_dir = Path::new(&target.abs_path)
-                .parent()
-                .unwrap_or_else(|| Path::new(&target.abs_path));
-            let evidence =
-                detect_project_root(start_dir, 4, containing_root.as_ref().map(Path::new));
-
-            if target.kind == Kind::NodeModules {
-                if evidence.is_none() {
-                    let reason_codes = vec![
-                        "NODE_MODULES_OUTSIDE_PROJECT".to_string(),
-                        "PROJECT_MARKERS_MISSING".to_string(),
-                    ];
-                    return CleanupCandidate {
-                        id: Uuid::new_v4().to_string(),
-                        kind: target.kind,
-                        abs_path: target.abs_path,
-                        size_bytes: None,
-                        mtime_ms: target.mtime_ms,
-                        risk: RiskLevel::Blocked,
-                        safety_class: SafetyClass::Unknown,
-                        display_reason_summary: Some(reason_summary(&reason_codes)),
-                        can_delete: false,
-                        reason_codes,
-                        project_root: None,
-                        stale_days: None,
-                    };
-                }
-
-                let stale_days = target
-                    .mtime_ms
-                    .map(|mtime| ((now_ms - mtime) / (1000 * 60 * 60 * 24)).max(0) as u32);
-
-                let (risk, reason) = match stale_days {
-                    Some(days) if days >= stale_days_threshold => {
-                        (RiskLevel::Safe, "NODE_MODULES_STALE")
-                    }
-                    Some(_) => (RiskLevel::Review, "NODE_MODULES_NOT_STALE"),
-                    None => (RiskLevel::Review, "LOW_CONFIDENCE_ARTIFACT"),
-                };
-                let can_delete = risk != RiskLevel::Blocked;
-
-                let reason_codes = vec!["PROJECT_MARKERS_PRESENT".to_string(), reason.to_string()];
-                return CleanupCandidate {
-                    id: Uuid::new_v4().to_string(),
-                    kind: target.kind,
-                    abs_path: target.abs_path,
-                    size_bytes: None,
-                    mtime_ms: target.mtime_ms,
-                    risk,
-                    safety_class: SafetyClass::ProjectArtifact,
-                    display_reason_summary: Some(reason_summary(&reason_codes)),
-                    can_delete,
-                    reason_codes,
-                    project_root: evidence.map(|ev| ev.project_root),
-                    stale_days,
-                };
-            }
-
-            if let Some(ev) = evidence {
-                let reason_codes = vec!["PROJECT_MARKERS_PRESENT".to_string()];
-                CleanupCandidate {
-                    id: Uuid::new_v4().to_string(),
-                    kind: target.kind,
-                    abs_path: target.abs_path,
-                    size_bytes: None,
-                    mtime_ms: target.mtime_ms,
-                    risk: RiskLevel::Safe,
-                    safety_class: SafetyClass::ProjectArtifact,
-                    display_reason_summary: Some(reason_summary(&reason_codes)),
-                    can_delete: true,
-                    reason_codes,
-                    project_root: Some(ev.project_root),
-                    stale_days: None,
-                }
-            } else {
-                let reason_codes = vec![
-                    "PROJECT_MARKERS_MISSING".to_string(),
-                    "LOW_CONFIDENCE_ARTIFACT".to_string(),
-                ];
-                CleanupCandidate {
-                    id: Uuid::new_v4().to_string(),
-                    kind: target.kind,
-                    abs_path: target.abs_path,
-                    size_bytes: None,
-                    mtime_ms: target.mtime_ms,
-                    risk: RiskLevel::Review,
-                    safety_class: SafetyClass::Unknown,
-                    display_reason_summary: Some(reason_summary(&reason_codes)),
-                    can_delete: true,
-                    reason_codes,
-                    project_root: None,
-                    stale_days: None,
-                }
-            }
+            let mut guard = cache.lock().expect("project root cache lock");
+            classify_discovered_target(
+                target,
+                roots,
+                stale_days_threshold,
+                policy,
+                now_ms,
+                &mut guard,
+            )
         })
         .collect()
+}
+
+fn classify_discovered_target(
+    target: DiscoveredTarget,
+    roots: &[String],
+    stale_days_threshold: u32,
+    policy: &PathPolicy,
+    now_ms: i64,
+    cache: &mut ProjectRootCache,
+) -> CleanupCandidate {
+    if matches!(
+        target.kind,
+        Kind::GoGlobalCache
+            | Kind::JvmGlobalCache
+            | Kind::IdeGlobalCache
+            | Kind::NpmGlobalCache
+            | Kind::PnpmGlobalStore
+            | Kind::YarnGlobalCache
+            | Kind::PipGlobalCache
+            | Kind::UvGlobalCache
+            | Kind::CondaPkgsCache
+            | Kind::CargoRegistryCache
+            | Kind::BunGlobalCache
+            | Kind::NugetGlobalCache
+            | Kind::ComposerGlobalCache
+    ) {
+        let mut reason_codes = vec![
+            "GLOBAL_CACHE_TARGET".to_string(),
+            "GLOBAL_CACHE_REQUIRES_OPT_IN".to_string(),
+        ];
+        if target.kind == Kind::CondaPkgsCache {
+            reason_codes.push("CONDA_PKGS_CACHE_ONLY".to_string());
+        }
+        let display_summary = display_with_regeneration_hint(&target.kind, &reason_codes);
+        return CleanupCandidate {
+            id: Uuid::new_v4().to_string(),
+            kind: target.kind,
+            abs_path: target.abs_path,
+            size_bytes: None,
+            mtime_ms: target.mtime_ms,
+            risk: RiskLevel::Review,
+            safety_class: SafetyClass::GlobalCache,
+            display_reason_summary: Some(display_summary),
+            can_delete: true,
+            reason_codes,
+            project_root: None,
+            stale_days: None,
+        };
+    }
+
+    if let Some(path_match) = policy.find_match(&target.abs_path) {
+        let reason_codes = path_match.reason_codes;
+        return CleanupCandidate {
+            id: Uuid::new_v4().to_string(),
+            kind: target.kind,
+            abs_path: target.abs_path,
+            size_bytes: None,
+            mtime_ms: target.mtime_ms,
+            risk: path_match.risk,
+            safety_class: path_match.safety_class,
+            display_reason_summary: Some(reason_summary(&reason_codes)),
+            can_delete: false,
+            reason_codes,
+            project_root: None,
+            stale_days: None,
+        };
+    }
+
+    if target.kind == Kind::PythonVenv {
+        let reason_codes = vec![
+            "PYTHON_VENV_HIGH_RISK".to_string(),
+            "PYTHON_VENV_REQUIRES_OPT_IN".to_string(),
+        ];
+        return CleanupCandidate {
+            id: Uuid::new_v4().to_string(),
+            kind: target.kind,
+            abs_path: target.abs_path,
+            size_bytes: None,
+            mtime_ms: target.mtime_ms,
+            risk: RiskLevel::Review,
+            safety_class: SafetyClass::Unknown,
+            display_reason_summary: Some(reason_summary(&reason_codes)),
+            can_delete: true,
+            reason_codes,
+            project_root: None,
+            stale_days: None,
+        };
+    }
+
+    let containing_root = find_containing_root(&target.abs_path, roots);
+    let start_dir = Path::new(&target.abs_path)
+        .parent()
+        .unwrap_or_else(|| Path::new(&target.abs_path));
+    let evidence = cache.detect(start_dir, 4, containing_root.as_ref().map(Path::new));
+
+    if target.kind == Kind::NodeModules {
+        if evidence.is_none() {
+            let reason_codes = vec![
+                "NODE_MODULES_OUTSIDE_PROJECT".to_string(),
+                "PROJECT_MARKERS_MISSING".to_string(),
+            ];
+            return CleanupCandidate {
+                id: Uuid::new_v4().to_string(),
+                kind: target.kind,
+                abs_path: target.abs_path,
+                size_bytes: None,
+                mtime_ms: target.mtime_ms,
+                risk: RiskLevel::Blocked,
+                safety_class: SafetyClass::Unknown,
+                display_reason_summary: Some(reason_summary(&reason_codes)),
+                can_delete: false,
+                reason_codes,
+                project_root: None,
+                stale_days: None,
+            };
+        }
+
+        let stale_days = target
+            .mtime_ms
+            .map(|mtime| ((now_ms - mtime) / (1000 * 60 * 60 * 24)).max(0) as u32);
+
+        let (risk, reason) = match stale_days {
+            Some(days) if days >= stale_days_threshold => (RiskLevel::Safe, "NODE_MODULES_STALE"),
+            Some(_) => (RiskLevel::Review, "NODE_MODULES_NOT_STALE"),
+            None => (RiskLevel::Review, "LOW_CONFIDENCE_ARTIFACT"),
+        };
+        let can_delete = risk != RiskLevel::Blocked;
+
+        let reason_codes = vec!["PROJECT_MARKERS_PRESENT".to_string(), reason.to_string()];
+        return CleanupCandidate {
+            id: Uuid::new_v4().to_string(),
+            kind: target.kind,
+            abs_path: target.abs_path,
+            size_bytes: None,
+            mtime_ms: target.mtime_ms,
+            risk,
+            safety_class: SafetyClass::ProjectArtifact,
+            display_reason_summary: Some(reason_summary(&reason_codes)),
+            can_delete,
+            reason_codes,
+            project_root: evidence.map(|ev| ev.project_root),
+            stale_days,
+        };
+    }
+
+    if let Some(ev) = evidence {
+        let reason_codes = vec!["PROJECT_MARKERS_PRESENT".to_string()];
+        CleanupCandidate {
+            id: Uuid::new_v4().to_string(),
+            kind: target.kind,
+            abs_path: target.abs_path,
+            size_bytes: None,
+            mtime_ms: target.mtime_ms,
+            risk: RiskLevel::Safe,
+            safety_class: SafetyClass::ProjectArtifact,
+            display_reason_summary: Some(reason_summary(&reason_codes)),
+            can_delete: true,
+            reason_codes,
+            project_root: Some(ev.project_root),
+            stale_days: None,
+        }
+    } else {
+        let reason_codes = vec![
+            "PROJECT_MARKERS_MISSING".to_string(),
+            "LOW_CONFIDENCE_ARTIFACT".to_string(),
+        ];
+        CleanupCandidate {
+            id: Uuid::new_v4().to_string(),
+            kind: target.kind,
+            abs_path: target.abs_path,
+            size_bytes: None,
+            mtime_ms: target.mtime_ms,
+            risk: RiskLevel::Review,
+            safety_class: SafetyClass::Unknown,
+            display_reason_summary: Some(reason_summary(&reason_codes)),
+            can_delete: true,
+            reason_codes,
+            project_root: None,
+            stale_days: None,
+        }
+    }
 }
 
 fn reason_summary(reasons: &[String]) -> String {

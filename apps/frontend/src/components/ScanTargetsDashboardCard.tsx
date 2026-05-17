@@ -1,5 +1,3 @@
-import { Settings2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { CustomScanRoots } from '@/components/CustomScanRoots';
@@ -25,7 +23,6 @@ type Props = {
   profile?: string;
   ready: boolean;
   disabled?: boolean;
-  onEditSettings: () => void;
   onError?: (message: string) => void;
   storageRefreshToken?: number;
 };
@@ -42,31 +39,18 @@ export function ScanTargetsDashboardCard({
   profile = 'safe',
   ready,
   disabled,
-  onEditSettings,
   onError,
   storageRefreshToken,
 }: Props) {
   return (
     <Card className="border-border/40 bg-card/30">
-      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
-        <div>
-          <CardTitle className="text-base">Scan targets</CardTitle>
-          <CardDescription>
-            {ready
-              ? 'Choose drives or folders, then run Scan Now.'
-              : 'Select at least one drive or custom folder before scanning.'}
-          </CardDescription>
-        </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          className="gap-1.5 h-8 shrink-0"
-          disabled={disabled}
-          onClick={onEditSettings}
-        >
-          <Settings2 size={14} />
-          Edit in Settings
-        </Button>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Scan targets</CardTitle>
+        <CardDescription>
+          {ready
+            ? 'Choose drives or folders, then run Scan Now.'
+            : 'Select at least one drive or custom folder before scanning.'}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">

@@ -3,13 +3,17 @@ import { DISCOVERY_OPTION_KEYS } from './discovery-options';
 import { normalizeSettings } from './settings-normalize';
 import { volumeMountsFromPaths } from './volume-from-path';
 
-/** Fields compared for unsaved-changes detection. */
-const DRAFT_KEYS: (keyof Settings)[] = [
+/** Scan targets are edited on the Dashboard and saved immediately — not part of Settings draft. */
+export const SCAN_TARGET_SETTINGS_KEYS = [
   'roots',
   'use_custom_scan_roots',
-  'scan_scope',
   'selected_volumes',
   'include_project_folders',
+] as const satisfies readonly (keyof Settings)[];
+
+/** Fields compared for unsaved-changes detection. */
+const DRAFT_KEYS: (keyof Settings)[] = [
+  'scan_scope',
   'max_depth',
   'profile',
   'stale_days',
@@ -62,4 +66,18 @@ export function clampStaleDays(value: number): number {
 export function clampMaxDepth(value: number): number {
   if (!Number.isFinite(value)) return 8;
   return Math.min(32, Math.max(1, Math.round(value)));
+}
+
+/** Keep dashboard-owned scan targets when saving from Settings. */
+export function mergeSettingsSavePreservingScanTargets(
+  draft: Settings,
+  saved: Settings,
+): Settings {
+  return {
+    ...draft,
+    roots: saved.roots,
+    use_custom_scan_roots: saved.use_custom_scan_roots,
+    selected_volumes: saved.selected_volumes,
+    include_project_folders: saved.include_project_folders,
+  };
 }

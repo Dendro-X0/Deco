@@ -545,7 +545,32 @@ export function useDeco() {
         const total = Number(payload.total_size_candidates || 0);
         const done = Number(payload.processed_sizes || 0);
         percent = total > 0 ? 20 + (done / total) * 75 : 65;
-      } else if (progressPhase === 'done') percent = 100;
+      } else if (progressPhase === 'done') {
+        percent = 100;
+        const dMs = Number(payload.discover_ms);
+        const cMs = Number(payload.classify_ms);
+        const sMs = Number(payload.size_ms);
+        if (
+          Number.isFinite(dMs) &&
+          Number.isFinite(cMs) &&
+          Number.isFinite(sMs) &&
+          (dMs > 0 || cMs > 0 || sMs > 0)
+        ) {
+          const fmt = (ms: number) =>
+            ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
+          const timingSuffix = ` · discover ${fmt(dMs)}, classify ${fmt(cMs)}, size ${fmt(sMs)}`;
+          if (!payload.message) {
+            setProgress({
+              percent: 100,
+              text: `Scan complete${timingSuffix}`,
+              phase: 'done',
+            });
+            setStatus({ text: `Scan complete${timingSuffix}`, type: 'done' });
+            scanPhaseRef.current = progressPhase;
+            return;
+          }
+        }
+      }
 
       scanPhaseRef.current = progressPhase;
       setProgress({ percent, text, phase: progressPhase });

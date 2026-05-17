@@ -79,6 +79,8 @@ export interface Settings {
   profile: string;
   stale_days: number;
   include_size: boolean;
+  /** `auto` | `low` | `high` — parallel sizing during scan (v0.6.0). */
+  scan_concurrency_mode: string;
   show_blocked: boolean;
   check_go_cache: boolean;
   include_python_artifacts: boolean;

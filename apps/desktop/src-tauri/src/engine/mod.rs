@@ -7,6 +7,8 @@ pub mod path_policy;
 pub mod project_detection;
 pub mod quarantine_store;
 pub mod regeneration_hints;
+pub mod project_root_cache;
+pub mod scan_concurrency;
 pub mod scanner;
 pub mod sizer;
 pub mod types;

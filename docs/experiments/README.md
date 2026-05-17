@@ -4,6 +4,7 @@ Optional spikes that may graduate into a [version roadmap](../product/version-ro
 
 | Doc | Status |
 |-----|--------|
-| *(none yet)* | Create `scan-performance.md`, `incremental-inventory.md`, etc. when implementing |
+| [scan-performance.md](scan-performance.md) | Baseline doc — v0.6.0 shipped; use for v0.6.2 CI trends |
+| *(planned)* `incremental-inventory.md` | v0.6.1 spike |
 
 **Rules:** feature-flagged, fallback documented, benchmark or manual test note attached before promotion.

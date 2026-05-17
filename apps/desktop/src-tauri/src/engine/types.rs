@@ -90,6 +90,10 @@ fn default_quarantine_layout() -> String {
     "per_drive".to_string()
 }
 
+fn default_scan_concurrency_mode() -> String {
+    "auto".to_string()
+}
+
 /// Per-ecosystem discovery toggles (M7). Global caches stay opt-in via `check_*_global_cache` on scan request.
 #[derive(Debug, Clone, Copy)]
 pub struct EcosystemScanOptions {
@@ -416,6 +420,9 @@ pub struct Settings {
     pub profile: String,
     pub stale_days: u32,
     pub include_size: bool,
+    /// `auto` | `low` | `high` — parallel directory sizing during scan (v0.6.0).
+    #[serde(default = "default_scan_concurrency_mode")]
+    pub scan_concurrency_mode: String,
     pub show_blocked: bool,
     pub check_go_cache: bool,
     #[serde(default = "default_true")]
@@ -475,6 +482,7 @@ impl Default for Settings {
             profile: "safe".to_string(),
             stale_days: 45,
             include_size: true,
+            scan_concurrency_mode: default_scan_concurrency_mode(),
             show_blocked: false,
             check_go_cache: false,
             include_python_artifacts: true,

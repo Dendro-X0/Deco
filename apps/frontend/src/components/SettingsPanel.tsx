@@ -13,13 +13,12 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { DiscoveryOptionsPanel } from '@/components/DiscoveryOptionsPanel';
-import { ScanTargetsPanel } from '@/components/ScanTargetsPanel';
-import type { ScanMode } from '@/components/ScanModeSelector';
 import {
   clampMaxDepth,
   clampStaleDays,
   cloneSettingsDraft,
   isSettingsDraftDirty,
+  mergeSettingsSavePreservingScanTargets,
   patchSettingsDraft,
 } from '@/lib/settings-draft';
 import { DisabledActionHint } from '@/components/DisabledActionHint';
@@ -98,7 +97,7 @@ function ToggleRow({
   );
 }
 
-export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }: Props) {
+export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) {
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [pickingQuarantine, setPickingQuarantine] = useState(false);
@@ -125,7 +124,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
     setDraft((prev) => (prev ? patchSettingsDraft(prev, patch) : prev));
   }, []);
 
-  const scanMode: ScanMode = draft?.use_custom_scan_roots ? 'custom' : 'partition';
+  const scanMode = draft?.use_custom_scan_roots ? 'custom' : 'partition';
 
   const saveReason = settingsSaveDisabledReason({ dirty, saving, scanning });
   const discardReason = settingsDiscardDisabledReason({ dirty, saving, scanning });
@@ -139,11 +138,16 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
     if (!draft) return;
     setSaving(true);
     try {
-      const payload = normalizeSettings({
-        ...draft,
-        stale_days: clampStaleDays(draft.stale_days),
-        max_depth: clampMaxDepth(draft.max_depth),
-      });
+      const payload = normalizeSettings(
+        mergeSettingsSavePreservingScanTargets(
+          {
+            ...draft,
+            stale_days: clampStaleDays(draft.stale_days),
+            max_depth: clampMaxDepth(draft.max_depth),
+          },
+          saved!,
+        ),
+      );
       await onSave(payload);
     } finally {
       setSaving(false);
@@ -170,7 +174,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <div>
           <CardTitle>Global Configuration</CardTitle>
           <CardDescription>
-            Scan targets, safety profile, and discovery options. Changes apply after you save.
+            Safety profile, discovery options, and advanced scan behavior. Configure drives and folders on the
+            Dashboard. Changes apply after you save.
           </CardDescription>
         </div>
         {dirty ? (
@@ -180,31 +185,6 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         ) : null}
       </CardHeader>
       <CardContent className="space-y-8">
-        <SettingsSection
-          title="Where to scan"
-          description="Choose partition-based scanning or pick specific folders. Only the active mode is shown below."
-        >
-          <ScanTargetsPanel
-            layout="exclusive"
-            mode={scanMode}
-            onModeChange={(mode) =>
-              patch({ use_custom_scan_roots: mode === 'custom' })
-            }
-            selectedVolumes={draft.selected_volumes ?? []}
-            includeProjectFolders={draft.include_project_folders ?? true}
-            customScanRoots={draft.roots ?? []}
-            onSelectedVolumesChange={(mounts) => patch({ selected_volumes: mounts })}
-            onIncludeProjectFoldersChange={(value) =>
-              patch({ include_project_folders: value })
-            }
-            onCustomScanRootsChange={(roots) => patch({ roots })}
-            disabled={scanning || saving}
-            onError={onError}
-          />
-        </SettingsSection>
-
-        <Separator />
-
         <SettingsSection
           title="Scan behavior"
           description={
@@ -291,6 +271,32 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
           title="Discovery"
           description="Optional targets and performance trade-offs during scans."
         >
+          <div className="space-y-2 max-w-md">
+            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+              Size calculation speed
+            </label>
+            <Select
+              value={
+                ['auto', 'low', 'high'].includes(draft.scan_concurrency_mode ?? '')
+                  ? (draft.scan_concurrency_mode as string)
+                  : 'auto'
+              }
+              onValueChange={(v) => patch({ scan_concurrency_mode: v })}
+              disabled={scanning || saving}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto — balanced for your CPU</SelectItem>
+                <SelectItem value="low">Low — gentler on HDDs / background use</SelectItem>
+                <SelectItem value="high">High — faster on SSD / NVMe</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Controls parallel folder size walks during scan. Use Low on slow disks; High when the drive can handle more concurrent reads.
+            </p>
+          </div>
           <DiscoveryOptionsPanel
             settings={draft}
             disabled={scanning || saving}

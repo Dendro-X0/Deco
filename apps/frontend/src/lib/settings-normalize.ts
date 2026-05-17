@@ -39,6 +39,7 @@ export function normalizeSettings(raw: unknown): Settings {
     profile: str('profile', 'profile', 'safe'),
     stale_days: num('stale_days', 'staleDays', 45),
     include_size: bool('include_size', 'includeSize', true),
+    scan_concurrency_mode: str('scan_concurrency_mode', 'scanConcurrencyMode', 'auto'),
     show_blocked: bool('show_blocked', 'showBlocked', false),
     check_go_cache: bool('check_go_cache', 'checkGoCache', false),
     include_python_artifacts: bool('include_python_artifacts', 'includePythonArtifacts', true),

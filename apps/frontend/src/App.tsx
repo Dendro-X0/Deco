@@ -620,7 +620,6 @@ export default function App() {
                   profile={settings?.profile}
                   ready={hasScanTargetsReady}
                   disabled={scanning}
-                  onEditSettings={() => setActiveTab('settings')}
                   onError={setError}
                   storageRefreshToken={storageRefreshToken}
                 />

@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-15
+
+### Added
+
+- **Scan pipeline (v0.6.0)** — discover, then classify and size in 64-target chunks so candidates and sizes stream sooner on large drives.
+- **Parallel classify** with `ProjectRootCache` memoization for project-root detection (`rayon` when chunk ≥ 8 items).
+- **`scan_concurrency_mode`** setting: `auto` (default), `low` (HDD-friendly), `high` (SSD/NVMe) — tunes parallel folder size walks.
+- **Phase timings** on `scan-progress`: optional `discover_ms`, `classify_ms`, `size_ms`; completion message includes per-phase breakdown.
+- **Manifest & benchmark notes** — `docs/product/v0.6.0-manifest.md`, `docs/experiments/scan-performance.md`.
+
+### Changed
+
+- Size calculation uses adaptive concurrency plan from settings instead of a single fixed batch profile.
+- **Scan targets** (partition vs custom folders, drive selection) live on the **Dashboard** only; Settings keeps profile, scan scope, discovery, and safety options.
+
 ## [0.5.7] - 2026-05-15
 
 ### Added
