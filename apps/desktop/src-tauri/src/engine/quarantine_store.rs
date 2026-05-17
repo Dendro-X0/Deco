@@ -1,6 +1,6 @@
 use super::types::QuarantineEntry;
 use super::types::Settings;
-use crate::util::volume::volume_root;
+use crate::util::volume::quarantine_volume_base;
 use chrono::Utc;
 use rusqlite::{params, Connection};
 use std::path::{Path, PathBuf};
@@ -53,7 +53,7 @@ impl QuarantineStorage {
                         .to_string()
                 })
             }
-            QuarantineLayoutKind::PerSourceDrive => volume_root(Path::new(original_path))
+            QuarantineLayoutKind::PerSourceDrive => quarantine_volume_base(Path::new(original_path))
                 .map(|vol| vol.join(VOLUME_QUARANTINE_DIR))
                 .ok_or_else(|| {
                     format!(

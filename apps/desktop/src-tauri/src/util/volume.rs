@@ -1,6 +1,8 @@
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
+use std::path::Component;
 
-/// Windows `C:\` or `E:\` prefix (parsed on all platforms for Windows-style path strings).
+/// Windows `C:\` or `E:/` prefix (parsed on all platforms for Windows-style path strings).
 fn windows_drive_root(raw: &str) -> Option<PathBuf> {
     let bytes = raw.as_bytes();
     if bytes.len() >= 2 && bytes[1] == b':' {
@@ -34,16 +36,91 @@ fn absolutize(path: &Path) -> PathBuf {
     }
 }
 
-/// Drive root for quarantine placement (`E:\` on Windows, `/` on Unix).
-pub fn volume_root(path: &Path) -> Option<PathBuf> {
-    let abs = absolutize(path);
-    let raw = abs.to_string_lossy();
-
+/// Writable base for per-source quarantine (`E:\` on Windows, `/Users/name` on macOS, etc.).
+pub fn quarantine_volume_base(path: &Path) -> Option<PathBuf> {
+    let raw = path.as_os_str().to_string_lossy();
     if let Some(drive) = windows_drive_root(&raw) {
         return Some(drive);
     }
-
     if let Some(unc) = unc_share_root(&raw) {
+        return Some(unc);
+    }
+
+    let abs = absolutize(path);
+    let abs_raw = abs.to_string_lossy();
+    if let Some(drive) = windows_drive_root(&abs_raw) {
+        return Some(drive);
+    }
+    if let Some(unc) = unc_share_root(&abs_raw) {
+        return Some(unc);
+    }
+
+    #[cfg(unix)]
+    {
+        return unix_quarantine_base(&abs);
+    }
+
+    #[cfg(windows)]
+    {
+        if abs.is_absolute() {
+            return windows_drive_root(&abs_raw).or_else(|| unc_share_root(&abs_raw));
+        }
+        None
+    }
+}
+
+/// First writable prefix on Unix (avoid `/.deco-quarantine` which CI cannot create).
+#[cfg(unix)]
+fn unix_quarantine_base(abs: &Path) -> Option<PathBuf> {
+    if !abs.is_absolute() {
+        return None;
+    }
+    let mut base = PathBuf::new();
+    let mut normal_count = 0u32;
+    for comp in abs.components() {
+        match comp {
+            Component::RootDir | Component::Prefix(_) => {
+                base.push(comp.as_os_str());
+            }
+            Component::Normal(name) => {
+                base.push(name);
+                normal_count += 1;
+                let name = name.to_string_lossy();
+                if normal_count >= 2 {
+                    break;
+                }
+                if normal_count == 1 && (name == "tmp" || name == "var" || name == "private") {
+                    break;
+                }
+            }
+            Component::CurDir | Component::ParentDir => {
+                base.push(comp.as_os_str());
+            }
+        }
+    }
+    if base.as_os_str().is_empty() {
+        Some(PathBuf::from("/"))
+    } else {
+        Some(base)
+    }
+}
+
+/// Drive root for volume comparisons (`E:\` on Windows, `/` on Unix for absolute paths).
+pub fn volume_root(path: &Path) -> Option<PathBuf> {
+    let raw = path.as_os_str().to_string_lossy();
+    if let Some(drive) = windows_drive_root(&raw) {
+        return Some(drive);
+    }
+    if let Some(unc) = unc_share_root(&raw) {
+        return Some(unc);
+    }
+
+    let abs = absolutize(path);
+    let abs_raw = abs.to_string_lossy();
+    if let Some(drive) = windows_drive_root(&abs_raw) {
+        return Some(drive);
+    }
+    if let Some(unc) = unc_share_root(&abs_raw) {
         return Some(unc);
     }
 
@@ -62,7 +139,7 @@ pub fn volume_root(path: &Path) -> Option<PathBuf> {
 }
 
 pub fn same_volume(a: &Path, b: &Path) -> bool {
-    match (volume_root(a), volume_root(b)) {
+    match (quarantine_volume_base(a), quarantine_volume_base(b)) {
         (Some(va), Some(vb)) => va == vb,
         _ => false,
     }
@@ -76,6 +153,8 @@ mod tests {
     fn windows_style_drive_on_unix_ci() {
         let root = volume_root(Path::new(r"E:\repo\target"));
         assert_eq!(root, Some(PathBuf::from(r"E:\")));
+        let q = quarantine_volume_base(Path::new(r"E:\repo\target"));
+        assert_eq!(q, Some(PathBuf::from(r"E:\")));
     }
 
     #[test]
@@ -85,5 +164,14 @@ mod tests {
         let root = volume_root(rel).expect("volume for cwd-relative path");
         let expected = volume_root(&cwd).expect("volume for cwd");
         assert_eq!(root, expected);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn unix_quarantine_base_uses_writable_prefix() {
+        let abs = Path::new("/Users/runner/work/Deco/Deco/apps/desktop/target");
+        let base = unix_quarantine_base(abs).expect("base");
+        assert_eq!(base, PathBuf::from("/Users/runner"));
+        assert_ne!(base, PathBuf::from("/"));
     }
 }
