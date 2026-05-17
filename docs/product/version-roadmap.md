@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-16 · **Current release:** `v0.5.0` · **In progress:** `v0.5.1`
+**Last updated:** 2026-05-16 · **Current release:** `v0.5.1` · **In progress:** `v0.5.2`
 
 ---
 
@@ -123,9 +123,8 @@ Follow [scanning philosophy](../../PROJECT.md#scanning-philosophy-whitelist--lay
 | Version | Scope |
 |---------|--------|
 | `v0.5.0` | npm + pnpm cache discovery, settings flags, docs, review-tier execute guard | Shipped |
-| `v0.5.1` | Yarn + pip/uv global caches | Shipped (unreleased tag) |
-| `v0.5.1` | Yarn + pip/uv caches |
-| `v0.5.2` | Conda/Miniconda paths (opt-in wizard copy), regeneration hints |
+| `v0.5.1` | Yarn + pip/uv global caches | Shipped |
+| `v0.5.2` | Conda/Miniconda `pkgs` cache, regeneration hints in candidate detail | In progress |
 | `v0.5.3+` | Cargo global, NuGet global, C++ build-dir rules, community `.deco` policy examples |
 
 **Exit criteria:** Each new kind has documented “what breaks if I delete this” text; false-positive tests for Cursor/VS Code/Electron and MSVC paths.

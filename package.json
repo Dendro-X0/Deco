@@ -1,7 +1,7 @@
 {
   "name": "@dendro-x0/deco-monorepo",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Monorepo for Deco: Disk Cleanup for Developers",
   "scripts": {
     "dev:cli": "pnpm -F @dendro-x0/deco-cli start",

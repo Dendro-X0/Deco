@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-05-16
+
 ### Added
 
 - **Yarn global cache** (`check_yarn_cache` / `--check-yarn-cache`) — Classic `v6` or Berry `berry/cache` markers; `yarn cache dir` when on PATH.
