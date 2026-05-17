@@ -68,9 +68,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      # Restore only: saving the Windows target/ often exceeds cache limits and fails the job post-step.
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
+          save-if: false
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
