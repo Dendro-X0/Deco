@@ -28,7 +28,7 @@ Record: candidate count, discover_ms, classify_ms, size_ms, total wall time.
 ```bash
 pnpm benchmark:scan
 # strict CI parity:
-cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri -- \
+cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri/Cargo.toml -- \
   --projects 20 --compare benchmarks/baseline.synthetic.json
 ```
 

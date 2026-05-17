@@ -11,7 +11,7 @@ pnpm benchmark:scan
 Or with baseline guard:
 
 ```bash
-cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri -- \
+cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri/Cargo.toml -- \
   --projects 20 \
   --compare benchmarks/baseline.synthetic.json
 ```

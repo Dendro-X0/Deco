@@ -1,7 +1,7 @@
 //! Maintainer scan pipeline benchmark (v0.6.2).
 //!
 //! Usage:
-//!   cargo run --bin deco-bench --manifest-path apps/desktop/src-tauri
+//!   cargo run --bin deco-bench --manifest-path apps/desktop/src-tauri/Cargo.toml
 //!   cargo run --bin deco-bench -- --projects 20 --compare benchmarks/baseline.synthetic.json
 
 use deco_desktop::engine::benchmark::{
