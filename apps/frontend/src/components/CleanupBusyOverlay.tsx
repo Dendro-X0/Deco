@@ -29,13 +29,15 @@ export function CleanupBusyOverlay({
 }: Props) {
   if (!visible) return null;
 
-  const liveLine = live ? formatCleanupLiveLine(live) : null;
-  const progressPct =
-    live && live.plannedBytes > 0 && live.freedBytes > 0
-      ? Math.min(100, Math.round((live.freedBytes / live.plannedBytes) * 100))
-      : live && live.totalFolders > 0
-        ? Math.min(100, Math.round((live.foldersDone / live.totalFolders) * 100))
-        : null;
+  const activeLive = live ?? null;
+  const liveLine = activeLive ? formatCleanupLiveLine(activeLive) : null;
+  const progressPct = activeLive
+    ? activeLive.plannedBytes > 0 && activeLive.freedBytes > 0
+      ? Math.min(100, Math.round((activeLive.freedBytes / activeLive.plannedBytes) * 100))
+      : activeLive.totalFolders > 0
+        ? Math.min(100, Math.round((activeLive.foldersDone / activeLive.totalFolders) * 100))
+        : null
+    : null;
 
   return (
     <div
@@ -66,27 +68,29 @@ export function CleanupBusyOverlay({
           </div>
         </div>
 
-        {liveLine && !paused ? (
+        {activeLive && liveLine && !paused ? (
           <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 space-y-2">
             <p className="text-sm font-semibold tabular-nums text-primary">{liveLine}</p>
             {progressPct != null ? (
               <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
                 <div
                   className="h-full rounded-full bg-primary transition-all duration-300"
-                  style={{ width: `${Math.max(progressPct, live.foldersDone > 0 ? 4 : 0)}%` }}
+                  style={{
+                    width: `${Math.max(progressPct, activeLive.foldersDone > 0 ? 4 : 0)}%`,
+                  }}
                 />
               </div>
             ) : null}
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Freed</p>
-                <p className="font-bold tabular-nums">{formatBytes(live.freedBytes)}</p>
+                <p className="font-bold tabular-nums">{formatBytes(activeLive.freedBytes)}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Folders</p>
                 <p className="font-bold tabular-nums">
-                  {live.foldersDone}
-                  {live.totalFolders > 0 ? ` / ${live.totalFolders}` : ''}
+                  {activeLive.foldersDone}
+                  {activeLive.totalFolders > 0 ? ` / ${activeLive.totalFolders}` : ''}
                 </p>
               </div>
             </div>

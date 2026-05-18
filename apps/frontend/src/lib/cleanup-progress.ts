@@ -188,7 +188,7 @@ export function cleanupProgressToScanProgress(
   const mergedDetail = [liveLine, detail].filter(Boolean).join(' · ');
   return {
     percent,
-    text: liveLine ? `${text} — ${formatBytes(live.freedBytes)} freed` : text,
+    text: live ? `${text} — ${formatBytes(live.freedBytes)} freed` : text,
     phase: 'cleanup',
     detail: mergedDetail || undefined,
     cleanupLive: live ?? undefined,
