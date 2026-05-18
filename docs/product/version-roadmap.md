@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-18 · **Latest shipped:** `v0.7.2` · **Development head:** `v0.7.3` (README demos — see [v0.7.3-manifest.md](v0.7.3-manifest.md))
+**Last updated:** 2026-05-18 · **Latest shipped:** `v0.7.2` · **Development head:** `v0.7.3` (parity + CI automation — see [v0.7.3-manifest.md](v0.7.3-manifest.md))
 
 ---
 
@@ -208,7 +208,7 @@ CLI already reports `discover → classify → size`; desktop should match seman
 | `v0.7.0` | Profiles + regeneration hints in UI | Shipped |
 | `v0.7.1` | Dormancy signals (mtime + optional git last-commit hook — opt-in) | Shipped |
 | `v0.7.2` | Policy pack validation CLI + examples repo | Shipped |
-| `v0.7.3` | README product demos (GIFs) for scan / cleanup / settings | In progress |
+| `v0.7.3` | Classification parity fixtures + CI automation recipe | In progress |
 
 ---
 
