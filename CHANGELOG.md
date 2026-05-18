@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **CI Rust tests** — `cleanup_coalesce` normalizes `\` and `/` on all platforms; quick-update bench treats sub-millisecond pipeline timings as pass when inventory reuse is verified.
+
 ## [0.6.7] - 2026-05-18
 
 ### Added

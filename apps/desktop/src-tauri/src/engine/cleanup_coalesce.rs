@@ -47,11 +47,13 @@ fn dedupe_paths(candidates: Vec<CleanupCandidate>) -> (Vec<CleanupCandidate>, u3
     (out, dropped)
 }
 
-fn normalize_path_key(path: &str) -> String {
-    Path::new(path)
-        .to_string_lossy()
+fn normalize_separators(path: &str) -> String {
+    path.replace('\\', MAIN_SEPARATOR_STR)
         .replace('/', MAIN_SEPARATOR_STR)
-        .to_ascii_lowercase()
+}
+
+fn normalize_path_key(path: &str) -> String {
+    normalize_separators(&Path::new(path).to_string_lossy()).to_ascii_lowercase()
 }
 
 fn path_is_strict_ancestor(ancestor: &str, child: &str) -> bool {
@@ -61,7 +63,7 @@ fn path_is_strict_ancestor(ancestor: &str, child: &str) -> bool {
 }
 
 fn normalize_dir_prefix(path: &str) -> String {
-    let s = path.replace('/', MAIN_SEPARATOR_STR);
+    let s = normalize_separators(path);
     if s.ends_with(MAIN_SEPARATOR) {
         s
     } else {
@@ -93,12 +95,22 @@ mod tests {
 
     #[test]
     fn drops_child_under_parent_target() {
+        let parent = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join("coalesce-test-proj");
+        let nm_path = parent.join("node_modules");
+        let child_path = nm_path.join(".cache").join("foo");
         let (out, dropped) = coalesce_for_delete(vec![
-            nm(r"G:\proj\node_modules"),
-            nm(r"G:\proj\node_modules\.cache\foo"),
+            nm(&nm_path.to_string_lossy()),
+            nm(&child_path.to_string_lossy()),
         ]);
         assert_eq!(dropped, 1);
         assert_eq!(out.len(), 1);
-        assert!(out[0].abs_path.ends_with("node_modules"));
+        assert!(
+            out[0]
+                .abs_path
+                .replace('\\', "/")
+                .ends_with("node_modules")
+        );
     }
 }
