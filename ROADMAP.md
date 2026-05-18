@@ -124,7 +124,7 @@ Milestones **M0–M8** are complete. Ongoing delivery is tracked by **semver** a
 |-----|----------|
 | [**Version roadmap**](docs/product/version-roadmap.md) | `v0.4.x` UX → `v0.5.x` ecosystems/package managers → `v0.6.x` scan engine → `v0.7.x` trust/community → `v0.8+` platforms |
 
-**Current release:** `v0.7.0` (tagged). **In development:** `v0.7.1` — see [CHANGELOG.md](CHANGELOG.md) and [v0.7.1-manifest.md](docs/product/v0.7.1-manifest.md).
+**Current release:** `v0.7.1` (tagged). **In development:** `v0.7.2` — see [CHANGELOG.md](CHANGELOG.md) and [v0.7.2-manifest.md](docs/product/v0.7.2-manifest.md).
 
 ---
 
