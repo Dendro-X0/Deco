@@ -1,0 +1,17 @@
+{
+  "profile": "safe",
+  "maxDepth": 8,
+  "excludeAbsPathContains": [
+    "/.git/",
+    "/.deco-quarantine/"
+  ],
+  "safety": {
+    "extraProtectedPathContains": [
+      "/Program Files/",
+      "/Microsoft Visual Studio/",
+      "/Windows Kits/",
+      "/.vscode/",
+      "/.cursor/"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "profile": "balanced",
+  "maxDepth": 10,
+  "excludeAbsPathContains": [
+    "/node_modules/.pnpm/",
+    "/vendor/",
+    "/third_party/"
+  ],
+  "safety": {
+    "extraProtectedPathContains": [
+      "/.deco-quarantine/"
+    ]
+  },
+  "additionalDirNames": {
+    "buildArtifacts": ["cmake-build-debug", "cmake-build-release"]
+  }
+}

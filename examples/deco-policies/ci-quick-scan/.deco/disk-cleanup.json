@@ -1,0 +1,15 @@
+{
+  "profile": "balanced",
+  "maxDepth": 6,
+  "excludeAbsPathContains": [
+    "/.git/",
+    "/.deco-quarantine/",
+    "/AppData/"
+  ],
+  "safety": {
+    "extraProtectedPathContains": [
+      "/node_modules/electron/",
+      "/resources/app/"
+    ]
+  }
+}

@@ -1,6 +1,9 @@
 node_modules
 dist
 .deco
+# Example policy packs (committed for validate-policy tests and README)
+!examples/deco-policies/**/.deco/
+!examples/deco-policies/**/.deco/**
 .dcos
 .artifacts
 *.log
