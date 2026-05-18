@@ -2,7 +2,21 @@
 
 ## [Unreleased]
 
-Development line **v0.7.7** — see [v0.7.7-manifest.md](docs/product/v0.7.7-manifest.md).
+Development line **v0.7.8** — see [v0.7.8-manifest.md](docs/product/v0.7.8-manifest.md).
+
+## [0.7.7] - 2026-05-18
+
+See [v0.7.7-manifest.md](docs/product/v0.7.7-manifest.md).
+
+### Added
+
+- **README demos** — scan, cleanup, and settings GIFs under `docs/assets/demo/`.
+- **Live cleanup progress** — overlay and status show **freed space** and **folders removed** while delete runs (updates as each tree finishes).
+- **Cleanup results card** — dashboard shows post-cleanup analysis (freed bytes, counts, kinds removed) like scan statistics.
+
+### Fixed
+
+- **Parallel cleanup ordering** — bulk deletes now run **largest trees first** so chunked sessions (80+) do not defer multi-GB `node_modules` to the final chunk (fixes “fast first half, slow second half” wall time on SSD).
 
 ## [0.7.6] - 2026-05-18
 

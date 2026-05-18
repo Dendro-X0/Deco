@@ -30,6 +30,7 @@ import {
 } from './lib/direct-delete';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { CleanupBusyOverlay } from './components/CleanupBusyOverlay';
+import { CleanupStatisticsCard } from './components/CleanupStatisticsCard';
 import { CandidateListBanner } from './components/CandidateListBanner';
 import { CandidateProjectGroupTable } from './components/CandidateProjectGroupTable';
 import { CandidateSortHeading } from './components/CandidateSortHeading';
@@ -135,6 +136,8 @@ export default function App() {
     status,
     summary,
     scanMetrics,
+    cleanupLive,
+    lastCleanupSummary,
     quarantine,
     history,
     settings,
@@ -712,6 +715,10 @@ export default function App() {
 
                 {summary && !scanning ? (
                   <ScanStatisticsCard report={summary} metrics={scanMetrics} />
+                ) : null}
+
+                {lastCleanupSummary && !scanning && !busy ? (
+                  <CleanupStatisticsCard summary={lastCleanupSummary} />
                 ) : null}
 
                 {recommendQuickUpdate ? (
@@ -1325,6 +1332,7 @@ export default function App() {
         visible={busy && progress.phase === 'cleanup'}
         message={progress.text || 'Cleanup in progress…'}
         detail={cleanupPaused ? undefined : progress.detail}
+        live={cleanupLive ?? progress.cleanupLive}
         elapsedMs={elapsedMs}
         paused={cleanupPaused}
         onPause={() => void pauseCleanup()}

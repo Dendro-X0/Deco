@@ -12,6 +12,7 @@ Large in-place cleanups (80+ bulk trees) are split into **chunks of 40** so canc
 | `CLEANUP_CHUNK_SIZE` | 40 items per chunk |
 
 - **Parallel path** — items queued for parallel delete are processed chunk-by-chunk; each chunk still uses the configured delete parallelism inside the chunk.
+- **Delete order** — before chunking, trees are sorted **largest first** so the first chunk starts the heaviest `node_modules` / build trees in parallel instead of leaving them for the last chunk (which felt like “fast first half, slow second half” on large SSD cleanups).
 - **Sequential / HDD path** — when total candidates ≥ 80, sequential deletes also emit `chunk_boundary` every 40 folders.
 - **Progress** — `chunk_boundary` stage includes chunk index, folder count, and estimated `folders/min` and `MB/s` (chunk + session overall).
 

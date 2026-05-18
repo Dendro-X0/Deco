@@ -1,4 +1,6 @@
+import { formatBytes } from './format';
 import type { ScanProgress } from './scan-progress';
+import { formatCleanupLiveLine, type CleanupLiveProgress } from './cleanup-statistics';
 
 export type CleanupStage =
   | 'prepare'
@@ -28,7 +30,24 @@ export type CleanupProgressPayload = {
   detail?: string;
   completed_count?: number;
   in_flight_count?: number;
+  freed_bytes_so_far?: number;
+  folders_done_so_far?: number;
 };
+
+export function readCleanupLiveProgress(
+  payload: CleanupProgressPayload,
+  planned: Pick<CleanupLiveProgress, 'totalFolders' | 'plannedBytes'>,
+): CleanupLiveProgress | null {
+  const foldersDone = payload.folders_done_so_far;
+  const freedBytes = payload.freed_bytes_so_far;
+  if (foldersDone == null && freedBytes == null) return null;
+  return {
+    foldersDone: foldersDone ?? 0,
+    freedBytes: freedBytes ?? 0,
+    totalFolders: planned.totalFolders,
+    plannedBytes: planned.plannedBytes,
+  };
+}
 
 function fileNameFromPath(absPath: string): string {
   const parts = absPath.replace(/\\/g, '/').split('/').filter(Boolean);
@@ -162,7 +181,16 @@ export function formatCleanupProgress(payload: CleanupProgressPayload): {
 export function cleanupProgressToScanProgress(
   payload: CleanupProgressPayload,
   percent: number,
+  live?: CleanupLiveProgress | null,
 ): ScanProgress {
   const { text, detail } = formatCleanupProgress(payload);
-  return { percent, text, phase: 'cleanup', detail };
+  const liveLine = live ? formatCleanupLiveLine(live) : null;
+  const mergedDetail = [liveLine, detail].filter(Boolean).join(' · ');
+  return {
+    percent,
+    text: liveLine ? `${text} — ${formatBytes(live.freedBytes)} freed` : text,
+    phase: 'cleanup',
+    detail: mergedDetail || undefined,
+    cleanupLive: live ?? undefined,
+  };
 }

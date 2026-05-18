@@ -1,3 +1,5 @@
+import type { CleanupLiveProgress } from './cleanup-statistics';
+
 export type ScanProgressPhase = 'discover' | 'classify' | 'size' | 'done' | 'cleanup' | null;
 
 export type ScanProgress = {
@@ -6,6 +8,8 @@ export type ScanProgress = {
   phase: ScanProgressPhase;
   /** Secondary line for cleanup overlay / status (e.g. node_modules explanation). */
   detail?: string;
+  /** Live freed bytes / folder count during cleanup. */
+  cleanupLive?: CleanupLiveProgress;
 };
 
 export const IDLE_PROGRESS: ScanProgress = {

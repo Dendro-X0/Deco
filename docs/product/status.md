@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-18 · **Latest shipped:** `v0.7.6` · **Development:** `v0.7.7` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-18 · **Latest shipped:** `v0.7.7` · **Development:** `v0.7.8` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
 
 ---
 
@@ -16,14 +16,14 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.6` · **Development:** `v0
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.7.7-manifest.md](v0.7.7-manifest.md) — workspace rollups |
+| **Active** | [v0.7.8-manifest.md](v0.7.8-manifest.md) — workspace rollups |
 | **Queue** | [v0.7.x-roadmap.md](v0.7.x-roadmap.md) |
 
 ### Version queue (summary)
 
 | Version | Feature set |
 |---------|-------------|
-| `v0.7.7` | Workspace rollups (monorepo summary) |
+| `v0.7.8` | Workspace rollups (monorepo summary) |
 | `v0.8.0` | Multi-platform installers (Win / macOS / Linux) |
 
 ---
@@ -32,15 +32,16 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.6` · **Development:** `v0
 
 | Tag | Highlights |
 |-----|------------|
+| `v0.7.7` | Live cleanup progress, results card, README GIFs, delete ordering |
 | `v0.7.6` | Policy pack gallery, replace diff, Reveal in Explorer |
 | `v0.7.5` | Parity round 2, JVM/.NET/Python project detection |
-| `v0.7.4` | Policy pack Settings UI, parity round 1 |
 
 ---
 
 ## Quick commands
 
 ```bash
+pnpm install     # required after clone or `pnpm clean`
 pnpm check
-deco validate-policy examples/deco-policies/python-data-science
+pnpm dev:desktop
 ```

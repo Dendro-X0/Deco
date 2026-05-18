@@ -34,12 +34,38 @@ pub struct CleanupItemProgress {
     pub completed_count: Option<u32>,
     pub in_flight_count: Option<u32>,
     pub active_summary: Option<String>,
+    /// Cumulative bytes freed so far in this cleanup job (from scan sizing).
+    pub freed_bytes_so_far: Option<u64>,
+    /// Cumulative folders removed or quarantined so far.
+    pub folders_done_so_far: Option<u32>,
+}
+
+/// Running totals for live cleanup progress in the UI.
+#[derive(Debug, Clone, Default)]
+pub struct CleanupProgressTotals {
+    freed_bytes: Arc<AtomicU64>,
+    folders_done: Arc<AtomicU32>,
+}
+
+impl CleanupProgressTotals {
+    pub fn record_success(&self, bytes: u64) {
+        self.folders_done.fetch_add(1, Ordering::Relaxed);
+        self.freed_bytes.fetch_add(bytes, Ordering::Relaxed);
+    }
+
+    pub fn snapshot(&self) -> (u32, u64) {
+        (
+            self.folders_done.load(Ordering::Relaxed),
+            self.freed_bytes.load(Ordering::Relaxed),
+        )
+    }
 }
 
 type ProgressFn = Arc<dyn Fn(CleanupItemProgress) + Send + Sync>;
 
 fn emit_item_progress(
     on_progress: &Option<ProgressFn>,
+    totals: Option<&CleanupProgressTotals>,
     index: u32,
     total: u32,
     candidate: &CleanupCandidate,
@@ -48,6 +74,7 @@ fn emit_item_progress(
 ) {
     emit_item_progress_ex(
         on_progress,
+        totals,
         index,
         total,
         candidate,
@@ -61,6 +88,7 @@ fn emit_item_progress(
 
 fn emit_item_progress_ex(
     on_progress: &Option<ProgressFn>,
+    totals: Option<&CleanupProgressTotals>,
     index: u32,
     total: u32,
     candidate: &CleanupCandidate,
@@ -71,6 +99,10 @@ fn emit_item_progress_ex(
     active_summary: Option<String>,
 ) {
     if let Some(progress) = on_progress {
+        let (folders_done_so_far, freed_bytes_so_far) = totals
+            .map(CleanupProgressTotals::snapshot)
+            .map(|(f, b)| (Some(f), Some(b)))
+            .unwrap_or((None, None));
         progress(CleanupItemProgress {
             index,
             total,
@@ -81,6 +113,8 @@ fn emit_item_progress_ex(
             completed_count,
             in_flight_count,
             active_summary,
+            freed_bytes_so_far,
+            folders_done_so_far,
         });
     }
 }
@@ -110,6 +144,7 @@ pub fn execute_cleanup(
     let mut skipped_opt_in_count = 0u32;
     let mut errors = vec![];
     let mut quarantine_entries = vec![];
+    let progress_totals = CleanupProgressTotals::default();
 
     let in_place = delete_mode == "delete" || delete_mode == "hard-delete";
     let total = candidates.len() as u32;
@@ -166,7 +201,15 @@ pub fn execute_cleanup(
             continue;
         }
 
-        emit_item_progress(&on_progress, index, total, candidate, action, "prepare");
+        emit_item_progress(
+            &on_progress,
+            Some(&progress_totals),
+            index,
+            total,
+            candidate,
+            action,
+            "prepare",
+        );
 
         if in_place {
             apply_in_place_delete(
@@ -176,6 +219,7 @@ pub fn execute_cleanup(
                 total,
                 fast_tree_delete_enabled,
                 &on_progress,
+                Some(&progress_totals),
                 &mut deleted_count,
                 &mut freed_bytes,
                 &mut errors,
@@ -185,6 +229,7 @@ pub fn execute_cleanup(
                 if chunk.should_emit_boundary() {
                     chunk.emit_boundary(
                         &on_progress,
+                        Some(&progress_totals),
                         deleted_count,
                         total,
                         &cancel,
@@ -208,6 +253,7 @@ pub fn execute_cleanup(
             total,
             fast_tree_delete_enabled,
             &on_progress,
+            Some(&progress_totals),
             &mut deleted_count,
             &mut quarantined_count,
             &mut freed_bytes,
@@ -218,7 +264,14 @@ pub fn execute_cleanup(
 
     if let Some(chunk) = sequential_chunk.as_mut() {
         if chunk.chunk_deleted > 0 {
-            chunk.emit_boundary(&on_progress, deleted_count, total, &cancel, &pause);
+            chunk.emit_boundary(
+                &on_progress,
+                Some(&progress_totals),
+                deleted_count,
+                total,
+                &cancel,
+                &pause,
+            );
         }
     }
 
@@ -232,6 +285,7 @@ pub fn execute_cleanup(
             cancel,
             pause,
             on_progress.clone(),
+            Some(&progress_totals),
             batch_done_before,
         );
         deleted_count += p_deleted;
@@ -308,6 +362,7 @@ impl SequentialChunkState {
     fn emit_boundary(
         &mut self,
         on_progress: &Option<ProgressFn>,
+        totals: Option<&CleanupProgressTotals>,
         done: u32,
         total: u32,
         cancel: &Option<Arc<AtomicBool>>,
@@ -320,6 +375,7 @@ impl SequentialChunkState {
         let session_elapsed = self.session_started.elapsed().as_millis() as u64;
         emit_chunk_boundary(
             on_progress,
+            totals,
             done,
             total,
             self.chunk_index,
@@ -341,6 +397,7 @@ impl SequentialChunkState {
 
 fn emit_chunk_boundary(
     on_progress: &Option<ProgressFn>,
+    totals: Option<&CleanupProgressTotals>,
     done: u32,
     total: u32,
     chunk_index: usize,
@@ -371,6 +428,7 @@ fn emit_chunk_boundary(
     };
     emit_item_progress_ex(
         on_progress,
+        totals,
         done,
         total,
         &placeholder,
@@ -390,9 +448,10 @@ fn run_parallel_in_place_deletes(
     cancel: Option<Arc<AtomicBool>>,
     pause: Option<Arc<AtomicBool>>,
     on_progress: Option<ProgressFn>,
+    totals: Option<&CleanupProgressTotals>,
     completed_before: u32,
 ) -> (u32, u64, Vec<String>) {
-    items.sort_by_key(|c| c.size_bytes.unwrap_or(u64::MAX));
+    cleanup_batch::sort_parallel_delete_queue(&mut items);
 
     if !should_chunk_deletes(items.len()) {
         return run_parallel_chunk(
@@ -403,6 +462,7 @@ fn run_parallel_in_place_deletes(
             cancel,
             pause,
             on_progress,
+            totals,
             completed_before,
             None,
         );
@@ -428,6 +488,7 @@ fn run_parallel_in_place_deletes(
         if chunk_idx > 0 {
             emit_chunk_boundary(
                 &on_progress,
+                totals,
                 batch_done,
                 total,
                 chunk_idx - 1,
@@ -451,6 +512,7 @@ fn run_parallel_in_place_deletes(
             cancel.clone(),
             pause.clone(),
             on_progress.clone(),
+            totals,
             batch_done,
             Some((session_start, Arc::clone(&session_bytes), Arc::clone(&session_deleted))),
         );
@@ -465,6 +527,7 @@ fn run_parallel_in_place_deletes(
         if chunk_idx + 1 == chunk_total {
             emit_chunk_boundary(
                 &on_progress,
+                totals,
                 batch_done,
                 total,
                 chunk_idx,
@@ -490,6 +553,7 @@ fn run_parallel_chunk(
     cancel: Option<Arc<AtomicBool>>,
     pause: Option<Arc<AtomicBool>>,
     on_progress: Option<ProgressFn>,
+    totals: Option<&CleanupProgressTotals>,
     completed_before: u32,
     session: Option<(Instant, Arc<AtomicU64>, Arc<AtomicU32>)>,
 ) -> (u32, u64, Vec<String>) {
@@ -526,6 +590,7 @@ fn run_parallel_chunk(
         let active_paths = Arc::clone(&active_paths);
         let stop = Arc::clone(&stop_heartbeat);
         let pause_hb = pause.clone();
+        let totals_hb = totals.cloned();
         thread::spawn(move || {
             let placeholder = CleanupCandidate {
                 id: String::new(),
@@ -557,6 +622,7 @@ fn run_parallel_chunk(
                 let summary = active_paths_summary(&active_paths);
                 emit_item_progress_ex(
                     &on_progress,
+                    totals_hb.as_ref(),
                     c,
                     total,
                     &placeholder,
@@ -590,6 +656,7 @@ fn run_parallel_chunk(
             let summary = active_paths_summary(&active_ref);
             emit_item_progress_ex(
                 &on_progress,
+                totals,
                 c + 1,
                 total,
                 candidate,
@@ -606,6 +673,9 @@ fn run_parallel_chunk(
                     let bytes = candidate.size_bytes.unwrap_or(0);
                     deleted.fetch_add(1, Ordering::Relaxed);
                     freed.fetch_add(bytes, Ordering::Relaxed);
+                    if let Some(t) = totals {
+                        t.record_success(bytes);
+                    }
                     if let Some(ref b) = session_bytes_ref {
                         b.fetch_add(bytes, Ordering::Relaxed);
                     }
@@ -628,6 +698,7 @@ fn run_parallel_chunk(
             let n_after = in_flight_ref.load(Ordering::Relaxed);
             emit_item_progress_ex(
                 &on_progress,
+                totals,
                 done,
                 total,
                 candidate,
@@ -678,23 +749,50 @@ fn apply_in_place_delete(
     total: u32,
     fast_tree_delete_enabled: bool,
     on_progress: &Option<ProgressFn>,
+    totals: Option<&CleanupProgressTotals>,
     deleted_count: &mut u32,
     freed_bytes: &mut u64,
     errors: &mut Vec<String>,
 ) {
+    let start_stage = if fast_tree_delete_enabled {
+        "fast_remove_tree_start"
+    } else {
+        "remove_tree_start"
+    };
     if is_bulk_tree_delete(path, &candidate.kind) {
-        let stage = if fast_tree_delete_enabled {
-            "fast_remove_tree"
-        } else {
-            "remove_tree"
-        };
-        emit_item_progress(on_progress, index, total, candidate, "delete", stage);
+        emit_item_progress(
+            on_progress,
+            totals,
+            index,
+            total,
+            candidate,
+            "delete",
+            start_stage,
+        );
     }
     if let Err(e) = delete_in_place(path, fast_tree_delete_enabled, &candidate.kind) {
         errors.push(format!("Failed to delete {}: {}", candidate.abs_path, e));
     } else {
+        let bytes = candidate.size_bytes.unwrap_or(0);
         *deleted_count += 1;
-        *freed_bytes = freed_bytes.saturating_add(candidate.size_bytes.unwrap_or(0));
+        *freed_bytes = freed_bytes.saturating_add(bytes);
+        if let Some(t) = totals {
+            t.record_success(bytes);
+        }
+        let done_stage = if fast_tree_delete_enabled {
+            "fast_remove_tree"
+        } else {
+            "remove_tree"
+        };
+        emit_item_progress(
+            on_progress,
+            totals,
+            index,
+            total,
+            candidate,
+            "delete",
+            done_stage,
+        );
     }
 }
 
@@ -707,6 +805,7 @@ fn apply_quarantine(
     total: u32,
     fast_tree_delete_enabled: bool,
     on_progress: &Option<ProgressFn>,
+    totals: Option<&CleanupProgressTotals>,
     deleted_count: &mut u32,
     quarantined_count: &mut u32,
     freed_bytes: &mut u64,
@@ -731,12 +830,20 @@ fn apply_quarantine(
     }
 
     if is_bulk_tree_delete(path, &candidate.kind) {
-        emit_item_progress(on_progress, index, total, candidate, "quarantine", "move");
+        emit_item_progress(
+            on_progress,
+            totals,
+            index,
+            total,
+            candidate,
+            "quarantine",
+            "move",
+        );
     }
 
     match move_path(path, &q_path) {
         Ok(()) => {
-            emit_item_progress(on_progress, index, total, candidate, "quarantine", "record");
+            let bytes = candidate.size_bytes.unwrap_or(0);
             let db_result = db
                 .lock()
                 .map_err(|_| "db mutex poisoned".to_string())
@@ -751,9 +858,21 @@ fn apply_quarantine(
                 });
             match db_result {
                 Ok(entry) => {
+                    if let Some(t) = totals {
+                        t.record_success(bytes);
+                    }
                     *quarantined_count += 1;
-                    *freed_bytes = freed_bytes.saturating_add(candidate.size_bytes.unwrap_or(0));
+                    *freed_bytes = freed_bytes.saturating_add(bytes);
                     quarantine_entries.push(entry);
+                    emit_item_progress(
+                        on_progress,
+                        totals,
+                        index,
+                        total,
+                        candidate,
+                        "quarantine",
+                        "record",
+                    );
                 }
                 Err(e) => errors.push(e),
             }

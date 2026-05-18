@@ -34,10 +34,12 @@ pnpm build:frontend
 pnpm build:desktop     # production installers
 pnpm package:cli       # stage .artifacts/deco-cli
 
-pnpm dev:desktop       # Tauri dev
+pnpm dev:desktop       # Tauri dev (needs `pnpm install` first)
 pnpm dev:cli -- --dry-run --root . --no-size
 pnpm icons:generate    # Regenerate taskbar/installer icons from brand PNG
 ```
+
+**Note:** `pnpm clean` removes all workspace `node_modules` folders. After a clean (or a fresh clone), run `pnpm install` before `pnpm dev:desktop` — otherwise `tauri` will not be found.
 
 App icons live in `apps/desktop/src-tauri/icons/`. Source: `app-icon.png` (from `scripts/generate-deco-icon.py`, teal **D** matching UI `--primary`). After changing the logo, run `pnpm icons:generate` and restart the desktop app so Windows picks up the new `.ico`.
 

@@ -4,6 +4,14 @@ Deco is a **desktop-first** cleanup app for developer machines, with a **CLI** f
 
 Goals: **safe defaults** (scan → review → quarantine-first cleanup → restore/purge), **low learning curve**, and **broad dev-artifact** coverage—not a general-purpose “every file” browser.
 
+## Demo
+
+| Scan | Cleanup | Settings |
+|------|---------|----------|
+| ![Scan demo](docs/assets/demo/scan.gif) | ![Cleanup demo](docs/assets/demo/cleaning.gif) | ![Settings demo](docs/assets/demo/settings.gif) |
+
+Recorded on Windows (SSD). Cleanup throughput depends on disk, tree size, and how many `node_modules` / build folders are selected—see [batch delete](docs/experiments/batch-delete.md).
+
 ## Privacy & security
 
 Deco is built for developers who need to trust what runs on their machine:

@@ -1,12 +1,14 @@
 import { Loader2, Pause } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatDurationMs } from '@/lib/format';
+import { formatBytes, formatDurationMs } from '@/lib/format';
+import { formatCleanupLiveLine, type CleanupLiveProgress } from '@/lib/cleanup-statistics';
 
 type Props = {
   visible: boolean;
   message: string;
   detail?: string;
   elapsedMs: number;
+  live?: CleanupLiveProgress | null;
   paused?: boolean;
   onPause?: () => void;
   onResume?: () => void;
@@ -19,12 +21,21 @@ export function CleanupBusyOverlay({
   message,
   detail,
   elapsedMs,
+  live,
   paused = false,
   onPause,
   onResume,
   onCancel,
 }: Props) {
   if (!visible) return null;
+
+  const liveLine = live ? formatCleanupLiveLine(live) : null;
+  const progressPct =
+    live && live.plannedBytes > 0 && live.freedBytes > 0
+      ? Math.min(100, Math.round((live.freedBytes / live.plannedBytes) * 100))
+      : live && live.totalFolders > 0
+        ? Math.min(100, Math.round((live.foldersDone / live.totalFolders) * 100))
+        : null;
 
   return (
     <div
@@ -54,6 +65,34 @@ export function CleanupBusyOverlay({
             ) : null}
           </div>
         </div>
+
+        {liveLine && !paused ? (
+          <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2.5 space-y-2">
+            <p className="text-sm font-semibold tabular-nums text-primary">{liveLine}</p>
+            {progressPct != null ? (
+              <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300"
+                  style={{ width: `${Math.max(progressPct, live.foldersDone > 0 ? 4 : 0)}%` }}
+                />
+              </div>
+            ) : null}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Freed</p>
+                <p className="font-bold tabular-nums">{formatBytes(live.freedBytes)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Folders</p>
+                <p className="font-bold tabular-nums">
+                  {live.foldersDone}
+                  {live.totalFolders > 0 ? ` / ${live.totalFolders}` : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex items-center justify-between border-t border-border/50 pt-2 text-xs gap-3">
           <span className="text-muted-foreground">Elapsed</span>
           <span className="font-mono font-semibold tabular-nums text-primary">

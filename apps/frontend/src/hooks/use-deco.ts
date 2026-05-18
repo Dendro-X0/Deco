@@ -12,7 +12,17 @@ import type {
   Settings,
   HistoryItem,
 } from '../types';
-import { cleanupProgressToScanProgress, type CleanupProgressPayload } from '../lib/cleanup-progress';
+import {
+  cleanupProgressToScanProgress,
+  readCleanupLiveProgress,
+  type CleanupProgressPayload,
+} from '../lib/cleanup-progress';
+import {
+  sumCandidateBytes,
+  topKindsFromCandidates,
+  type CleanupLiveProgress,
+  type CleanupRunSummary,
+} from '../lib/cleanup-statistics';
 import { normalizeCandidate, normalizeScanReport, recomputeScanSummaryFromCandidates } from '../lib/scan-report';
 import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normalize';
 import { formatBytes, formatDurationMs } from '../lib/format';
@@ -64,6 +74,13 @@ export function useDeco() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [cleanupPaused, setCleanupPaused] = useState(false);
   const [scanMetrics, setScanMetrics] = useState<ScanRunMetrics | null>(null);
+  const [cleanupLive, setCleanupLive] = useState<CleanupLiveProgress | null>(null);
+  const [lastCleanupSummary, setLastCleanupSummary] = useState<CleanupRunSummary | null>(null);
+  const cleanupPlannedRef = useRef<{ totalFolders: number; plannedBytes: number }>({
+    totalFolders: 0,
+    plannedBytes: 0,
+  });
+  const cleanupRemovedSnapshotRef = useRef<Candidate[]>([]);
   const activeScanModeRef = useRef<'full' | 'quick'>('full');
 
   const tauriInvoke = async (command: string, payload: Record<string, unknown> = {}) => {
@@ -268,6 +285,7 @@ export function useDeco() {
     setSelectedIds(new Set());
     setSummary(null);
     setScanMetrics(null);
+    setLastCleanupSummary(null);
     activeScanModeRef.current = scanMode;
     setSearchStopped(false);
     scanPhaseRef.current = 'discover';
@@ -366,7 +384,12 @@ export function useDeco() {
   };
 
   const applyCleanupResult = useCallback(
-    async (result: ExecuteResponse, candidateIds: string[], durationMs?: number) => {
+    async (
+      result: ExecuteResponse,
+      candidateIds: string[],
+      durationMs?: number,
+      removedSnapshot?: Candidate[],
+    ) => {
       const bytesRemoved =
         result.freed_bytes ??
         (result as { freedBytes?: number }).freedBytes ??
@@ -389,6 +412,16 @@ export function useDeco() {
         return next;
       });
       setSelectedIds(new Set());
+      setCleanupLive(null);
+      const moved = (result.quarantined_count ?? 0) + (result.deleted_count ?? 0);
+      if (moved > 0) {
+        setLastCleanupSummary({
+          result,
+          durationMs: durationMs ?? 0,
+          requestedCount: candidateIds.length,
+          removedKinds: topKindsFromCandidates(removedSnapshot ?? []),
+        });
+      }
       await refreshQuarantine();
       await refreshHistory();
       bumpStorageRefresh();
@@ -407,7 +440,6 @@ export function useDeco() {
         phase: 'cleanup',
         detail: undefined,
       });
-      const moved = (result.quarantined_count ?? 0) + (result.deleted_count ?? 0);
       const timeHint =
         durationMs != null && durationMs > 0 ? ` · ${formatDurationMs(durationMs)}` : '';
       const freedLabel =
@@ -446,7 +478,13 @@ export function useDeco() {
         waiter.resolve(result);
       }
       if (result) {
-        void applyCleanupResult(result, candidateIds, durationMs);
+        void applyCleanupResult(
+          result,
+          candidateIds,
+          durationMs,
+          cleanupRemovedSnapshotRef.current,
+        );
+        cleanupRemovedSnapshotRef.current = [];
       } else {
         setProgress(IDLE_PROGRESS);
         setStatus({ text: 'Cleanup failed', type: 'error' });
@@ -462,6 +500,21 @@ export function useDeco() {
   ): Promise<ExecuteResponse | null> => {
     if (!summary?.scan_id) return null;
     const deleting = deleteMode === 'delete' || deleteMode === 'hard-delete';
+    const selected = candidateIds
+      .map((id) => candidateMap.get(id))
+      .filter((c): c is Candidate => c != null);
+    cleanupRemovedSnapshotRef.current = selected;
+    const plannedBytes = sumCandidateBytes(selected);
+    cleanupPlannedRef.current = {
+      totalFolders: candidateIds.length,
+      plannedBytes,
+    };
+    setCleanupLive({
+      foldersDone: 0,
+      freedBytes: 0,
+      totalFolders: candidateIds.length,
+      plannedBytes,
+    });
     setBusy(true);
     operationStartedAtRef.current = Date.now();
     setElapsedMs(0);
@@ -763,16 +816,47 @@ export function useDeco() {
             : payload.inFlightCount != null
               ? Number(payload.inFlightCount)
               : undefined,
+        freed_bytes_so_far:
+          payload.freed_bytes_so_far != null
+            ? Number(payload.freed_bytes_so_far)
+            : payload.freedBytesSoFar != null
+              ? Number(payload.freedBytesSoFar)
+              : undefined,
+        folders_done_so_far:
+          payload.folders_done_so_far != null
+            ? Number(payload.folders_done_so_far)
+            : payload.foldersDoneSoFar != null
+              ? Number(payload.foldersDoneSoFar)
+              : undefined,
       };
+      const live =
+        readCleanupLiveProgress(progressPayload, cleanupPlannedRef.current) ??
+        undefined;
+      if (live) setCleanupLive(live);
       const done =
         progressPayload.completed_count ?? progressPayload.index;
       const percent =
-        progressPayload.total > 0
-          ? Math.min(99, Math.round((done / progressPayload.total) * 100))
-          : 50;
-      const scanProgress = cleanupProgressToScanProgress(progressPayload, percent);
+        live && live.plannedBytes > 0
+          ? Math.min(
+              99,
+              Math.round((live.freedBytes / live.plannedBytes) * 100),
+            )
+          : progressPayload.total > 0
+            ? Math.min(99, Math.round((done / progressPayload.total) * 100))
+            : 50;
+      const scanProgress = cleanupProgressToScanProgress(
+        progressPayload,
+        percent,
+        live ?? cleanupLive,
+      );
       setProgress(scanProgress);
-      setStatus({ text: scanProgress.text, type: 'active' });
+      const statusLive = live ?? cleanupLive;
+      setStatus({
+        text: statusLive
+          ? `${scanProgress.text} · ${statusLive.foldersDone} folder(s)`
+          : scanProgress.text,
+        type: 'active',
+      });
     });
 
     const unlistenCleanupComplete = listen('cleanup-complete', (event) => {
@@ -804,7 +888,7 @@ export function useDeco() {
       unlistenCleanupComplete.then((u) => u());
       unlistenCleanupError.then((u) => u());
     };
-  }, [finishCleanupJob]);
+  }, [finishCleanupJob, cleanupLive]);
 
   useEffect(() => {
     setCandidates(Array.from(candidateMap.values()));
@@ -834,6 +918,8 @@ export function useDeco() {
     status,
     summary,
     scanMetrics,
+    cleanupLive,
+    lastCleanupSummary,
     quarantine,
     history,
     settings,

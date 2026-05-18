@@ -33,6 +33,10 @@ struct CleanupProgressEvent {
     completed_count: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     in_flight_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    freed_bytes_so_far: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    folders_done_so_far: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -164,6 +168,8 @@ fn run_cleanup_background(
                 detail,
                 completed_count: progress.completed_count,
                 in_flight_count: progress.in_flight_count,
+                freed_bytes_so_far: progress.freed_bytes_so_far,
+                folders_done_so_far: progress.folders_done_so_far,
             },
         );
     });
