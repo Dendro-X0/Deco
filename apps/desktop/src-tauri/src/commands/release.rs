@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn validate_accepts_github_release_download() {
         validate_release_download_url(
-            "https://github.com/Dendro-X0/Deco/releases/download/v0.7.1/Deco_0.7.1_x64_en-US.msi",
+            "https://github.com/Dendro-X0/Deco/releases/download/v0.7.2/Deco_0.7.2_x64_en-US.msi",
         )
         .expect("github releases/download");
     }
@@ -385,19 +385,19 @@ mod tests {
     #[test]
     fn sanitize_accepts_typical_asset_name() {
         assert_eq!(
-            sanitize_download_filename("Deco_0.7.1_x64-setup.msi").unwrap(),
-            "Deco_0.7.1_x64-setup.msi"
+            sanitize_download_filename("Deco_0.7.2_x64-setup.msi").unwrap(),
+            "Deco_0.7.2_x64-setup.msi"
         );
     }
 
     #[test]
     fn installer_kind_windows_msi_and_exe() {
         assert_eq!(
-            installer_kind_for_target(Path::new("Deco_0.7.1_x64_en-US.msi"), "windows"),
+            installer_kind_for_target(Path::new("Deco_0.7.2_x64_en-US.msi"), "windows"),
             InstallerKind::WindowsMsi
         );
         assert_eq!(
-            installer_kind_for_target(Path::new("Deco_0.7.1_x64-setup.exe"), "windows"),
+            installer_kind_for_target(Path::new("Deco_0.7.2_x64-setup.exe"), "windows"),
             InstallerKind::WindowsExe
         );
     }
@@ -405,11 +405,11 @@ mod tests {
     #[test]
     fn installer_kind_macos_dmg_and_pkg() {
         assert_eq!(
-            installer_kind_for_target(Path::new("Deco_0.7.1_aarch64.dmg"), "macos"),
+            installer_kind_for_target(Path::new("Deco_0.7.2_aarch64.dmg"), "macos"),
             InstallerKind::MacosDmg
         );
         assert_eq!(
-            installer_kind_for_target(Path::new("Deco_0.7.1_universal.pkg"), "macos"),
+            installer_kind_for_target(Path::new("Deco_0.7.2_universal.pkg"), "macos"),
             InstallerKind::MacosPkg
         );
     }
@@ -417,15 +417,15 @@ mod tests {
     #[test]
     fn installer_kind_linux_appimage_deb_rpm() {
         assert_eq!(
-            installer_kind_for_target(Path::new("Deco_0.7.1_amd64.AppImage"), "linux"),
+            installer_kind_for_target(Path::new("Deco_0.7.2_amd64.AppImage"), "linux"),
             InstallerKind::LinuxAppImage
         );
         assert_eq!(
-            installer_kind_for_target(Path::new("deco_0.7.1_amd64.deb"), "linux"),
+            installer_kind_for_target(Path::new("deco_0.7.2_amd64.deb"), "linux"),
             InstallerKind::LinuxDeb
         );
         assert_eq!(
-            installer_kind_for_target(Path::new("Deco-0.7.1.x86_64.rpm"), "linux"),
+            installer_kind_for_target(Path::new("Deco-0.7.2.x86_64.rpm"), "linux"),
             InstallerKind::LinuxRpm
         );
     }

@@ -50,7 +50,7 @@ const DEFAULT_PROFILE: CleanupProfile = 'safe';
 const DEFAULT_DELETE_MODE: DeleteMode = 'quarantine';
 const DEFAULT_STALE_DAYS = 45;
 const DEFAULT_QUARANTINE_RETENTION_DAYS = 30;
-const CLI_VERSION = '0.7.1';
+const CLI_VERSION = '0.7.2';
 
 export type TargetDir = CleanupCandidate;
 export type ScanReport = ScanReportV2;
