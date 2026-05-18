@@ -4,6 +4,11 @@
 
 Development line **v0.7.0** — see [v0.7.0-manifest.md](docs/product/v0.7.0-manifest.md) and [v0.7.x-roadmap.md](docs/product/v0.7.x-roadmap.md).
 
+### Added
+
+- **Cleanup profiles (Settings)** — `first_scan`, `monorepo_maintainer`, and `ci_agent` presets bundle scan scope, safety profile, discovery flags, and scan strategy.
+- **Regeneration hints (candidate detail)** — dedicated “Regenerate” panel with CLI/Rust parity for global-cache kinds; reason line strips embedded hint text.
+
 ## [0.6.12] - 2026-05-17
 
 Closes the **v0.6.x** scan-engine line — see [v0.6.12-manifest.md](docs/product/v0.6.12-manifest.md).

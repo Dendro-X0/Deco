@@ -184,6 +184,10 @@ fn default_scan_strategy() -> String {
     "balanced".to_string()
 }
 
+fn default_cleanup_profile() -> String {
+    "custom".to_string()
+}
+
 fn default_cleanup_disk_mode() -> String {
     "auto".to_string()
 }
@@ -583,6 +587,9 @@ pub struct Settings {
     /// `thorough` | `balanced` | `fast` | `background` | `custom` — UI preset label (v0.6.3).
     #[serde(default = "default_scan_strategy")]
     pub scan_strategy: String,
+    /// `first_scan` | `monorepo_maintainer` | `ci_agent` | `custom` — cleanup profile preset (v0.7.0).
+    #[serde(default = "default_cleanup_profile")]
+    pub cleanup_profile: String,
     /// Declarative walk patterns (Android Studio, JetBrains, …) — v0.6.5.
     #[serde(default)]
     pub smart_discovery_enabled: bool,
@@ -670,6 +677,7 @@ impl Default for Settings {
             scan_concurrency_mode: default_scan_concurrency_mode(),
             incremental_inventory_enabled: true,
             scan_strategy: default_scan_strategy(),
+            cleanup_profile: default_cleanup_profile(),
             smart_discovery_enabled: false,
             classify_parallel_threshold: default_classify_parallel_threshold(),
             fast_dependency_size_estimate: default_fast_dependency_size_estimate(),

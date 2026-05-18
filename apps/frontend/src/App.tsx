@@ -77,6 +77,10 @@ import {
   type CandidateSortState,
 } from './lib/candidate-sort';
 import {
+  reasonSummaryWithoutRegeneration,
+  resolveRegenerationHint,
+} from './lib/regeneration-hints';
+import {
   EMPTY_CANDIDATE_FILTERS,
   filterCandidates,
   filtersAreActive,
@@ -423,6 +427,12 @@ export default function App() {
   });
 
   const selectedCandidate = candidates.find((c) => c.id === selectedCandidateId);
+  const selectedRegenerationHint = selectedCandidate
+    ? resolveRegenerationHint(
+        selectedCandidate.kind,
+        selectedCandidate.display_reason_summary,
+      )
+    : undefined;
 
   const hasScanResults = Boolean(summary?.scan_id);
 
@@ -1023,13 +1033,27 @@ export default function App() {
                              <div className="grid grid-cols-2 gap-4">
                                <div className="space-y-1">
                                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Reason</p>
-                                 <p className="text-xs font-semibold">{selectedCandidate.display_reason_summary || 'N/A'}</p>
+                                 <p className="text-xs font-semibold">
+                                   {reasonSummaryWithoutRegeneration(
+                                     selectedCandidate.display_reason_summary,
+                                   )}
+                                 </p>
                                </div>
                                <div className="space-y-1">
                                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Project</p>
                                  <p className="text-xs font-semibold">{selectedCandidate.project_root || 'N/A'}</p>
                                </div>
                              </div>
+                             {selectedRegenerationHint ? (
+                               <div className="space-y-1 rounded-md border border-border/50 bg-muted/15 p-3">
+                                 <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                                   Regenerate
+                                 </p>
+                                 <p className="text-xs leading-relaxed font-mono">
+                                   {selectedRegenerationHint}
+                                 </p>
+                               </div>
+                             ) : null}
                              <div className="space-y-1">
                                <p className="text-[10px] uppercase font-bold text-muted-foreground">Size</p>
                                <p className="text-xs font-black tabular-nums">

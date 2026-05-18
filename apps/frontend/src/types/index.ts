@@ -91,6 +91,8 @@ export interface Settings {
   incremental_inventory_enabled?: boolean;
   /** `thorough` | `balanced` | `fast` | `background` | `custom` (v0.6.3). */
   scan_strategy?: string;
+  /** `first_scan` | `monorepo_maintainer` | `ci_agent` | `custom` (v0.7.0). */
+  cleanup_profile?: string;
   /** Declarative IDE/tool path patterns (v0.6.5). */
   smart_discovery_enabled?: boolean;
   /** Rayon classify when chunk has at least this many targets (v0.6.5). */

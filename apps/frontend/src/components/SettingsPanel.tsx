@@ -33,6 +33,12 @@ import {
 } from '@/lib/quarantine-storage';
 import { normalizeSettings } from '@/lib/settings-normalize';
 import {
+  CLEANUP_PROFILE_PRESETS,
+  applyCleanupProfilePreset,
+  resolveCleanupProfile,
+  type CleanupProfilePreset,
+} from '@/lib/cleanup-profiles';
+import {
   SCAN_STRATEGY_PRESETS,
   applyScanStrategyPreset,
   resolveScanStrategy,
@@ -171,6 +177,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
     );
   }
 
+  const activeProfile = resolveCleanupProfile(draft);
+  const activeProfileMeta = CLEANUP_PROFILE_PRESETS.find((p) => p.id === activeProfile);
   const activeStrategy = resolveScanStrategy(draft);
   const activeStrategyMeta = SCAN_STRATEGY_PRESETS.find((p) => p.id === activeStrategy);
 
@@ -208,11 +216,44 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
           title="Scan behavior"
           description={
             scanMode === 'partition'
-              ? 'Pick a scan strategy for performance, then profile and thresholds. Scan scope is used when suggesting roots on empty drives.'
-              : 'Pick a scan strategy for performance, then profile and thresholds. Custom-folder mode ignores partition layout.'
+              ? 'Pick a cleanup profile for your role, then tune scan strategy and thresholds. Scan scope applies when suggesting roots on empty drives.'
+              : 'Pick a cleanup profile for your role, then tune scan strategy and thresholds. Custom-folder mode ignores partition layout.'
           }
         >
           <div className="space-y-4 max-w-2xl">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                Cleanup profile
+              </label>
+              <Select
+                value={activeProfile === 'custom' ? 'custom' : activeProfile}
+                onValueChange={(v) => {
+                  if (v === 'custom') return;
+                  patch(applyCleanupProfilePreset(v as CleanupProfilePreset));
+                }}
+                disabled={scanning || saving}
+              >
+                <SelectTrigger className="bg-background/50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLEANUP_PROFILE_PRESETS.map((preset) => (
+                    <SelectItem key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                  {activeProfile === 'custom' ? (
+                    <SelectItem value="custom">Custom</SelectItem>
+                  ) : null}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {activeProfile === 'custom'
+                  ? 'Safety profile, discovery flags, or scope no longer match a preset — adjust below or pick a profile.'
+                  : (activeProfileMeta?.description ??
+                    'Bundles scope, safety profile, discovery flags, and scan strategy.')}
+              </p>
+            </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                 Scan strategy

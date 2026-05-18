@@ -4,6 +4,7 @@ import { CustomScanRoots } from '@/components/CustomScanRoots';
 import { PartitionPicker } from '@/components/PartitionPicker';
 import { ScanModeTabList } from '@/components/ScanModeTabs';
 import type { ScanMode } from '@/components/ScanModeSelector';
+import { cleanupProfileSummary, resolveCleanupProfile } from '@/lib/cleanup-profiles';
 import { scanStrategySummary, resolveScanStrategy } from '@/lib/scan-strategy';
 import type { Settings } from '@/types';
 
@@ -62,10 +63,15 @@ export function ScanTargetsDashboardCard({
             Profile: {PROFILE_LABELS[profile] ?? profile}
           </span>
           {settings ? (
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              Strategy:{' '}
-              {scanStrategySummary(resolveScanStrategy(settings), settings)}
-            </span>
+            <>
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                {cleanupProfileSummary(resolveCleanupProfile(settings), settings)}
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                Strategy:{' '}
+                {scanStrategySummary(resolveScanStrategy(settings), settings)}
+              </span>
+            </>
           ) : null}
           {!ready ? (
             <span className="text-[10px] font-bold uppercase tracking-wide text-amber-500">

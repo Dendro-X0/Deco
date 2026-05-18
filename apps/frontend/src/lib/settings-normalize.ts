@@ -1,4 +1,5 @@
 import type { Settings } from '../types';
+import { deriveCleanupProfile } from './cleanup-profiles';
 import { deriveScanStrategy, normalizeScanStrategyId } from './scan-strategy';
 
 type RawSettings = Record<string, unknown>;
@@ -49,7 +50,7 @@ export function normalizeSettings(raw: unknown): Settings {
     ),
   } as Settings);
 
-  return {
+  const settings: Settings = {
     roots,
     use_custom_scan_roots,
     scan_scope: str('scan_scope', 'scanScope', 'projects'),
@@ -115,5 +116,10 @@ export function normalizeSettings(raw: unknown): Settings {
     exclude_abs_path_contains: strList('exclude_abs_path_contains', 'excludeAbsPathContains'),
     extra_protected_path_contains: strList('extra_protected_path_contains', 'extraProtectedPathContains'),
     allow_path_contains: strList('allow_path_contains', 'allowPathContains'),
+  };
+
+  return {
+    ...settings,
+    cleanup_profile: deriveCleanupProfile(settings),
   };
 }
