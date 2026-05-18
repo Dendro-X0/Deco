@@ -62,6 +62,7 @@ export function useDeco() {
   const scanPhaseRef = useRef<string | null>(null);
   const [searchStopped, setSearchStopped] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [cleanupPaused, setCleanupPaused] = useState(false);
   const [scanMetrics, setScanMetrics] = useState<ScanRunMetrics | null>(null);
   const activeScanModeRef = useRef<'full' | 'quick'>('full');
 
@@ -144,7 +145,30 @@ export function useDeco() {
     if (!jobId) return;
     try {
       await invoke('cancel_cleanup', { jobId });
+      setCleanupPaused(false);
       setStatus({ text: 'Stopping cleanup…', type: 'active' });
+    } catch {
+      /* surfaced via tauriInvoke */
+    }
+  };
+
+  const pauseCleanup = async () => {
+    const jobId = activeCleanupJobIdRef.current;
+    if (!jobId) return;
+    try {
+      await invoke('pause_cleanup', { jobId });
+      setCleanupPaused(true);
+    } catch {
+      /* surfaced via tauriInvoke */
+    }
+  };
+
+  const resumeCleanup = async () => {
+    const jobId = activeCleanupJobIdRef.current;
+    if (!jobId) return;
+    try {
+      await invoke('resume_cleanup', { jobId });
+      setCleanupPaused(false);
     } catch {
       /* surfaced via tauriInvoke */
     }
@@ -407,6 +431,7 @@ export function useDeco() {
       const durationMs = startedAt != null ? Date.now() - startedAt : undefined;
       activeCleanupJobIdRef.current = null;
       setBusy(false);
+      setCleanupPaused(false);
       operationStartedAtRef.current = null;
       setElapsedMs(0);
       const waiter = cleanupWaitersRef.current.get(jobId);
@@ -816,6 +841,9 @@ export function useDeco() {
     scan,
     cancelScan,
     cancelCleanup,
+    pauseCleanup,
+    resumeCleanup,
+    cleanupPaused,
     scanStopStage: searchStopped ? ('analysis' as const) : ('search' as const),
     searchStopped,
     loadSettings,

@@ -169,6 +169,10 @@ fn default_scan_strategy() -> String {
     "balanced".to_string()
 }
 
+fn default_cleanup_disk_mode() -> String {
+    "auto".to_string()
+}
+
 fn default_classify_parallel_threshold() -> u32 {
     8
 }
@@ -571,6 +575,9 @@ pub struct Settings {
     /// In-place delete of heavy dependency trees via `rmdir` / `rm -rf` (experimental).
     #[serde(default = "default_fast_tree_delete_enabled")]
     pub fast_tree_delete_enabled: bool,
+    /// `auto` | `hdd` | `standard` — delete parallelism during cleanup (v0.6.6).
+    #[serde(default = "default_cleanup_disk_mode")]
+    pub cleanup_disk_mode: String,
     pub delete_mode: String,
     /// `per_drive` (default): `{drive}\.deco-quarantine` — never `%AppData%`.
     #[serde(default = "default_quarantine_layout")]
@@ -621,6 +628,7 @@ impl Default for Settings {
             check_nuget_cache: false,
             check_composer_cache: false,
             fast_tree_delete_enabled: default_fast_tree_delete_enabled(),
+            cleanup_disk_mode: default_cleanup_disk_mode(),
             delete_mode: "delete".to_string(),
             quarantine_layout: default_quarantine_layout(),
             quarantine_custom_path: String::new(),

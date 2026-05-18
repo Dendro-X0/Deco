@@ -36,6 +36,32 @@ export function formatCandidateSize(bytes: number | undefined, scanActive: boole
   return SIZE_NOT_CALCULATED_LABEL;
 }
 
+/**
+ * Short path for dense tables: keeps drive/root + last segments so size columns stay visible.
+ * Full path should still be passed via `title`.
+ */
+export function compactListPath(absPath: string, maxChars = 56): string {
+  const norm = absPath.replace(/\\/g, '/').trim();
+  if (norm.length <= maxChars) return norm;
+  const parts = norm.split('/').filter(Boolean);
+  if (parts.length <= 2) {
+    return `…${norm.slice(-(maxChars - 1))}`;
+  }
+  const head =
+    parts[0].length <= 3 && parts[0].endsWith(':')
+      ? `${parts[0]}/${parts[1] ?? ''}`
+      : parts[0];
+  const tail = parts.slice(-2).join('/');
+  let compact = `${head}/…/${tail}`;
+  if (compact.length > maxChars) {
+    compact = `…/${parts.slice(-3).join('/')}`;
+  }
+  if (compact.length > maxChars) {
+    return `…${norm.slice(-(maxChars - 1))}`;
+  }
+  return compact;
+}
+
 /** Compact duration for status lines (e.g. `45s`, `2m 15s`, `1h 5m`). */
 export function formatDurationMs(ms: number): string {
   const s = Math.floor(Math.max(0, ms) / 1000);

@@ -4,8 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { cleanupActionLabels } from '@/lib/delete-mode';
+import {
+  effectiveCleanupDiskMode,
+  suggestHddModeForSelection,
+} from '@/lib/cleanup-disk-mode';
 import { formatBytes } from '@/lib/format';
-import type { Candidate, ExecutePreviewResponse } from '@/types';
+import type { Candidate, ExecutePreviewResponse, Settings } from '@/types';
 
 const REVIEW_PHRASE = 'DELETE REVIEW';
 
@@ -17,6 +21,7 @@ type Props = {
   preview: ExecutePreviewResponse | null;
   loading: boolean;
   deleteMode: string;
+  settings?: Settings | null;
   onConfirm: (includeReview: boolean) => void;
 };
 
@@ -32,10 +37,14 @@ function CleanupPreviewModalBody({
   preview,
   loading,
   deleteMode,
+  settings,
   onConfirm,
 }: Props) {
   const modeLabels = cleanupActionLabels(deleteMode);
   const isDeleteMode = deleteMode === 'delete' || deleteMode === 'hard-delete';
+  const diskMode = effectiveCleanupDiskMode(settings ?? null);
+  const showHddHint =
+    isDeleteMode && suggestHddModeForSelection(selectedIds.size, diskMode);
   const selectedReviewCount = candidates.filter(
     (c) => selectedIds.has(c.id) && c.risk === 'review',
   ).length;
@@ -97,6 +106,18 @@ function CleanupPreviewModalBody({
                   <p className="text-[10px] text-muted-foreground">{formatBytes(preview.selected_bytes)}</p>
                 </div>
               </div>
+
+              {showHddHint && (
+                <div className="flex gap-2 rounded-lg border border-border/60 bg-muted/30 p-3 text-sm">
+                  <ShieldCheck size={18} className="text-primary shrink-0 mt-0.5" />
+                  <p className="text-xs leading-relaxed">
+                    Large selection on a mechanical drive? Open Settings → Safety and set{' '}
+                    <span className="font-semibold">Cleanup disk mode</span> to{' '}
+                    <span className="font-semibold">HDD / sequential</span> for one-folder-at-a-time deletes with
+                    pause/resume.
+                  </p>
+                </div>
+              )}
 
               {preview.blocked_count > 0 && (
                 <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm">

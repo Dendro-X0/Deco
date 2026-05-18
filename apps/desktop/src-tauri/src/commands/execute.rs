@@ -1,11 +1,11 @@
 use crate::engine::executor::{execute_cleanup, CleanupItemProgress};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::Ordering;
 use crate::engine::quarantine_store::QuarantineStorage;
 use crate::engine::types::{
     CleanupCandidate, ExecutePreviewResponse, ExecuteRequest, ExecuteResponse, GlobalCacheAllow,
     PlanRequest, PlanResponse, RiskLevel, RiskTotals, Totals,
 };
-use crate::state::AppState;
+use crate::state::{AppState, CleanupJobControls};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -55,8 +55,9 @@ struct CleanupPrepared {
     allow_python_venv: bool,
     fast_tree_delete_enabled: bool,
     scan_concurrency_mode: String,
+    cleanup_disk_mode: String,
     quarantine_storage: QuarantineStorage,
-    cancel: Arc<AtomicBool>,
+    controls: CleanupJobControls,
 }
 
 /// Runs cleanup on a background thread so the webview stays responsive during large deletes.
@@ -68,14 +69,14 @@ pub fn start_cleanup(
 ) -> Result<StartCleanupResponse, String> {
     let prepared = prepare_cleanup(&req, state.inner())?;
     let job_id = Uuid::new_v4().to_string();
-    let cancel_flag = prepared.cancel.clone();
+    let controls = prepared.controls.clone();
     {
-        let mut cancels = state
+        let mut jobs = state
             .inner()
-            .cleanup_cancels
+            .cleanup_jobs
             .lock()
-            .map_err(|_| "cleanup_cancels mutex poisoned".to_string())?;
-        cancels.insert(job_id.clone(), cancel_flag);
+            .map_err(|_| "cleanup_jobs mutex poisoned".to_string())?;
+        jobs.insert(job_id.clone(), controls);
     }
     let job_id_spawn = job_id.clone();
     let state_arc = state.inner().clone();
@@ -88,8 +89,8 @@ pub fn start_cleanup(
         ))
         .spawn(move || {
             let result = run_cleanup_background(prepared, &state_arc, &app_handle, &job_id_spawn);
-            if let Ok(mut cancels) = state_arc.cleanup_cancels.lock() {
-                cancels.remove(&job_id_spawn);
+            if let Ok(mut jobs) = state_arc.cleanup_jobs.lock() {
+                jobs.remove(&job_id_spawn);
             }
             match result {
                 Ok(response) => {
@@ -177,7 +178,9 @@ fn run_cleanup_background(
         prepared.allow_python_venv,
         prepared.fast_tree_delete_enabled,
         &prepared.scan_concurrency_mode,
-        Some(&prepared.cancel),
+        &prepared.cleanup_disk_mode,
+        Some(Arc::clone(&prepared.controls.cancel)),
+        Some(Arc::clone(&prepared.controls.pause)),
         Some(on_progress),
     ))
 }
@@ -197,7 +200,9 @@ pub(crate) fn execute_cleanup_core(
         prepared.allow_python_venv,
         prepared.fast_tree_delete_enabled,
         &prepared.scan_concurrency_mode,
-        Some(&prepared.cancel),
+        &prepared.cleanup_disk_mode,
+        Some(Arc::clone(&prepared.controls.cancel)),
+        Some(Arc::clone(&prepared.controls.pause)),
         None,
     ))
 }
@@ -205,14 +210,46 @@ pub(crate) fn execute_cleanup_core(
 /// Stop an in-flight cleanup started with [`start_cleanup`].
 #[tauri::command]
 pub fn cancel_cleanup(job_id: String, state: State<Arc<AppState>>) -> Result<(), String> {
-    let cancels = state
-        .cleanup_cancels
+    let jobs = state
+        .cleanup_jobs
         .lock()
-        .map_err(|_| "cleanup_cancels mutex poisoned".to_string())?;
-    let Some(flag) = cancels.get(&job_id) else {
+        .map_err(|_| "cleanup_jobs mutex poisoned".to_string())?;
+    let Some(controls) = jobs.get(&job_id) else {
         return Err("No active cleanup with this job id.".to_string());
     };
-    flag.store(true, Ordering::Relaxed);
+    controls.cancel.store(true, Ordering::Relaxed);
+    controls.pause.store(false, Ordering::Relaxed);
+    Ok(())
+}
+
+/// Pause cleanup between folder deletes (HDD-friendly).
+#[tauri::command]
+pub fn pause_cleanup(job_id: String, state: State<Arc<AppState>>) -> Result<(), String> {
+    let jobs = state
+        .cleanup_jobs
+        .lock()
+        .map_err(|_| "cleanup_jobs mutex poisoned".to_string())?;
+    let Some(controls) = jobs.get(&job_id) else {
+        return Err("No active cleanup with this job id.".to_string());
+    };
+    if controls.cancel.load(Ordering::Relaxed) {
+        return Err("Cleanup is stopping.".to_string());
+    }
+    controls.pause.store(true, Ordering::Relaxed);
+    Ok(())
+}
+
+/// Resume a paused cleanup job.
+#[tauri::command]
+pub fn resume_cleanup(job_id: String, state: State<Arc<AppState>>) -> Result<(), String> {
+    let jobs = state
+        .cleanup_jobs
+        .lock()
+        .map_err(|_| "cleanup_jobs mutex poisoned".to_string())?;
+    let Some(controls) = jobs.get(&job_id) else {
+        return Err("No active cleanup with this job id.".to_string());
+    };
+    controls.pause.store(false, Ordering::Relaxed);
     Ok(())
 }
 
@@ -359,8 +396,9 @@ fn prepare_cleanup(req: &ExecuteRequest, state: &AppState) -> Result<CleanupPrep
         allow_python_venv: settings.include_python_venv,
         fast_tree_delete_enabled: settings.fast_tree_delete_enabled,
         scan_concurrency_mode: settings.scan_concurrency_mode.clone(),
+        cleanup_disk_mode: settings.cleanup_disk_mode.clone(),
         quarantine_storage,
-        cancel: Arc::new(AtomicBool::new(false)),
+        controls: CleanupJobControls::new(),
     })
 }
 

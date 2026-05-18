@@ -29,6 +29,7 @@ const DRAFT_KEYS: (keyof Settings)[] = [
   'include_dotnet_artifacts',
   ...DISCOVERY_OPTION_KEYS,
   'fast_tree_delete_enabled',
+  'cleanup_disk_mode',
   'delete_mode',
   'quarantine_layout',
   'quarantine_custom_path',

@@ -115,6 +115,8 @@ export interface Settings {
   check_composer_cache?: boolean;
   /** Experimental: rmdir / rm -rf for node_modules when deleting in place (v0.6.5). */
   fast_tree_delete_enabled?: boolean;
+  /** `auto` | `hdd` | `standard` — delete parallelism (v0.6.6). */
+  cleanup_disk_mode?: string;
   delete_mode: string;
   /** per_drive | custom — only when delete_mode is quarantine */
   quarantine_layout?: string;

@@ -32,7 +32,16 @@ import {
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { CleanupBusyOverlay } from './components/CleanupBusyOverlay';
 import { CandidateListBanner } from './components/CandidateListBanner';
+import { CandidateProjectGroupTable } from './components/CandidateProjectGroupTable';
 import { visibleCandidateSlice } from './lib/candidate-list-display';
+import {
+  GROUP_BY_PROJECT_DEFAULT_THRESHOLD,
+  groupCandidatesByProject,
+  PROJECT_GROUP_COLLAPSED_LIMIT,
+  PROJECT_GROUP_PAGE_SIZE,
+  sortProjectGroups,
+  visibleProjectGroupSlice,
+} from './lib/project-grouping';
 import type { ScanMode } from './components/ScanModeSelector';
 import { volumeMountsFromPaths } from './lib/volume-from-path';
 import { ScanTargetsModal } from './components/ScanTargetsModal';
@@ -52,6 +61,7 @@ import { TitleBar } from './components/TitleBar';
 import { DecoLogo } from './components/DecoLogo';
 import {
   candidateSizeIsKnown,
+  compactListPath,
   formatBytes,
   formatCandidateSize,
   formatStatBytes,
@@ -181,6 +191,9 @@ export default function App() {
     tauriInvoke,
     cancelScan,
     cancelCleanup,
+    pauseCleanup,
+    resumeCleanup,
+    cleanupPaused,
     scanStopStage,
     searchStopped,
     storageRefreshToken,
@@ -206,6 +219,8 @@ export default function App() {
   const [scanTargetsAfterWizard, setScanTargetsAfterWizard] = useState(false);
   const [candidateListExpanded, setCandidateListExpanded] = useState(false);
   const [candidatePage, setCandidatePage] = useState(1);
+  const [groupByProjectPreference, setGroupByProjectPreference] = useState<boolean | null>(null);
+  const [expandedGroupKeys, setExpandedGroupKeys] = useState<Set<string>>(() => new Set());
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(() => !hasCompletedOnboarding());
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -381,6 +396,34 @@ export default function App() {
     () => visibleCandidateSlice(filteredCandidates, candidateListExpanded, candidatePage),
     [filteredCandidates, candidateListExpanded, candidatePage],
   );
+
+  const groupByProject = useMemo(
+    () =>
+      groupByProjectPreference ??
+      filteredCandidates.length > GROUP_BY_PROJECT_DEFAULT_THRESHOLD,
+    [groupByProjectPreference, filteredCandidates.length],
+  );
+
+  const projectGroups = useMemo(
+    () => sortProjectGroups(groupCandidatesByProject(filteredCandidates), sort),
+    [filteredCandidates, sort],
+  );
+
+  const projectGroupDisplay = useMemo(
+    () => visibleProjectGroupSlice(projectGroups, candidateListExpanded, candidatePage),
+    [projectGroups, candidateListExpanded, candidatePage],
+  );
+
+  const listRowCount = groupByProject ? projectGroups.length : filteredCandidates.length;
+
+  const toggleProjectGroupExpanded = (groupKey: string) => {
+    setExpandedGroupKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
 
   const clearFilters = () => {
     setSearch(EMPTY_CANDIDATE_FILTERS.searchQuery);
@@ -764,9 +807,29 @@ export default function App() {
                           {filtersActive
                               ? `Showing ${filteredCandidates.length} of ${candidates.length}`
                               : `${candidates.length} candidates`}
+                          {groupByProject ? ` · ${projectGroups.length} projects` : ''}
                             {' · '}Click headers to sort
                         </span>
                       </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={groupByProject ? 'secondary' : 'outline'}
+                          onClick={() => {
+                            setGroupByProjectPreference(!groupByProject);
+                            setCandidatePage(1);
+                            setExpandedGroupKeys(new Set());
+                          }}
+                        >
+                          {groupByProject ? 'Grouped by project' : 'Flat list'}
+                        </Button>
+                        {groupByProject && filteredCandidates.length > GROUP_BY_PROJECT_DEFAULT_THRESHOLD ? (
+                          <span className="text-[10px] text-muted-foreground">
+                            Recommended for large scans — expand a project to see each artifact.
+                          </span>
+                        ) : null}
                       </div>
                       <CandidateFilterBar
                         riskFilter={riskFilter}
@@ -785,12 +848,23 @@ export default function App() {
                     </CardHeader>
                     <CardContent className="p-0">
                       <CandidateListBanner
-                        total={filteredCandidates.length}
+                        total={listRowCount}
                         expanded={candidateListExpanded}
                         page={candidatePage}
-                        pageCount={candidateDisplay.pageCount}
-                        showingFrom={candidateDisplay.showingFrom}
-                        showingTo={candidateDisplay.showingTo}
+                        pageCount={
+                          groupByProject ? projectGroupDisplay.pageCount : candidateDisplay.pageCount
+                        }
+                        showingFrom={
+                          groupByProject ? projectGroupDisplay.showingFrom : candidateDisplay.showingFrom
+                        }
+                        showingTo={
+                          groupByProject ? projectGroupDisplay.showingTo : candidateDisplay.showingTo
+                        }
+                        collapsedLimit={
+                          groupByProject ? PROJECT_GROUP_COLLAPSED_LIMIT : undefined
+                        }
+                        pageSize={groupByProject ? PROJECT_GROUP_PAGE_SIZE : undefined}
+                        unitLabel={groupByProject ? 'projects' : 'items'}
                         onExpand={() => {
                           setCandidateListExpanded(true);
                           setCandidatePage(1);
@@ -801,10 +875,30 @@ export default function App() {
                         }}
                         onPageChange={setCandidatePage}
                       />
-                      <Table>
+                      {groupByProject ? (
+                        <CandidateProjectGroupTable
+                          groups={projectGroupDisplay.visible}
+                          selectedIds={selectedIds}
+                          expandedGroupKeys={expandedGroupKeys}
+                          selectedCandidateId={selectedCandidateId}
+                          scanning={scanning}
+                          onToggleGroupExpanded={toggleProjectGroupExpanded}
+                          onSetSelectedIds={setSelectedIds}
+                          onToggleCandidate={toggleCandidate}
+                          onSelectCandidate={setSelectedCandidateId}
+                        />
+                      ) : (
+                      <Table className="table-fixed w-full">
+                        <colgroup>
+                          <col className="w-10" />
+                          <col className="w-[4.5rem]" />
+                          <col className="w-[7.5rem]" />
+                          <col />
+                          <col className="w-[5.5rem]" />
+                        </colgroup>
                         <TableHeader className="bg-muted/30">
                           <TableRow>
-                            <TableHead className="w-12 text-center">
+                            <TableHead className="w-10 px-2 py-2.5 text-center">
                               <Checkbox 
                                 onCheckedChange={handleSelectAll}
                                 checked={candidates.length > 0 && Array.from(selectedIds).length === candidates.filter(c => c.risk !== 'blocked').length}
@@ -814,7 +908,7 @@ export default function App() {
                               column="risk"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
-                              className="w-24"
+                              className="px-2 py-2.5 w-[4.5rem]"
                             >
                               Risk
                             </SortHeading>
@@ -822,7 +916,7 @@ export default function App() {
                               column="kind"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
-                              className="min-w-[9rem]"
+                              className="px-2 py-2.5 w-[7.5rem]"
                             >
                               Kind
                             </SortHeading>
@@ -830,14 +924,16 @@ export default function App() {
                               column="path"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
+                              className="px-2 py-2.5"
                             >
                               Path
                             </SortHeading>
                             <SortHeading
                               column="size"
                               sort={sort}
-                              onToggleSort={toggleSortHeader}                              alignEnd
-                              className="text-right w-[7.5rem]"
+                              onToggleSort={toggleSortHeader}
+                              alignEnd
+                              className="text-right whitespace-nowrap px-2 py-2.5 w-[5.5rem]"
                             >
                               Size
                             </SortHeading>
@@ -850,14 +946,14 @@ export default function App() {
                               className={`cursor-pointer hover:bg-muted/20 transition-colors ${selectedCandidateId === c.id ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                               onClick={() => setSelectedCandidateId(c.id)}
                             >
-                              <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                              <TableCell className="px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                                 <Checkbox 
                                   checked={selectedIds.has(c.id)} 
                                   onCheckedChange={() => toggleCandidate(c.id)}
                                   disabled={c.risk === 'blocked'}
                                 />
                               </TableCell>
-                              <TableCell>
+                              <TableCell className="px-2 py-2.5">
                                 <Badge variant="outline" className={`font-semibold ${
                                   c.risk === 'safe' ? 'text-primary border-primary/20' : 
                                   c.risk === 'review' ? 'text-amber-500 border-amber-500/20' : 
@@ -866,9 +962,20 @@ export default function App() {
                                   {c.risk}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="font-mono text-[11px] font-semibold opacity-70 uppercase tracking-tighter">{c.kind}</TableCell>
-                              <TableCell className="font-mono text-[11px] truncate max-w-xs">{c.abs_path}</TableCell>
-                              <TableCell className="text-right">
+                              <TableCell className="px-2 py-2.5 min-w-0 max-w-0">
+                                <span className="block truncate font-mono text-[11px] font-semibold opacity-70 uppercase tracking-tighter">
+                                  {c.kind}
+                                </span>
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 min-w-0 max-w-0">
+                                <span
+                                  className="block truncate font-mono text-[11px]"
+                                  title={c.abs_path}
+                                >
+                                  {compactListPath(c.abs_path)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="px-2 py-2.5 text-right whitespace-nowrap">
                                 <span
                                   className={
                                     candidateSizeIsKnown(c.size_bytes)
@@ -883,6 +990,7 @@ export default function App() {
                           ))}
                         </TableBody>
                       </Table>
+                      )}
                       {filteredCandidates.length === 0 && (
                         <div className="py-20 text-center space-y-3">
                           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted/30">
@@ -1064,6 +1172,7 @@ export default function App() {
           preview={preview}
           loading={previewLoading}
           deleteMode={deleteModeSetting}
+          settings={settings}
           onConfirm={confirmCleanup}
         />
       )}
@@ -1138,8 +1247,11 @@ export default function App() {
       <CleanupBusyOverlay
         visible={busy && progress.phase === 'cleanup'}
         message={progress.text || 'Cleanup in progress…'}
-        detail={progress.detail}
+        detail={cleanupPaused ? undefined : progress.detail}
         elapsedMs={elapsedMs}
+        paused={cleanupPaused}
+        onPause={() => void pauseCleanup()}
+        onResume={() => void resumeCleanup()}
         onCancel={() => void cancelCleanup()}
       />
 

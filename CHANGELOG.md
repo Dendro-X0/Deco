@@ -2,9 +2,21 @@
 
 ## [Unreleased]
 
-### Planned (v0.6.6)
+### Planned (v0.6.7)
 
-- Project-root grouping for large result sets, HDD-oriented cleanup mode, quick-update benchmark, and size-phase optimizations — see [v0.6.6-manifest.md](docs/product/v0.6.6-manifest.md).
+- Quick-update benchmark, size-phase optimizations, and batch delete UX — see [v0.6.7-manifest.md](docs/product/v0.6.7-manifest.md).
+
+## [0.6.6] - 2026-05-17
+
+### Added
+
+- **Project-root grouping (L1)** — optional grouped results view: one row per project with artifact summary; expand to see paths; auto-enabled above 80 candidates; paginates by project on large scans.
+- **HDD cleanup mode (L2)** — Settings → **Cleanup disk mode** (`auto` / `hdd` / `standard`): HDD deletes one tree at a time; **Pause** / **Resume** between folders; progress copy reflects sequential deletes; large-batch preview suggests HDD mode when still on auto.
+- **`cleanup_disk_mode`** engine module — maps `auto` / `hdd` / `standard` to delete parallelism; `pause_cleanup` / `resume_cleanup` commands.
+
+### Fixed
+
+- **Candidate list layout** — fixed table columns so **Size** stays visible without horizontal scroll; long paths use `compactListPath` (full path on hover).
 
 ## [0.6.5] - 2026-05-17
 

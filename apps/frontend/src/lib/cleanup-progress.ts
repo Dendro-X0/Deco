@@ -61,6 +61,14 @@ export function formatCleanupProgress(payload: CleanupProgressPayload): {
   const prefix = total > 1 ? `${done}/${total}: ` : '';
 
   if (stage === 'parallel_pulse') {
+    if (inFlight <= 1) {
+      return {
+        text: `${prefix}Removing folders one at a time…`,
+        detail:
+          payload.detail ||
+          'HDD / sequential mode — one tree finishes before the next starts. Pause anytime between folders.',
+      };
+    }
     return {
       text: `${prefix}${inFlight} folder(s) removing in parallel…`,
       detail:
@@ -75,7 +83,9 @@ export function formatCleanupProgress(payload: CleanupProgressPayload): {
       detail:
         inFlight > 1
           ? `${inFlight} deletes in flight. ${payload.detail || ''}`.trim()
-          : payload.detail || 'Bulk system delete (rmdir / rm -rf).',
+          : inFlight === 1 && total > 1
+            ? payload.detail || 'Sequential delete — one folder at a time (HDD mode).'
+            : payload.detail || 'Bulk system delete (rmdir / rm -rf).',
     };
   }
 
@@ -83,11 +93,13 @@ export function formatCleanupProgress(payload: CleanupProgressPayload): {
     return {
       text: `${prefix}Finished ${name} (fast)`,
       detail:
-        inFlight > 0
+        inFlight > 1
           ? `${inFlight} still removing in parallel.`
-          : total > 1
-            ? 'Bulk system delete — several folders may run in parallel (Scan behavior → Performance).'
-            : 'Using the system bulk-remove command (like rmdir /s /q or rm -rf) instead of walking every file in Rust.',
+          : inFlight === 1 && total > 1
+            ? 'Next folder starts when this one finishes (sequential / HDD mode).'
+            : total > 1
+              ? 'Bulk system delete — parallelism follows Cleanup disk mode and Scan behavior → Performance.'
+              : 'Using the system bulk-remove command (like rmdir /s /q or rm -rf) instead of walking every file in Rust.',
     };
   }
 

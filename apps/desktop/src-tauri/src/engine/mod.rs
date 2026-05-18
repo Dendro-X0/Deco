@@ -1,6 +1,7 @@
 pub mod ancestor_cache;
 pub mod benchmark;
 pub mod cleanup_coalesce;
+pub mod cleanup_disk_mode;
 pub mod classifier;
 pub mod delete_parallel;
 pub mod discovery_patterns;

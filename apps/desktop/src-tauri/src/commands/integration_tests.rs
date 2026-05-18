@@ -60,7 +60,7 @@ fn build_state(root: &PathBuf) -> AppState {
         scans: Mutex::new(HashMap::new()),
         scan_cancels: Mutex::new(HashMap::new()),
         scan_phases: Mutex::new(HashMap::new()),
-        cleanup_cancels: Mutex::new(HashMap::new()),
+        cleanup_jobs: Mutex::new(HashMap::new()),
         settings: Mutex::new(Settings::default()),
     }
 }

@@ -95,6 +95,7 @@ export function normalizeSettings(raw: unknown): Settings {
       'fastTreeDeleteEnabled',
       true,
     ),
+    cleanup_disk_mode: str('cleanup_disk_mode', 'cleanupDiskMode', 'auto'),
     delete_mode: str('delete_mode', 'deleteMode', 'delete'),
     quarantine_layout: str('quarantine_layout', 'quarantineLayout', 'per_drive'),
     quarantine_custom_path: str('quarantine_custom_path', 'quarantineCustomPath', ''),

@@ -1,5 +1,6 @@
 use super::cleanup_coalesce::coalesce_for_delete;
-use super::delete_parallel::{delete_parallelism_from_scan_mode, is_bulk_tree_delete};
+use super::cleanup_disk_mode::{delete_parallelism_for_cleanup, parse_cleanup_disk_mode};
+use super::delete_parallel::is_bulk_tree_delete;
 use super::fast_tree_delete::try_delete_tree_fast;
 use super::quarantine_store::{add_quarantine_entry, quarantine_item_path, QuarantineStorage};
 use super::types::{
@@ -90,7 +91,9 @@ pub fn execute_cleanup(
     allow_python_venv: bool,
     fast_tree_delete_enabled: bool,
     scan_concurrency_mode: &str,
-    cancel: Option<&AtomicBool>,
+    cleanup_disk_mode: &str,
+    cancel: Option<Arc<AtomicBool>>,
+    pause: Option<Arc<AtomicBool>>,
     on_progress: Option<ProgressFn>,
 ) -> ExecuteResponse {
     let (candidates, coalesced_skipped) = coalesce_for_delete(candidates);
@@ -106,8 +109,9 @@ pub fn execute_cleanup(
 
     let in_place = delete_mode == "delete" || delete_mode == "hard-delete";
     let total = candidates.len() as u32;
+    let disk_mode = parse_cleanup_disk_mode(cleanup_disk_mode);
     let delete_parallelism =
-        delete_parallelism_from_scan_mode(scan_concurrency_mode, candidates.len());
+        delete_parallelism_for_cleanup(disk_mode, scan_concurrency_mode, candidates.len());
     let mut parallel_batch: Vec<CleanupCandidate> = Vec::new();
     if coalesced_skipped > 0 {
         errors.push(format!(
@@ -116,7 +120,7 @@ pub fn execute_cleanup(
     }
 
     for (idx, candidate) in candidates.iter().enumerate() {
-        if cancel.is_some_and(|t| t.load(Ordering::Relaxed)) {
+        if wait_while_paused_or_canceled(&cancel, &pause) {
             errors.push("Cleanup canceled by user.".to_string());
             break;
         }
@@ -188,13 +192,14 @@ pub fn execute_cleanup(
         );
     }
 
-    if !parallel_batch.is_empty() && !cancel.is_some_and(|t| t.load(Ordering::Relaxed)) {
+    if !parallel_batch.is_empty() && !wait_while_paused_or_canceled(&cancel, &pause) {
         let (p_deleted, p_freed, p_errors) = run_parallel_in_place_deletes(
             parallel_batch,
             total,
             fast_tree_delete_enabled,
             delete_parallelism,
             cancel,
+            pause,
             on_progress.clone(),
         );
         deleted_count += p_deleted;
@@ -215,12 +220,29 @@ pub fn execute_cleanup(
     }
 }
 
+/// Returns true when cleanup should stop (canceled).
+fn wait_while_paused_or_canceled(
+    cancel: &Option<Arc<AtomicBool>>,
+    pause: &Option<Arc<AtomicBool>>,
+) -> bool {
+    loop {
+        if cancel.as_ref().is_some_and(|t| t.load(Ordering::Relaxed)) {
+            return true;
+        }
+        if !pause.as_ref().is_some_and(|p| p.load(Ordering::Relaxed)) {
+            return false;
+        }
+        thread::sleep(Duration::from_millis(250));
+    }
+}
+
 fn run_parallel_in_place_deletes(
     mut items: Vec<CleanupCandidate>,
     total: u32,
     fast_tree_delete: bool,
     parallelism: usize,
-    cancel: Option<&AtomicBool>,
+    cancel: Option<Arc<AtomicBool>>,
+    pause: Option<Arc<AtomicBool>>,
     on_progress: Option<ProgressFn>,
 ) -> (u32, u64, Vec<String>) {
     // Smaller trees finish first so the progress counter moves steadily.
@@ -255,6 +277,7 @@ fn run_parallel_in_place_deletes(
         let in_flight = Arc::clone(&in_flight);
         let active_paths = Arc::clone(&active_paths);
         let stop = Arc::clone(&stop_heartbeat);
+        let pause_hb = pause.clone();
         thread::spawn(move || {
             let placeholder = CleanupCandidate {
                 id: String::new(),
@@ -274,6 +297,9 @@ fn run_parallel_in_place_deletes(
                 thread::sleep(Duration::from_secs(2));
                 if stop.load(Ordering::Relaxed) {
                     break;
+                }
+                if pause_hb.as_ref().is_some_and(|p| p.load(Ordering::Relaxed)) {
+                    continue;
                 }
                 let c = completed.load(Ordering::Relaxed);
                 let n = in_flight.load(Ordering::Relaxed);
@@ -299,10 +325,12 @@ fn run_parallel_in_place_deletes(
     let completed_ref = Arc::clone(&completed);
     let in_flight_ref = Arc::clone(&in_flight);
     let active_ref = Arc::clone(&active_paths);
+    let cancel_flag = cancel.clone();
+    let pause_flag = pause.clone();
 
     pool.install(|| {
         items.par_iter().for_each(|candidate| {
-            if cancel.is_some_and(|t| t.load(Ordering::Relaxed)) {
+            if wait_while_paused_or_canceled(&cancel_flag, &pause_flag) {
                 return;
             }
             in_flight_ref.fetch_add(1, Ordering::Relaxed);

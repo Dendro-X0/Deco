@@ -393,6 +393,31 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
               Delete in place does not store backups. Use it when cleaning C: or when the disk is almost full.
             </p>
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Cleanup disk mode</label>
+            <Select
+              value={
+                ['auto', 'hdd', 'standard'].includes(draft.cleanup_disk_mode ?? '')
+                  ? (draft.cleanup_disk_mode as string)
+                  : 'auto'
+              }
+              onValueChange={(v) => patch({ cleanup_disk_mode: v })}
+              disabled={scanning || saving}
+            >
+              <SelectTrigger className="w-full max-w-md bg-background/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto — conservative on large batches</SelectItem>
+                <SelectItem value="hdd">HDD / sequential — one folder at a time</SelectItem>
+                <SelectItem value="standard">Standard — follow scan worker count</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              HDD mode deletes one tree at a time (best for mechanical drives). Pause/resume is available
+              during cleanup.
+            </p>
+          </div>
           <div className="flex items-start gap-3 rounded-lg border border-border/60 p-4">
             <Checkbox
               id="fast-tree-delete"
@@ -408,8 +433,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
                 When deleting in place, removes <code className="text-[0.7rem]">node_modules</code>,{' '}
                 <code className="text-[0.7rem]">target</code>, and build folders via system commands (Windows{' '}
                 <code className="text-[0.7rem]">rmdir /s /q</code>, Unix <code className="text-[0.7rem]">rm -rf</code>).
-                Multiple trees delete in parallel — concurrency follows Scan behavior → Performance (auto / low / high).
-                Not used for quarantine.
+                Parallelism follows Settings → Cleanup disk mode (HDD = one tree at a time) and Scan behavior →
+                Performance. Not used for quarantine.
               </p>
             </div>
           </div>
