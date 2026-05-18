@@ -1,0 +1,16 @@
+{
+  "profile": "balanced",
+  "maxDepth": 8,
+  "excludeAbsPathContains": [
+    "/.venv/",
+    "/venv/",
+    "/.deco-quarantine/",
+    "/.ipynb_checkpoints/"
+  ],
+  "safety": {
+    "extraProtectedPathContains": [
+      "/miniconda3/envs/",
+      "/anaconda3/envs/"
+    ]
+  }
+}

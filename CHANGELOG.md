@@ -4,6 +4,11 @@
 
 Development line **v0.7.6** — see [v0.7.6-manifest.md](docs/product/v0.7.6-manifest.md).
 
+### Added
+
+- **Policy pack gallery** — five shipped examples (incl. Python and .NET packs); card grid and read-only JSON preview in Settings.
+- **Replace preview** — top-level diff when applying over an existing `.deco/disk-cleanup.json`; **Reveal in Explorer** after apply.
+
 ## [0.7.5] - 2026-05-18
 
 See [v0.7.5-manifest.md](docs/product/v0.7.5-manifest.md).

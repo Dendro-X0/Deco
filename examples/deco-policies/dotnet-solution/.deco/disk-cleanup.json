@@ -1,0 +1,12 @@
+{
+  "profile": "balanced",
+  "maxDepth": 10,
+  "excludeAbsPathContains": [
+    "/.vs/",
+    "/packages/",
+    "/.deco-quarantine/"
+  ],
+  "additionalDirNames": {
+    "buildArtifacts": ["x64", "x86", "ARM64", "Debug", "Release"]
+  }
+}

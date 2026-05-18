@@ -43,15 +43,16 @@
 | Include Python venv | High-risk; review tier |
 | Advanced Mode | Required for hard-delete (if exposed in your build) |
 
-### Policy pack (Settings)
+### Policy pack gallery (Settings)
 
 1. Open **Settings** → **Policy pack**.
-2. Choose a built-in example (monorepo maintainer, conservative, CI quick scan) or **Browse policy folder…**.
-3. **Choose project folder…** — where `.deco/disk-cleanup.json` should be written.
-4. Review the validation preview (replaces an existing file if present).
-5. **Apply policy pack** — Deco copies the validated JSON; global cache toggles remain in **Discovery** (not in repo config).
+2. Pick a card from the **gallery** (five shipped examples) or **Browse custom pack…**.
+3. Read the **Preview** JSON (read-only).
+4. **Choose project folder…** — where `.deco/disk-cleanup.json` should be written.
+5. Review validation and **replace preview** (top-level diff when a file already exists).
+6. **Apply policy pack**, then **Reveal in Explorer** if you want to open the `.deco` folder.
 
-Validate from CLI before sharing: `deco validate-policy examples/deco-policies/monorepo-maintainer`.
+Validate from CLI: `deco validate-policy examples/deco-policies/python-data-science`.
 
 ## Manual QA before a release
 

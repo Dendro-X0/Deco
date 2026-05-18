@@ -19,7 +19,13 @@ describe('policy-validate', () => {
   });
 
   it('validates all shipped example packs', async () => {
-    for (const name of ['monorepo-maintainer', 'conservative-no-globals', 'ci-quick-scan']) {
+    for (const name of [
+      'monorepo-maintainer',
+      'conservative-no-globals',
+      'ci-quick-scan',
+      'python-data-science',
+      'dotnet-solution',
+    ]) {
       const result = await validatePolicyPath(path.join(examplesRoot, name));
       expect(result.ok, name).toBe(true);
     }

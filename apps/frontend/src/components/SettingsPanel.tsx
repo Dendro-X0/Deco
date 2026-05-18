@@ -420,8 +420,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <Separator />
 
         <SettingsSection
-          title="Policy pack"
-          description="Validate and copy a shareable .deco/disk-cleanup.json into a project (same schema as deco validate-policy)."
+          title="Policy pack gallery"
+          description="Browse shipped examples, preview JSON, see replace diff, and apply .deco/disk-cleanup.json to a project."
         >
           <PolicyPackSection
             disabled={scanning || saving}
