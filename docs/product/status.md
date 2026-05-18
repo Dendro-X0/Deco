@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-17 · Release **v0.6.12** shipped; **v0.7.0** scope implemented on main (profiles + regeneration UI — see [v0.7.0-manifest.md](v0.7.0-manifest.md))
+Last updated: 2026-05-18 · Release **v0.7.0** shipped (see [v0.7.0-manifest.md](v0.7.0-manifest.md)); **v0.7.1** in development on main
 
 ## Current Direction
 

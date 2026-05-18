@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
-Development line **v0.7.0** — see [v0.7.0-manifest.md](docs/product/v0.7.0-manifest.md) and [v0.7.x-roadmap.md](docs/product/v0.7.x-roadmap.md).
+Development line **v0.7.1** — see [v0.7.1-manifest.md](docs/product/v0.7.1-manifest.md).
+
+## [0.7.0] - 2026-05-18
+
+Opens **v0.7.x** trust/community track — see [v0.7.0-manifest.md](docs/product/v0.7.0-manifest.md).
 
 ### Added
 
