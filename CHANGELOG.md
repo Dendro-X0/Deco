@@ -4,6 +4,10 @@
 
 Development line **v0.7.2** — see [v0.7.2-manifest.md](docs/product/v0.7.2-manifest.md).
 
+### Added
+
+- **`deco validate-policy <path>`** — validate `disk-cleanup.json` policy packs (file, directory, or `.deco/` layout) against the CLI config schema; examples under `examples/deco-policies/`.
+
 ## [0.7.1] - 2026-05-18
 
 See [v0.7.1-manifest.md](docs/product/v0.7.1-manifest.md).

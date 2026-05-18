@@ -18,4 +18,10 @@ Deco merges `.deco/disk-cleanup.json` from each scan root and from the current w
 
 Global package-manager caches (`check_npm_cache`, `check_composer_cache`, etc.) are **desktop/CLI flags**, not repo config keys — enable them in Settings → Discovery or CLI flags when you intend to review those paths.
 
+Validate before you copy:
+
+```bash
+deco validate-policy examples/deco-policies/monorepo-maintainer
+```
+
 See [config schema](../../apps/cli/config.schema.json) and [milestone 3](../../docs/milestones/milestone-3.md).

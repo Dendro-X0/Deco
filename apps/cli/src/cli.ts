@@ -5,6 +5,7 @@ import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig } from './config.js';
+import { getValidatePolicyUsageText, validatePolicyPath } from './policy-validate.js';
 import {
   discoverIdeGlobalCachesIfEnabled,
   discoverJvmGlobalCachesIfEnabled,
@@ -721,6 +722,7 @@ function getUsageText(): string {
     '  deco --profile safe --delete-mode quarantine',
     '  deco --restore <id>',
     '  deco --purge-quarantine --yes',
+    '  deco validate-policy <path>   Validate .deco/disk-cleanup.json policy pack',
     '  deco --help',
     '  deco --version',
     '',
@@ -863,9 +865,33 @@ function getDeletableCandidates(
 
 import { runInteractive } from './ui.js';
 
+async function runValidatePolicyCommand(argv: readonly string[]): Promise<void> {
+  const rest = argv.slice(1);
+  if (rest.includes('--help') || rest.includes('-h') || rest.length === 0) {
+    process.stdout.write(`${getValidatePolicyUsageText()}\n`);
+    if (rest.length === 0) process.exitCode = 1;
+    return;
+  }
+  if (rest.length > 1) {
+    throw new Error(`Unexpected arguments: ${rest.slice(1).join(' ')}`);
+  }
+  const result = await validatePolicyPath(rest[0]!);
+  if (!result.ok) {
+    process.stderr.write(`Invalid policy: ${result.inputPath}\n`);
+    process.stderr.write(`${result.error}\n`);
+    process.exitCode = 1;
+    return;
+  }
+  process.stdout.write(`Policy OK: ${result.summary}\n`);
+}
+
 async function main(): Promise<void> {
   try {
     const argv = process.argv.slice(2);
+    if (argv[0] === 'validate-policy') {
+      await runValidatePolicyCommand(argv);
+      return;
+    }
     if (argv.includes('--help') || argv.includes('-h')) {
       process.stdout.write(`${getUsageText()}\n`);
       return;

@@ -229,12 +229,22 @@ export function normalizeConfig(config: DiskCleanupConfig): NormalizedDiskCleanu
   };
 }
 
+export async function readAndValidateConfigFile(configPath: string): Promise<NormalizedDiskCleanupConfig> {
+  const content = await readFile(configPath, 'utf8');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (error: unknown) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid JSON in ${configPath}: ${detail}`);
+  }
+  return normalizeConfig(validateConfig(parsed));
+}
+
 export async function loadConfig(explicitPath?: string): Promise<NormalizedDiskCleanupConfig | null> {
   const configPath = explicitPath ?? path.join(process.cwd(), '.deco', 'disk-cleanup.json');
   try {
-    const content = await readFile(configPath, 'utf8');
-    const parsed = JSON.parse(content);
-    return normalizeConfig(validateConfig(parsed));
+    return await readAndValidateConfigFile(configPath);
   } catch (error: unknown) {
     if (explicitPath) throw error;
     return null;
