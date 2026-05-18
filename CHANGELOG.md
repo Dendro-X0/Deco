@@ -4,6 +4,11 @@
 
 Development line **v0.7.5** — see [v0.7.5-manifest.md](docs/product/v0.7.5-manifest.md).
 
+### Added
+
+- **Classification parity (round 2)** — JVM, .NET, Python, and Go project artifacts; Electron runtime blocked path; `jvm-global-cache`, `cargo-registry-cache`, `ide-global-cache` in `cases.json`.
+- **Project detection** — `detect_project_root` recognizes JVM, .NET, and Python markers (aligned with scanner ancestor checks).
+
 ## [0.7.4] - 2026-05-18
 
 See [v0.7.4-manifest.md](docs/product/v0.7.4-manifest.md).

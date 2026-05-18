@@ -129,6 +129,127 @@
           "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
         }
       ]
+    },
+    {
+      "id": "jvm_artifact_in_maven_project",
+      "setup": [
+        { "path": "pom.xml", "content": "<project></project>" },
+        { "path": "target", "type": "dir" }
+      ],
+      "targets": [{ "kind": "jvm-artifact", "rel_path": "target", "age_days": 10 }],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "dotnet_artifact_in_csproj",
+      "setup": [
+        { "path": "App.csproj", "content": "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>" },
+        { "path": "bin", "type": "dir" }
+      ],
+      "targets": [{ "kind": "dotnet-artifact", "rel_path": "bin", "age_days": 5 }],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "python_artifact_in_pyproject",
+      "setup": [
+        { "path": "pyproject.toml", "content": "[project]\nname = \"demo\"\n" },
+        { "path": "__pycache__", "type": "dir" }
+      ],
+      "targets": [{ "kind": "python-artifact", "rel_path": "__pycache__", "age_days": 3 }],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "go_artifact_in_module",
+      "setup": [
+        { "path": "go.mod", "content": "module example.com/demo\n\ngo 1.22\n" },
+        { "path": "bin", "type": "dir" }
+      ],
+      "targets": [{ "kind": "go-artifact", "rel_path": "bin", "age_days": 7 }],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "electron_runtime_node_modules_blocked",
+      "setup": [
+        { "path": "package.json", "content": "{}" },
+        { "path": "Apps/Cursor/resources/app/node_modules", "type": "dir" }
+      ],
+      "targets": [
+        {
+          "kind": "node_modules",
+          "rel_path": "Apps/Cursor/resources/app/node_modules",
+          "age_days": 90
+        }
+      ],
+      "expect": [
+        {
+          "risk": "blocked",
+          "safety_class": "app_runtime",
+          "reason_codes": ["ELECTRON_RUNTIME_PATH"]
+        }
+      ]
+    },
+    {
+      "id": "jvm_global_cache",
+      "setup": [],
+      "targets": [{ "kind": "jvm-global-cache", "rel_path": ".gradle/caches", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
+    },
+    {
+      "id": "cargo_registry_global_cache",
+      "setup": [],
+      "targets": [
+        { "kind": "cargo-registry-cache", "rel_path": ".cargo/registry", "age_days": 0 }
+      ],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
+    },
+    {
+      "id": "ide_global_cache",
+      "setup": [],
+      "targets": [
+        { "kind": "ide-global-cache", "rel_path": ".cache/JetBrains/IntelliJIdea", "age_days": 0 }
+      ],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
     }
   ]
 }

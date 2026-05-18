@@ -86,6 +86,27 @@ fn detect_at_dir(dir: &PathBuf) -> Option<ProjectEvidence> {
         });
     }
 
+    if dir_has_jvm_marker(dir) {
+        return Some(ProjectEvidence {
+            project_root: dir.to_string_lossy().to_string(),
+            score: 95,
+        });
+    }
+
+    if dir_has_dotnet_marker(dir) {
+        return Some(ProjectEvidence {
+            project_root: dir.to_string_lossy().to_string(),
+            score: 95,
+        });
+    }
+
+    if dir_has_python_marker(dir) {
+        return Some(ProjectEvidence {
+            project_root: dir.to_string_lossy().to_string(),
+            score: 95,
+        });
+    }
+
     let has_git = exists(dir.join(".git"));
     let has_tsconfig = exists(dir.join("tsconfig.json"));
     let has_tooling = std::fs::read_dir(dir)

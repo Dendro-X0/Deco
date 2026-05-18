@@ -62,7 +62,7 @@ See [Configuration](configuration.md) and [examples/deco-policies](../../example
 
 ## Classification parity
 
-CLI and Rust engines share fixture-driven tests at [`tests/fixtures/classification/cases.json`](../../tests/fixtures/classification/cases.json). When changing classification rules, update the manifest and run:
+CLI and Rust engines share fixture-driven tests at [`tests/fixtures/classification/cases.json`](../../tests/fixtures/classification/cases.json). Coverage includes Node/npm globals, Rust/Python/Go/JVM/.NET project artifacts, path-policy blocked Electron runtimes, and opt-in global caches (`v0.7.4`–`v0.7.5`). When changing classification rules, update the manifest and run:
 
 ```bash
 pnpm -F @dendro-x0/deco-cli test classification-parity

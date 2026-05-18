@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-18 · **Latest shipped:** `v0.7.3` · **Next tag:** `v0.7.4` · **Then:** `v0.7.5` → `v0.7.7` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-18 · **Latest shipped:** `v0.7.4` · **Development:** `v0.7.5` → `v0.7.7` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
 
 ---
 
@@ -16,8 +16,7 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.3` · **Next tag:** `v0.7.
 
 | Item | Location |
 |------|----------|
-| **Ship now** | [v0.7.4-manifest.md](v0.7.4-manifest.md) — policy pack Settings + parity round 1 (implemented on `main`) |
-| **After v0.7.4 tag** | Bump to `v0.7.5`, implement [v0.7.5-manifest.md](v0.7.5-manifest.md) |
+| **Active** | [v0.7.5-manifest.md](v0.7.5-manifest.md) — parity round 2 (implementing on `main`) |
 | **Full 0.7.x queue** | [v0.7.x-roadmap.md](v0.7.x-roadmap.md) |
 | **After 0.7.7** | [v0.8.x-roadmap.md](v0.8.x-roadmap.md) starting with [v0.8.0-manifest.md](v0.8.0-manifest.md) |
 | **Do not skip** | Versions are ordered; finish Phase D (`0.7.5`–`0.7.7`) before Phase E (`0.8.0+`) |
@@ -26,8 +25,8 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.3` · **Next tag:** `v0.7.
 
 | Version | Feature set |
 |---------|-------------|
-| `v0.7.4` | Policy pack desktop + parity round 1 |
-| `v0.7.5` | Classification parity round 2 |
+| `v0.7.4` | Policy pack desktop + parity round 1 — shipped |
+| `v0.7.5` | Classification parity round 2 — in progress |
 | `v0.7.6` | Policy gallery + apply polish |
 | `v0.7.7` | Workspace rollups |
 | `v0.8.0` | Multi-platform installers (Win / macOS / Linux) |
@@ -46,6 +45,7 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.3` · **Next tag:** `v0.7.
 | `v0.7.1` | Dormancy panel, git hint, Stale sort |
 | `v0.7.2` | `deco validate-policy`, example packs in git |
 | `v0.7.3` | Shared `cases.json` parity tests, CI automation docs |
+| `v0.7.4` | Policy pack Settings UI, parity round 1 |
 
 ---
 

@@ -57,6 +57,30 @@ async function detectAtDirectory(dir: string): Promise<ProjectEvidence | null> {
     };
   }
 
+  if (await dirHasJvmMarker(dir)) {
+    return {
+      projectRoot: dir,
+      score: 95,
+      reasons: ['jvm-project-marker'],
+    };
+  }
+
+  if (await dirHasDotnetMarker(dir)) {
+    return {
+      projectRoot: dir,
+      score: 95,
+      reasons: ['dotnet-project-marker'],
+    };
+  }
+
+  if (await dirHasPythonMarker(dir)) {
+    return {
+      projectRoot: dir,
+      score: 95,
+      reasons: ['python-project-marker'],
+    };
+  }
+
   const hasGit = await exists(path.join(dir, '.git'));
   const hasTsconfig = await exists(path.join(dir, 'tsconfig.json'));
   const hasToolingConfig = await hasConfigPrefix(dir, ['vite.config.', 'next.config.', 'svelte.config.', 'astro.config.']);
