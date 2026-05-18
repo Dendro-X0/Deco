@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-18 · **Latest shipped:** `v0.7.5` · **Development:** `v0.7.6` → `v0.7.7` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-18 · **Latest shipped:** `v0.7.6` · **Development:** `v0.7.7` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
 
 ---
 
@@ -16,15 +16,14 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.5` · **Development:** `v0
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.7.6-manifest.md](v0.7.6-manifest.md) — policy gallery + apply polish |
-| **Full queue** | [v0.7.x-roadmap.md](v0.7.x-roadmap.md) |
+| **Active** | [v0.7.7-manifest.md](v0.7.7-manifest.md) — workspace rollups |
+| **Queue** | [v0.7.x-roadmap.md](v0.7.x-roadmap.md) |
 
 ### Version queue (summary)
 
 | Version | Feature set |
 |---------|-------------|
-| `v0.7.6` | Policy gallery + merge preview / reveal after apply |
-| `v0.7.7` | Workspace rollups |
+| `v0.7.7` | Workspace rollups (monorepo summary) |
 | `v0.8.0` | Multi-platform installers (Win / macOS / Linux) |
 
 ---
@@ -33,20 +32,9 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.5` · **Development:** `v0
 
 | Tag | Highlights |
 |-----|------------|
-| `v0.7.4` | Policy pack Settings UI, parity round 1 |
+| `v0.7.6` | Policy pack gallery, replace diff, Reveal in Explorer |
 | `v0.7.5` | Parity round 2, JVM/.NET/Python project detection |
-| `v0.7.3` | Shared `cases.json`, CI automation docs |
-| `v0.7.2` | `deco validate-policy`, example packs |
-| `v0.7.1` | Dormancy panel, git hint, Stale sort |
-| `v0.7.0` | Cleanup profiles, regeneration hints |
-
----
-
-## Key paths
-
-- Classification: `tests/fixtures/classification/cases.json`
-- Policy examples: `examples/deco-policies/`
-- Release: [release-process.md](../distribution/release-process.md)
+| `v0.7.4` | Policy pack Settings UI, parity round 1 |
 
 ---
 
@@ -54,6 +42,5 @@ Last updated: 2026-05-18 · **Latest shipped:** `v0.7.5` · **Development:** `v0
 
 ```bash
 pnpm check
-pnpm -F @dendro-x0/deco-cli test classification-parity
-cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml classification_parity
+deco validate-policy examples/deco-policies/python-data-science
 ```
