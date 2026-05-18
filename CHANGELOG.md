@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Planned (v0.6.6)
+
+- Project-root grouping for large result sets, HDD-oriented cleanup mode, quick-update benchmark, and size-phase optimizations — see [v0.6.6-manifest.md](docs/product/v0.6.6-manifest.md).
+
 ## [0.6.5] - 2026-05-17
 
 ### Added
