@@ -12,7 +12,7 @@ Deco ships to end users through **GitHub Releases** on tag push `v*`. This is th
 
 Built by [`.github/workflows/release.yml`](../../.github/workflows/release.yml) after `pnpm test:all`.
 
-**Platform coverage:** [CI vs release matrix](ci-and-release-platforms.md) — **Windows installers only**; CI runs tests on **Ubuntu + macOS** so Unix regressions surface without a local Linux machine.
+**Platform coverage:** [CI vs release matrix](ci-and-release-platforms.md). **Today:** release jobs ship **Windows** installers only; CI tests on **Ubuntu + macOS**. **Target (`v0.8.0`):** every release includes **Windows, macOS, and Linux** desktop bundles — see [v0.8.0-manifest.md](../product/v0.8.0-manifest.md).
 
 ## GitHub “Deployments” / npm noise
 
@@ -57,7 +57,7 @@ The zip includes a short README; it does **not** bundle Node — users install N
 | Channel | Status |
 |---------|--------|
 | npm registry (`npm publish`) | Not used for end users; legacy `RELEASE.md` referred to npm — superseded |
-| macOS / Linux desktop bundles | Windows-only in current workflow |
+| macOS / Linux desktop bundles | Planned `v0.8.0` — [v0.8.x-roadmap](../product/v0.8.x-roadmap.md) |
 | Homebrew / winget | Future optional; not in CI yet |
 
 ## Future distribution options

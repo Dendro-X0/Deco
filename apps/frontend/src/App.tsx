@@ -1,14 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  LayoutDashboard,
-  ShieldAlert,
-  History as HistoryIcon,
-  Settings2,
-  Search,
-  Trash2,
-  Play,
-  X,
+import { 
+  LayoutDashboard, 
+  ShieldAlert, 
+  History as HistoryIcon, 
+  Settings2, 
+  Search, 
+  Trash2, 
+  Play, 
+  X, 
   ChevronRight,
   Info,
   AlertTriangle,
@@ -123,10 +123,10 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 export default function App() {
-  const {
-    scan,
-    candidates,
-    selectedIds,
+  const { 
+    scan, 
+    candidates, 
+    selectedIds, 
     setSelectedIds,
     scanning,
     busy,
@@ -630,7 +630,7 @@ export default function App() {
                 }}
               >
                 <Sparkles size={16} /> Free up space
-              </Button>
+                 </Button>
               {scanning ? (
                 <ScanStopControl stage={scanStopStage} onStop={() => void cancelScan()} />
               ) : (
@@ -640,8 +640,8 @@ export default function App() {
                     className="gap-2 font-semibold px-6"
                     onClick={() => requestScan({ mode: 'full' })}
                   >
-                    <Play size={16} fill="currentColor" /> Scan Now
-                  </Button>
+                   <Play size={16} fill="currentColor" /> Scan Now
+                 </Button>
                   <Button
                     variant="secondary"
                     className={`gap-2 font-semibold ${recommendQuickUpdate ? 'ring-2 ring-primary/40 border-primary/30' : ''}`}
@@ -670,7 +670,7 @@ export default function App() {
                   onClick={openCleanupPreview}
                 >
                   <Trash2 size={16} /> Clean selected…
-                </Button>
+               </Button>
               </DisabledActionHint>
             </div>
           </header>
@@ -803,17 +803,17 @@ export default function App() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="relative w-full sm:max-w-md">
                           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                          <Input
+                          <Input 
                             ref={searchInputRef}
                             placeholder="Search path or kind…"
-                            className="pl-8 bg-background/50"
+                            className="pl-8 bg-background/50" 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                           />
                         </div>
                         <div className="flex flex-col items-start sm:items-end gap-0.5 shrink-0">
                         <span className="text-sm font-medium text-primary">
-                          {selectedIds.size} selected
+                        {selectedIds.size} selected
                         </span>
                         <span className="text-[10px] text-muted-foreground leading-snug">
                           {filtersActive
@@ -913,7 +913,7 @@ export default function App() {
                         <TableHeader className="bg-muted/30">
                           <TableRow>
                             <TableHead className="w-10 px-2 py-2.5 text-center">
-                              <Checkbox
+                              <Checkbox 
                                 onCheckedChange={handleSelectAll}
                                 checked={listSelectionHeaderState(candidates, selectedIds)}
                               />

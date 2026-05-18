@@ -7,7 +7,7 @@
 | [**CI**](../../.github/workflows/ci.yml) | PR + push to `main` | **`ubuntu-latest`** + **`macos-latest`** (matrix) | **No** — tests only (`pnpm test:cli`, `pnpm test:rust`) |
 | [**Release**](../../.github/workflows/release.yml) | Tag `v*` or manual | Same matrix for tests + **`windows-latest`** (build) | **Windows only** |
 
-**Linux and macOS desktop installers are not produced by release jobs today** — only unit/integration tests run there.
+**Linux and macOS desktop installers are not produced by release jobs today** — only unit/integration tests run there. **Roadmap:** all three platforms ship from **`v0.8.0`** ([v0.8.0-manifest.md](../product/v0.8.0-manifest.md)).
 
 ## Release artifacts (current)
 

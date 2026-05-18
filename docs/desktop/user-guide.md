@@ -43,6 +43,16 @@
 | Include Python venv | High-risk; review tier |
 | Advanced Mode | Required for hard-delete (if exposed in your build) |
 
+### Policy pack (Settings)
+
+1. Open **Settings** → **Policy pack**.
+2. Choose a built-in example (monorepo maintainer, conservative, CI quick scan) or **Browse policy folder…**.
+3. **Choose project folder…** — where `.deco/disk-cleanup.json` should be written.
+4. Review the validation preview (replaces an existing file if present).
+5. **Apply policy pack** — Deco copies the validated JSON; global cache toggles remain in **Discovery** (not in repo config).
+
+Validate from CLI before sharing: `deco validate-policy examples/deco-policies/monorepo-maintainer`.
+
 ## Manual QA before a release
 
 Use the checklist in [Milestone 8 — UX](../milestones/milestone-8.md#manual-qa-checklist-windows-installer).

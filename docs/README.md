@@ -18,7 +18,9 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 |-----|----------------|
 | [Features](product/features.md) | Desktop UX, engine capabilities, commands |
 | [Project status](product/status.md) | Handoff snapshot, completed milestones, next steps |
-| [Version roadmap](product/version-roadmap.md) | Forward plan: v0.4.x–v0.8+ (UX, ecosystems, engine, trust) |
+| [Version roadmap](product/version-roadmap.md) | Forward plan: v0.4.x–v1.0 (UX, ecosystems, engine, trust, platform reach) |
+| [v0.7.x roadmap](product/v0.7.x-roadmap.md) | Phase D version queue (`v0.7.5`–`v0.7.7`) |
+| [v0.8.x roadmap](product/v0.8.x-roadmap.md) | Phase E — Win/macOS/Linux releases, winget, i18n, demos |
 | [Safety model](product/safety.md) | Risk tiers, quarantine, review confirmation |
 | [Roadmap](../ROADMAP.md) | Milestone archive M0–M8 + links to version roadmap |
 | [PROJECT.md](../PROJECT.md) | North star, goals, non-goals (repo root) |

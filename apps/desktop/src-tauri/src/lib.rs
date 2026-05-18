@@ -80,6 +80,9 @@ pub fn run() {
             commands::release::get_app_platform,
             commands::release::download_release_asset,
             commands::release::launch_installer_for_download,
+            commands::policy_pack::list_policy_pack_examples,
+            commands::policy_pack::preview_policy_pack,
+            commands::policy_pack::apply_policy_pack,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

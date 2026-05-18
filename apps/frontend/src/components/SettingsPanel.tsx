@@ -46,6 +46,7 @@ import {
 } from '@/lib/scan-strategy';
 import type { Settings } from '@/types';
 import { CheckForUpdatesSection } from '@/components/CheckForUpdatesSection';
+import { PolicyPackSection } from '@/components/PolicyPackSection';
 
 type Props = {
   settings: Settings | null;
@@ -110,7 +111,7 @@ function ToggleRow({
   );
 }
 
-export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) {
+export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }: Props) {
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [pickingQuarantine, setPickingQuarantine] = useState(false);
@@ -414,6 +415,18 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
               disabled={scanning || saving}
             />
           </div>
+        </SettingsSection>
+
+        <Separator />
+
+        <SettingsSection
+          title="Policy pack"
+          description="Validate and copy a shareable .deco/disk-cleanup.json into a project (same schema as deco validate-policy)."
+        >
+          <PolicyPackSection
+            disabled={scanning || saving}
+            onError={onError}
+          />
         </SettingsSection>
 
         <Separator />

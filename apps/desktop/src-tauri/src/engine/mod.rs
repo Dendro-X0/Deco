@@ -14,6 +14,7 @@ pub mod inventory;
 pub mod executor;
 pub mod fast_tree_delete;
 pub mod path_policy;
+pub mod policy_validate;
 pub mod project_detection;
 pub mod quarantine_store;
 pub mod regeneration_hints;

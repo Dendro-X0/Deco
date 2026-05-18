@@ -87,6 +87,48 @@
           "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET", "CONDA_PKGS_CACHE_ONLY"]
         }
       ]
+    },
+    {
+      "id": "rust_artifact_in_cargo_project",
+      "setup": [
+        { "path": "Cargo.toml", "content": "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n" },
+        { "path": "target", "type": "dir" }
+      ],
+      "targets": [{ "kind": "rust-artifact", "rel_path": "target", "age_days": 10 }],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "python_venv_opt_in_kind",
+      "setup": [
+        { "path": "pyproject.toml", "content": "[project]\nname = \"demo\"\n" },
+        { "path": ".venv", "type": "dir" }
+      ],
+      "targets": [{ "kind": "python-venv", "rel_path": ".venv", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "unknown",
+          "reason_codes": ["PYTHON_VENV_HIGH_RISK", "PYTHON_VENV_REQUIRES_OPT_IN"]
+        }
+      ]
+    },
+    {
+      "id": "go_global_cache",
+      "setup": [],
+      "targets": [{ "kind": "go-global-cache", "rel_path": "go/pkg/mod/cache", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
     }
   ]
 }

@@ -4,7 +4,9 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-18 · **Latest shipped:** `v0.7.3` · **Development head:** `v0.7.4` (see [v0.7.4-manifest.md](v0.7.4-manifest.md))
+**Last updated:** 2026-05-18 · **Latest shipped:** `v0.7.3` · **Development head:** `v0.7.4` (ship) → then **`v0.7.5`–`v0.7.7`**, then [v0.8.x-roadmap.md](v0.8.x-roadmap.md)
+
+**Release model:** One feature set per version, in roadmap order. Desktop installers target **Windows, macOS, and Linux** from **`v0.8.0`** onward (see [v0.8.0-manifest.md](v0.8.0-manifest.md)).
 
 ---
 
@@ -209,18 +211,31 @@ CLI already reports `discover → classify → size`; desktop should match seman
 | `v0.7.1` | Dormancy signals (mtime + optional git last-commit hook — opt-in) | Shipped |
 | `v0.7.2` | Policy pack validation CLI + examples repo | Shipped |
 | `v0.7.3` | Classification parity fixtures + CI automation recipe | Shipped |
-| `v0.7.4` | Policy pack desktop UX + expanded classification fixtures | In progress |
+| `v0.7.4` | Policy pack desktop UX + parity round 1 | Ready to ship — [v0.7.4-manifest.md](v0.7.4-manifest.md) |
+| `v0.7.5` | Classification parity round 2 | Planned — [v0.7.5-manifest.md](v0.7.5-manifest.md) |
+| `v0.7.6` | Community policy gallery + apply polish | Planned — [v0.7.6-manifest.md](v0.7.6-manifest.md) |
+| `v0.7.7` | Workspace rollups | Planned — [v0.7.7-manifest.md](v0.7.7-manifest.md) |
+
+**Phase D exit:** `v0.7.7` tagged and `pnpm check` green.
 
 ---
 
-## Phase E — `v0.8.x+` · Platform reach
+## Phase E — `v0.8.x` · Platform reach
 
-| Item | Notes |
-|------|--------|
-| **macOS** / **Linux** desktop bundles in CI | Parity with Windows release workflow |
-| **winget** / **Homebrew** casks | Distribution convenience |
-| **Localization** | UI strings externalized |
-| **Plugin boundary (research)** | Third-party kind definitions via signed policy — only if trust model is solved |
+Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per version:
+
+| Version | Scope | Status |
+|---------|--------|--------|
+| `v0.8.0` | **Multi-platform installers** — Windows, macOS, Linux + per-OS CLI zips | Planned — [v0.8.0-manifest.md](v0.8.0-manifest.md) |
+| `v0.8.1` | winget + Homebrew | Planned — [v0.8.1-manifest.md](v0.8.1-manifest.md) |
+| `v0.8.2` | Localization | Planned — [v0.8.2-manifest.md](v0.8.2-manifest.md) |
+| `v0.8.3` | README product demos (GIFs) | Planned — [v0.8.3-manifest.md](v0.8.3-manifest.md) |
+| `v0.8.4` | Windows USN/MFT inventory (experimental) | Planned — [v0.8.4-manifest.md](v0.8.4-manifest.md) |
+
+| Item | Version | Notes |
+|------|---------|--------|
+| **Plugin boundary (research)** | Pre-`1.0.0` | Research doc only; not a product ship in 0.8.x |
+| **SECURITY.md** | Pre-`1.0.0` | Required before [1.0.0 criteria](#phase-e--v08x--platform-reach) below |
 
 **1.0.0 criteria (draft):**
 
@@ -245,8 +260,9 @@ Spikes live in `docs/experiments/` (create per spike). Promote into a version on
 | Adaptive concurrency | C (`v0.6.0`) | No regression on HDD reference run |
 | Incremental inventory | C (`v0.6.1`) | Rescan &lt;30% wall time on unchanged tree |
 | Windows USN/MFT inventory | C/E | Correctness on NTFS only; clear fallback |
-| Dormancy ranking | D (`v0.7.1`) | User testing: fewer “why safe?” support questions |
-| Workspace rollups | D | Monorepo summary without double-count |
+| Dormancy ranking | D (`v0.7.1`) | Shipped |
+| Workspace rollups | D (`v0.7.7`) | Monorepo summary without double-count |
+| Windows USN/MFT inventory | E (`v0.8.4`) | NTFS-only; clear fallback |
 | GPU content hashing | — | **Deprioritized** — poor fit for I/O-bound cleanup |
 
 ---

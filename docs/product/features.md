@@ -21,6 +21,7 @@ Current implementation progress and handoff details: [status.md](status.md).
 - **Cleanup profiles** in Settings (`first_scan`, `monorepo_maintainer`, `ci_agent`) bundle scan scope, safety profile, discovery flags, and scan strategy; dashboard shows active profile summary.
 - **Dormancy context** in candidate detail (stale vs recent vs unknown) and optional git last-commit hint; sort candidates by **Stale** days.
 - **Scan strategy** presets (`thorough` / `balanced` / `fast` / `background`) tune depth, concurrency, and Quick update separately from cleanup profiles.
+- **Policy pack** importer in Settings — pick a shipped example or folder, validate (same rules as `deco validate-policy`), and write `.deco/disk-cleanup.json` into a project folder.
 - Review-risk deletion requires a stronger two-step modal confirmation with explicit target details.
   - final step requires typing `DELETE REVIEW`.
 - Scan history panel with quick rerun using prior roots/profile/stale-days.

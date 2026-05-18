@@ -2,7 +2,17 @@
 
 ## [Unreleased]
 
-Development line **v0.7.4** — see [v0.7.4-manifest.md](docs/product/v0.7.4-manifest.md).
+Development line **v0.7.5** — see [v0.7.5-manifest.md](docs/product/v0.7.5-manifest.md).
+
+## [0.7.4] - 2026-05-18
+
+See [v0.7.4-manifest.md](docs/product/v0.7.4-manifest.md).
+
+### Added
+
+- **Policy pack (Settings)** — pick shipped examples or a folder, validate (CLI schema parity), preview, and write `.deco/disk-cleanup.json` into a project folder.
+- **Classification parity** — `rust-artifact`, `python-venv`, and `go-global-cache` cases in `tests/fixtures/classification/cases.json`.
+- **Roadmap** — version-ordered Phase D/E plan through `v0.8.4` ([v0.7.x-roadmap](docs/product/v0.7.x-roadmap.md), [v0.8.x-roadmap](docs/product/v0.8.x-roadmap.md)).
 
 ## [0.7.3] - 2026-05-18
 
