@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-18 · **Latest shipped:** `v0.7.4` · **Development head:** `v0.7.5` → **`v0.7.6`–`v0.7.7`**, then [v0.8.x-roadmap.md](v0.8.x-roadmap.md)
+**Last updated:** 2026-05-18 · **Latest shipped:** `v0.7.5` · **Development head:** `v0.7.6` → **`v0.7.7`**, then [v0.8.x-roadmap.md](v0.8.x-roadmap.md)
 
 **Release model:** One feature set per version, in roadmap order. Desktop installers target **Windows, macOS, and Linux** from **`v0.8.0`** onward (see [v0.8.0-manifest.md](v0.8.0-manifest.md)).
 
@@ -212,8 +212,8 @@ CLI already reports `discover → classify → size`; desktop should match seman
 | `v0.7.2` | Policy pack validation CLI + examples repo | Shipped |
 | `v0.7.3` | Classification parity fixtures + CI automation recipe | Shipped |
 | `v0.7.4` | Policy pack desktop UX + parity round 1 | Shipped |
-| `v0.7.5` | Classification parity round 2 | In progress — [v0.7.5-manifest.md](v0.7.5-manifest.md) |
-| `v0.7.6` | Community policy gallery + apply polish | Planned — [v0.7.6-manifest.md](v0.7.6-manifest.md) |
+| `v0.7.5` | Classification parity round 2 | Shipped |
+| `v0.7.6` | Community policy gallery + apply polish | In progress — [v0.7.6-manifest.md](v0.7.6-manifest.md) |
 | `v0.7.7` | Workspace rollups | Planned — [v0.7.7-manifest.md](v0.7.7-manifest.md) |
 
 **Phase D exit:** `v0.7.7` tagged and `pnpm check` green.
