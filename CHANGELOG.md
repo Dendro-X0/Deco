@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 
-Development line **v0.7.3** — see [v0.7.3-manifest.md](docs/product/v0.7.3-manifest.md).
+Development line **v0.7.4** — see [v0.7.4-manifest.md](docs/product/v0.7.4-manifest.md).
+
+## [0.7.3] - 2026-05-18
+
+See [v0.7.3-manifest.md](docs/product/v0.7.3-manifest.md).
 
 ### Added
 
