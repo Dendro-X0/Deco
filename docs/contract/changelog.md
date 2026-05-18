@@ -9,6 +9,13 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.7.0 — 2026-05-18
+
+- **Added** candidate kinds: `vcpkg_installed_cache`, `conan_global_cache`, `ccache_global_cache`, `sccache_global_cache`.
+- **Added** scan/settings flags: `check_vcpkg_cache`, `check_conan_cache`, `check_ccache`, `check_sccache` (default `false`, review tier + execute guard).
+- **Changed** walk discovery: Bazel `bazel-*` output directories when `WORKSPACE` / `WORKSPACE.bazel` / `MODULE.bazel` is present (`balanced+`).
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.7.0`.
+
 ## 2.6.0 — 2026-05-15
 
 - **Added** candidate kind: `composer_global_cache`.

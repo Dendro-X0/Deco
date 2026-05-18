@@ -31,7 +31,11 @@ export type TargetDirKind =
   | 'cargo-registry-cache'
   | 'bun-global-cache'
   | 'nuget-global-cache'
-  | 'composer-global-cache';
+  | 'composer-global-cache'
+  | 'vcpkg-installed-cache'
+  | 'conan-global-cache'
+  | 'ccache-global-cache'
+  | 'sccache-global-cache';
 
 export type SafetyClass = 'project_artifact' | 'global_cache' | 'app_runtime' | 'system' | 'unknown';
 
@@ -53,6 +57,8 @@ export type ReasonCode =
   | 'CONDA_PKGS_CACHE_ONLY'
   | 'PYTHON_VENV_HIGH_RISK'
   | 'PYTHON_VENV_REQUIRES_OPT_IN'
+  | 'CPP_VS_IDE_FOLDER'
+  | 'IDE_INDEX_NOT_COMPILE_OUTPUT'
   | 'LOW_CONFIDENCE_ARTIFACT'
   | 'UNKNOWN_ARTIFACT';
 
@@ -123,6 +129,10 @@ export type CliOptions = {
   readonly checkBunCache: boolean;
   readonly checkNugetCache: boolean;
   readonly checkComposerCache: boolean;
+  readonly checkVcpkgCache: boolean;
+  readonly checkConanCache: boolean;
+  readonly checkCcache: boolean;
+  readonly checkSccache: boolean;
   readonly excludeAbsPathContains: readonly string[];
   readonly profile: CleanupProfile;
   readonly deleteMode: DeleteMode;

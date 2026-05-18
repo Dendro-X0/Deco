@@ -177,6 +177,10 @@ async function dirHasCmakeMarker(dir: string): Promise<boolean> {
   return (await exists(path.join(dir, 'CMakeLists.txt'))) || (await exists(path.join(dir, 'CMakeCache.txt')));
 }
 
+async function dirHasMesonMarker(dir: string): Promise<boolean> {
+  return exists(path.join(dir, 'meson.build'));
+}
+
 async function dirHasVcxprojMarker(dir: string): Promise<boolean> {
   try {
     const entries = await readdir(dir);
@@ -190,15 +194,43 @@ async function dirHasVcxprojMarker(dir: string): Promise<boolean> {
 }
 
 export async function dirHasCppNativeMarker(dir: string): Promise<boolean> {
-  return (await dirHasCmakeMarker(dir)) || (await dirHasVcxprojMarker(dir));
+  return (await dirHasCmakeMarker(dir)) || (await dirHasVcxprojMarker(dir)) || (await dirHasMesonMarker(dir));
 }
 
 export function hasCmakeProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
   return hasMarkerAncestor(fromDirectory, maxAscend, dirHasCmakeMarker);
 }
 
+export function hasMesonProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
+  return hasMarkerAncestor(fromDirectory, maxAscend, dirHasMesonMarker);
+}
+
 export function hasCppNativeProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
   return hasMarkerAncestor(fromDirectory, maxAscend, dirHasCppNativeMarker);
+}
+
+export function isMesonBuildDirName(name: string): boolean {
+  return name === 'builddir' || name === '_build';
+}
+
+export function isCppIdeDirName(name: string): boolean {
+  return name === '.vs';
+}
+
+async function dirHasBazelMarker(dir: string): Promise<boolean> {
+  return (
+    (await exists(path.join(dir, 'WORKSPACE'))) ||
+    (await exists(path.join(dir, 'WORKSPACE.bazel'))) ||
+    (await exists(path.join(dir, 'MODULE.bazel')))
+  );
+}
+
+export function hasBazelProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
+  return hasMarkerAncestor(fromDirectory, maxAscend, dirHasBazelMarker);
+}
+
+export function isBazelOutputDirName(name: string): boolean {
+  return name.startsWith('bazel-');
 }
 
 export function isMsvcConfigDirName(name: string): boolean {

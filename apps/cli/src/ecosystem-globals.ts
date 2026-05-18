@@ -19,6 +19,15 @@ async function pathExists(dir: string): Promise<boolean> {
   }
 }
 
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function hasSubdir(parent: string, name: string): Promise<boolean> {
   return pathExists(path.join(parent, name));
 }
@@ -423,6 +432,140 @@ export async function discoverIdeGlobalCachesIfEnabled(enabled: boolean): Promis
       path.join(process.env.LOCALAPPDATA, 'Xcode', 'DerivedData'),
       'ide-global-cache',
     );
+  }
+  return out;
+}
+
+function vcpkgRootCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.VCPKG_ROOT?.trim()) {
+    paths.push(process.env.VCPKG_ROOT.trim());
+  }
+  paths.push(path.join(os.homedir(), 'vcpkg'));
+  if (process.platform === 'win32') {
+    paths.push('C:\\vcpkg');
+  }
+  return dedupePaths(paths);
+}
+
+async function isVcpkgRoot(dir: string): Promise<boolean> {
+  return (
+    (await pathExists(dir)) &&
+    ((await fileExists(path.join(dir, '.vcpkg-root'))) || (await fileExists(path.join(dir, 'vcpkg.json'))))
+  );
+}
+
+async function isVcpkgInstalledTree(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  if (path.basename(dir) !== 'installed') return false;
+  const parent = path.dirname(dir);
+  return isVcpkgRoot(parent);
+}
+
+export async function discoverVcpkgInstalledCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const root of vcpkgRootCandidatePaths()) {
+    if (!(await isVcpkgRoot(root))) continue;
+    const installed = path.join(root, 'installed');
+    if (await isVcpkgInstalledTree(installed)) {
+      await pushDir(out, installed, 'vcpkg-installed-cache');
+    }
+  }
+  return out;
+}
+
+function conanHomeCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.CONAN_HOME?.trim()) {
+    paths.push(process.env.CONAN_HOME.trim());
+  }
+  paths.push(path.join(os.homedir(), '.conan2'));
+  return dedupePaths(paths);
+}
+
+async function isConanHome(dir: string): Promise<boolean> {
+  return (
+    (await pathExists(dir)) &&
+    ((await fileExists(path.join(dir, 'remotes.json'))) || (await pathExists(path.join(dir, 'profiles'))))
+  );
+}
+
+async function isConanPackageCache(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  if (path.basename(dir) !== 'p') return false;
+  return isConanHome(path.dirname(dir));
+}
+
+export async function discoverConanGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const home of conanHomeCandidatePaths()) {
+    if (!(await isConanHome(home))) continue;
+    const pkg = path.join(home, 'p');
+    if (await isConanPackageCache(pkg)) {
+      await pushDir(out, pkg, 'conan-global-cache');
+    }
+  }
+  return out;
+}
+
+function ccacheCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.CCACHE_DIR?.trim()) {
+    paths.push(process.env.CCACHE_DIR.trim());
+  }
+  paths.push(path.join(os.homedir(), '.cache', 'ccache'));
+  if (process.platform === 'darwin') {
+    paths.push(path.join(os.homedir(), 'Library', 'Caches', 'ccache'));
+  } else if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
+    paths.push(path.join(process.env.LOCALAPPDATA, 'ccache'));
+  }
+  return dedupePaths(paths);
+}
+
+async function isCcacheRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  if (await fileExists(path.join(dir, 'stats'))) return true;
+  try {
+    const entries = await readdir(dir, { withFileTypes: true });
+    return entries.some((e) => e.isDirectory());
+  } catch {
+    return false;
+  }
+}
+
+export async function discoverCcacheGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of ccacheCandidatePaths()) {
+    if (await isCcacheRoot(candidate)) {
+      await pushDir(out, candidate, 'ccache-global-cache');
+    }
+  }
+  return out;
+}
+
+function sccacheCandidatePaths(): string[] {
+  const paths: string[] = [];
+  if (process.env.SCCACHE_DIR?.trim()) {
+    paths.push(process.env.SCCACHE_DIR.trim());
+  }
+  paths.push(path.join(os.homedir(), '.cache', 'sccache'));
+  return dedupePaths(paths);
+}
+
+async function isSccacheRoot(dir: string): Promise<boolean> {
+  return (await pathExists(dir)) && (await pathExists(path.join(dir, 'cache')));
+}
+
+export async function discoverSccacheGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const out: DiscoveredTarget[] = [];
+  for (const candidate of sccacheCandidatePaths()) {
+    if (await isSccacheRoot(candidate)) {
+      await pushDir(out, candidate, 'sccache-global-cache');
+    }
   }
   return out;
 }

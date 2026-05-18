@@ -16,6 +16,10 @@ pub fn regeneration_hint_for_kind(kind: &Kind) -> Option<&'static str> {
         Kind::BunGlobalCache => Some("`bun pm cache rm`; packages re-fetch on install"),
         Kind::NugetGlobalCache => Some("Restore with `dotnet restore` / `nuget restore`"),
         Kind::ComposerGlobalCache => Some("`composer clear-cache`; packages re-fetch on install"),
+        Kind::VcpkgInstalledCache => Some("Reinstall ports with `vcpkg install` for your triplet"),
+        Kind::ConanGlobalCache => Some("`conan remove \"*\" -c`; packages re-fetch on next build"),
+        Kind::CcacheGlobalCache => Some("`ccache -C` or delete cache dir; objects rebuild on compile"),
+        Kind::SccacheGlobalCache => Some("Clear sccache store; compiler cache repopulates on build"),
         _ => None,
     }
 }

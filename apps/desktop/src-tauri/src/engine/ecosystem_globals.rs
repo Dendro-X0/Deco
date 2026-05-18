@@ -566,6 +566,175 @@ fn push_ide_target(targets: &mut Vec<DiscoveredTarget>, path: PathBuf) {
     push_dir_target(targets, path, Kind::IdeGlobalCache);
 }
 
+fn vcpkg_root_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("VCPKG_ROOT") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(home) = user_home() {
+        paths.push(home.join("vcpkg"));
+    }
+    #[cfg(windows)]
+    {
+        paths.push(PathBuf::from("C:\\vcpkg"));
+    }
+    paths
+}
+
+fn is_vcpkg_root(path: &Path) -> bool {
+    path.is_dir()
+        && (path.join(".vcpkg-root").is_file() || path.join("vcpkg.json").is_file())
+}
+
+fn is_vcpkg_installed_tree(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    if path.file_name().and_then(|n| n.to_str()) != Some("installed") {
+        return false;
+    }
+    path.parent().is_some_and(is_vcpkg_root)
+}
+
+pub fn discover_vcpkg_installed_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for root in dedupe_paths(vcpkg_root_candidate_paths()) {
+        if !is_vcpkg_root(&root) {
+            continue;
+        }
+        let installed = root.join("installed");
+        if is_vcpkg_installed_tree(&installed) {
+            push_global_cache(&mut targets, installed, Kind::VcpkgInstalledCache);
+        }
+    }
+    (targets, warnings)
+}
+
+fn conan_home_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("CONAN_HOME") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(home) = user_home() {
+        paths.push(home.join(".conan2"));
+    }
+    paths
+}
+
+fn is_conan_home(path: &Path) -> bool {
+    path.is_dir()
+        && (path.join("remotes.json").is_file() || path.join("profiles").is_dir())
+}
+
+fn is_conan_package_cache(path: &Path) -> bool {
+    path.is_dir()
+        && path.file_name().and_then(|n| n.to_str()) == Some("p")
+        && path.parent().is_some_and(is_conan_home)
+}
+
+pub fn discover_conan_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for home in dedupe_paths(conan_home_candidate_paths()) {
+        if !is_conan_home(&home) {
+            continue;
+        }
+        let pkg_cache = home.join("p");
+        if is_conan_package_cache(&pkg_cache) {
+            push_global_cache(&mut targets, pkg_cache, Kind::ConanGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
+fn ccache_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("CCACHE_DIR") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(home) = user_home() {
+        paths.push(home.join(".cache").join("ccache"));
+        #[cfg(target_os = "macos")]
+        paths.push(home.join("Library").join("Caches").join("ccache"));
+    }
+    #[cfg(windows)]
+    if let Ok(local) = std::env::var("LOCALAPPDATA") {
+        paths.push(PathBuf::from(local).join("ccache"));
+    }
+    paths
+}
+
+fn is_ccache_root(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    if path.join("stats").is_file() {
+        return true;
+    }
+    let Ok(mut entries) = std::fs::read_dir(path) else {
+        return false;
+    };
+    entries.any(|entry| {
+        entry.ok().map(|e| {
+            e.file_type().map(|t| t.is_dir()).unwrap_or(false)
+                && e.file_name().to_string_lossy().len() == 1
+        }).unwrap_or(false)
+    })
+}
+
+pub fn discover_ccache_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(ccache_candidate_paths()) {
+        if is_ccache_root(&path) {
+            push_global_cache(&mut targets, path, Kind::CcacheGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
+fn sccache_candidate_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Ok(v) = std::env::var("SCCACHE_DIR") {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            paths.push(PathBuf::from(trimmed));
+        }
+    }
+    if let Some(home) = user_home() {
+        paths.push(home.join(".cache").join("sccache"));
+    }
+    paths
+}
+
+fn is_sccache_root(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    path.join("cache").is_dir()
+}
+
+pub fn discover_sccache_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = vec![];
+    let warnings = vec![];
+    for path in dedupe_paths(sccache_candidate_paths()) {
+        if is_sccache_root(&path) {
+            push_global_cache(&mut targets, path, Kind::SccacheGlobalCache);
+        }
+    }
+    (targets, warnings)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -667,5 +836,38 @@ mod tests {
         let packages = root.join("packages");
         create_dir_all(packages.join("Newtonsoft.Json").join("13.0.3")).expect("pkg");
         assert!(is_nuget_packages_root(&packages));
+    }
+
+    #[test]
+    fn vcpkg_installed_requires_vcpkg_root_marker() {
+        let root = temp_root("vcpkg");
+        std::fs::write(root.join(".vcpkg-root"), "").expect("marker");
+        let installed = root.join("installed");
+        create_dir_all(&installed).expect("installed");
+        assert!(is_vcpkg_installed_tree(&installed));
+        assert!(!is_vcpkg_installed_tree(&root));
+    }
+
+    #[test]
+    fn conan_package_cache_requires_conan_home() {
+        let root = temp_root("conan");
+        std::fs::write(root.join("remotes.json"), "[]").expect("remotes");
+        let pkg = root.join("p");
+        create_dir_all(&pkg).expect("p");
+        assert!(is_conan_package_cache(&pkg));
+    }
+
+    #[test]
+    fn ccache_root_accepts_stats_file() {
+        let root = temp_root("ccache");
+        std::fs::write(root.join("stats"), "").expect("stats");
+        assert!(is_ccache_root(&root));
+    }
+
+    #[test]
+    fn sccache_root_requires_cache_subdir() {
+        let root = temp_root("sccache");
+        create_dir_all(root.join("cache")).expect("cache");
+        assert!(is_sccache_root(&root));
     }
 }

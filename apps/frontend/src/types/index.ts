@@ -115,6 +115,10 @@ export interface Settings {
   check_cargo_registry?: boolean;
   check_nuget_cache?: boolean;
   check_composer_cache?: boolean;
+  check_vcpkg_cache?: boolean;
+  check_conan_cache?: boolean;
+  check_ccache?: boolean;
+  check_sccache?: boolean;
   /** Experimental: rmdir / rm -rf for node_modules when deleting in place (v0.6.5). */
   fast_tree_delete_enabled?: boolean;
   /** `auto` | `hdd` | `standard` — delete parallelism (v0.6.6). */

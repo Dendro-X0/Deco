@@ -17,6 +17,10 @@ export type DiscoveryOptionKey = Extract<
   | 'check_cargo_registry'
   | 'check_nuget_cache'
   | 'check_composer_cache'
+  | 'check_vcpkg_cache'
+  | 'check_conan_cache'
+  | 'check_ccache'
+  | 'check_sccache'
   | 'include_python_venv'
   | 'smart_discovery_enabled'
 >;
@@ -146,6 +150,30 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
         key: 'check_cargo_registry',
         label: 'Cargo registry cache',
         description: 'CARGO_HOME/registry with downloaded crates (regenerate: cargo cache -a).',
+      },
+      {
+        type: 'option',
+        key: 'check_vcpkg_cache',
+        label: 'vcpkg installed tree',
+        description: 'VCPKG_ROOT/installed ports (review; reinstall with vcpkg install).',
+      },
+      {
+        type: 'option',
+        key: 'check_conan_cache',
+        label: 'Conan package cache',
+        description: 'Conan 2 global package cache (.conan2/p; review tier).',
+      },
+      {
+        type: 'option',
+        key: 'check_ccache',
+        label: 'ccache',
+        description: 'Compiler object cache (CCACHE_DIR or ~/.cache/ccache; review tier).',
+      },
+      {
+        type: 'option',
+        key: 'check_sccache',
+        label: 'sccache',
+        description: 'Shared compiler cache (SCCACHE_DIR; review tier).',
       },
       {
         type: 'option',

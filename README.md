@@ -4,6 +4,17 @@ Deco is a **desktop-first** cleanup app for developer machines, with a **CLI** f
 
 Goals: **safe defaults** (scan → review → quarantine-first cleanup → restore/purge), **low learning curve**, and **broad dev-artifact** coverage—not a general-purpose “every file” browser.
 
+## Privacy & security
+
+Deco is built for developers who need to trust what runs on their machine:
+
+- **Local-first** — scanning, classification, preview, quarantine, and cleanup run on your PC. File paths and sizes stay on disk; the engine does not upload your tree, file names, or scan results to any server.
+- **Offline by default** — normal use does not require a network connection. The only optional online step is **Check for updates** in Settings, which you trigger manually; it reads public GitHub Release metadata to compare versions and open download links.
+- **Open and auditable** — source is available in this repository. There are no hidden scripts, telemetry bundles, or bundled third-party “phone home” components in the desktop installer or CLI package.
+- **Safety-first deletes** — quarantine-first defaults, blocked system paths, and review-tier confirmations; see [Safety model](docs/product/safety.md) and [PROJECT.md](PROJECT.md).
+
+If you find a security issue, please report it via a [private security advisory](https://github.com/Dendro-X0/Deco/security/advisories/new) on GitHub.
+
 ## Repository layout
 
 | Path | Role |

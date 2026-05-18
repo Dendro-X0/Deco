@@ -18,6 +18,10 @@ import {
   discoverNugetGlobalCachesIfEnabled,
   discoverComposerGlobalCachesIfEnabled,
   discoverYarnGlobalCachesIfEnabled,
+  discoverVcpkgInstalledCachesIfEnabled,
+  discoverConanGlobalCachesIfEnabled,
+  discoverCcacheGlobalCachesIfEnabled,
+  discoverSccacheGlobalCachesIfEnabled,
 } from './ecosystem-globals.js';
 import { getGoEnv } from './go-utils.js';
 import { TaskQueue } from './concurrency.js';
@@ -45,7 +49,7 @@ const DEFAULT_PROFILE: CleanupProfile = 'safe';
 const DEFAULT_DELETE_MODE: DeleteMode = 'quarantine';
 const DEFAULT_STALE_DAYS = 45;
 const DEFAULT_QUARANTINE_RETENTION_DAYS = 30;
-const CLI_VERSION = '0.6.9';
+const CLI_VERSION = '0.6.10';
 
 export type TargetDir = CleanupCandidate;
 export type ScanReport = ScanReportV2;
@@ -87,6 +91,10 @@ type ParsedArgs = {
   readonly checkBunCache: boolean;
   readonly checkNugetCache: boolean;
   readonly checkComposerCache: boolean;
+  readonly checkVcpkgCache: boolean;
+  readonly checkConanCache: boolean;
+  readonly checkCcache: boolean;
+  readonly checkSccache: boolean;
   readonly includeReview: boolean;
   readonly json: boolean;
   readonly showBlocked: boolean;
@@ -135,6 +143,10 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
   let checkBunCache = false;
   let checkNugetCache = false;
   let checkComposerCache = false;
+  let checkVcpkgCache = false;
+  let checkConanCache = false;
+  let checkCcache = false;
+  let checkSccache = false;
   let includeReview = false;
   let json = false;
   let showBlocked = false;
@@ -279,6 +291,26 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--check-vcpkg-cache') {
+      checkVcpkgCache = true;
+      continue;
+    }
+
+    if (arg === '--check-conan-cache') {
+      checkConanCache = true;
+      continue;
+    }
+
+    if (arg === '--check-ccache') {
+      checkCcache = true;
+      continue;
+    }
+
+    if (arg === '--check-sccache') {
+      checkSccache = true;
+      continue;
+    }
+
     if (arg === '--include-python-venv') {
       includePythonVenv = true;
       continue;
@@ -400,6 +432,10 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
     checkBunCache,
     checkNugetCache,
     checkComposerCache,
+    checkVcpkgCache,
+    checkConanCache,
+    checkCcache,
+    checkSccache,
     includeReview,
     json,
     showBlocked,
@@ -463,6 +499,10 @@ export async function mergeConfigAndArgsV2(argv: readonly string[]): Promise<Cli
     checkBunCache: args.checkBunCache,
     checkNugetCache: args.checkNugetCache,
     checkComposerCache: args.checkComposerCache,
+    checkVcpkgCache: args.checkVcpkgCache,
+    checkConanCache: args.checkConanCache,
+    checkCcache: args.checkCcache,
+    checkSccache: args.checkSccache,
     excludeAbsPathContains: config?.excludeAbsPathContains ?? [],
     profile,
     deleteMode,
@@ -551,6 +591,10 @@ export async function buildReport(options: CliOptions, onProgress?: ProgressList
     ...(await discoverBunGlobalCachesIfEnabled(options.checkBunCache)),
     ...(await discoverNugetGlobalCachesIfEnabled(options.checkNugetCache)),
     ...(await discoverComposerGlobalCachesIfEnabled(options.checkComposerCache)),
+    ...(await discoverVcpkgInstalledCachesIfEnabled(options.checkVcpkgCache)),
+    ...(await discoverConanGlobalCachesIfEnabled(options.checkConanCache)),
+    ...(await discoverCcacheGlobalCachesIfEnabled(options.checkCcache)),
+    ...(await discoverSccacheGlobalCachesIfEnabled(options.checkSccache)),
   ];
   const errors = [...discovery.errors];
   if (options.checkCondaPkgsCache) {
@@ -699,6 +743,10 @@ function getUsageText(): string {
     '  --check-bun-cache           Include bun install global cache (review tier)',
     '  --check-nuget-cache         Include NuGet global packages folder (review tier)',
     '  --check-composer-cache      Include Composer global cache (review tier)',
+    '  --check-vcpkg-cache         Include vcpkg installed tree (VCPKG_ROOT/installed; review tier)',
+    '  --check-conan-cache         Include Conan 2 package cache (.conan2/p; review tier)',
+    '  --check-ccache              Include ccache directory (CCACHE_DIR; review tier)',
+    '  --check-sccache             Include sccache directory (SCCACHE_DIR; review tier)',
     '  --include-python-venv       Include venv/.venv (review tier; opt-in)',
     '  --no-python-artifacts       Skip Python caches/build dirs when pyproject present',
     '  --no-jvm-artifacts          Skip JVM build/ when Gradle/Maven markers present',
@@ -767,6 +815,10 @@ function getDeletableCandidates(
     | 'checkBunCache'
     | 'checkNugetCache'
     | 'checkComposerCache'
+    | 'checkVcpkgCache'
+    | 'checkConanCache'
+    | 'checkCcache'
+    | 'checkSccache'
     | 'includePythonVenv'
   >
 ): CleanupCandidate[] {
@@ -785,6 +837,10 @@ function getDeletableCandidates(
     if (candidate.kind === 'bun-global-cache' && !options.checkBunCache) return false;
     if (candidate.kind === 'nuget-global-cache' && !options.checkNugetCache) return false;
     if (candidate.kind === 'composer-global-cache' && !options.checkComposerCache) return false;
+    if (candidate.kind === 'vcpkg-installed-cache' && !options.checkVcpkgCache) return false;
+    if (candidate.kind === 'conan-global-cache' && !options.checkConanCache) return false;
+    if (candidate.kind === 'ccache-global-cache' && !options.checkCcache) return false;
+    if (candidate.kind === 'sccache-global-cache' && !options.checkSccache) return false;
     if (candidate.kind === 'python-venv' && !options.includePythonVenv) return false;
     if (candidate.risk === 'review') return includeReview;
     return true;

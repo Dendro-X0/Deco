@@ -95,6 +95,10 @@ export function normalizeSettings(raw: unknown): Settings {
     check_cargo_registry: bool('check_cargo_registry', 'checkCargoRegistry', false),
     check_nuget_cache: bool('check_nuget_cache', 'checkNugetCache', false),
     check_composer_cache: bool('check_composer_cache', 'checkComposerCache', false),
+    check_vcpkg_cache: bool('check_vcpkg_cache', 'checkVcpkgCache', false),
+    check_conan_cache: bool('check_conan_cache', 'checkConanCache', false),
+    check_ccache: bool('check_ccache', 'checkCcache', false),
+    check_sccache: bool('check_sccache', 'checkSccache', false),
     fast_tree_delete_enabled: bool(
       'fast_tree_delete_enabled',
       'fastTreeDeleteEnabled',

@@ -62,7 +62,11 @@ export async function classifyTargets(
         target.kind === 'cargo-registry-cache' ||
         target.kind === 'bun-global-cache' ||
         target.kind === 'nuget-global-cache' ||
-        target.kind === 'composer-global-cache'
+        target.kind === 'composer-global-cache' ||
+        target.kind === 'vcpkg-installed-cache' ||
+        target.kind === 'conan-global-cache' ||
+        target.kind === 'ccache-global-cache' ||
+        target.kind === 'sccache-global-cache'
       ) {
         const reasonCodes: CleanupCandidate['reasonCodes'] = [
           'GLOBAL_CACHE_TARGET',
@@ -81,6 +85,18 @@ export async function classifyTargets(
       const pathMatch = pathPolicy.findMatch(target.absPath);
       if (pathMatch) {
         return baseCandidate(target, pathMatch.risk, pathMatch.safetyClass, pathMatch.reasonCodes);
+      }
+
+      if (path.basename(target.absPath) === '.vs') {
+        const scanRoot = getContainingRoot(target.absPath);
+        const projectEvidence = await detectProjectRoot(path.dirname(target.absPath), 4, scanRoot);
+        return baseCandidate(
+          target,
+          'review',
+          'project_artifact',
+          ['CPP_VS_IDE_FOLDER', 'IDE_INDEX_NOT_COMPILE_OUTPUT'],
+          projectEvidence?.projectRoot,
+        );
       }
 
       if (target.kind === 'python-venv') {

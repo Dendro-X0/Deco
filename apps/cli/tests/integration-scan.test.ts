@@ -243,6 +243,73 @@ describe('integration scan behavior', () => {
     ).toBe(false);
   });
 
+  it('discovers Meson builddir and CMake out on balanced profile', async () => {
+    const root = await createTmpRoot('deco-cpp-native-');
+    tmpRoots.push(root);
+
+    const cmake = path.join(root, 'cmake-app');
+    await mkdir(cmake, { recursive: true });
+    await writeFile(path.join(cmake, 'CMakeLists.txt'), 'cmake_minimum_required(VERSION 3.16)\n', 'utf8');
+    await mkdir(path.join(cmake, 'out'), { recursive: true });
+
+    const meson = path.join(root, 'meson-app');
+    await mkdir(meson, { recursive: true });
+    await writeFile(path.join(meson, 'meson.build'), "project('demo', 'c')\n", 'utf8');
+    await mkdir(path.join(meson, 'builddir'), { recursive: true });
+
+    const report = await buildReport({ ...createOptions(root), profile: 'balanced' });
+    expect(report.candidates.some((c) => c.absPath === path.join(cmake, 'out'))).toBe(true);
+    expect(report.candidates.some((c) => c.absPath === path.join(meson, 'builddir'))).toBe(true);
+  });
+
+  it('discovers Bazel bazel-out on balanced profile', async () => {
+    const root = await createTmpRoot('deco-bazel-');
+    tmpRoots.push(root);
+
+    await writeFile(path.join(root, 'MODULE.bazel'), 'module(name = "demo")\n', 'utf8');
+    await mkdir(path.join(root, 'bazel-out'), { recursive: true });
+
+    const report = await buildReport({ ...createOptions(root), profile: 'balanced' });
+    expect(report.candidates.some((c) => c.absPath === path.join(root, 'bazel-out'))).toBe(true);
+  });
+
+  it('discovers vcpkg installed tree with opt-in flag', async () => {
+    const root = await createTmpRoot('deco-vcpkg-');
+    tmpRoots.push(root);
+    const prev = process.env.VCPKG_ROOT;
+    process.env.VCPKG_ROOT = root;
+
+    try {
+      await writeFile(path.join(root, '.vcpkg-root'), '', 'utf8');
+      await mkdir(path.join(root, 'installed', 'x64-windows'), { recursive: true });
+
+      const report = await buildReport({ ...createOptions(root), checkVcpkgCache: true });
+      expect(report.candidates.some((c) => c.absPath === path.join(root, 'installed'))).toBe(true);
+      expect(report.candidates.find((c) => c.absPath === path.join(root, 'installed'))?.risk).toBe(
+        'review',
+      );
+    } finally {
+      if (prev === undefined) delete process.env.VCPKG_ROOT;
+      else process.env.VCPKG_ROOT = prev;
+    }
+  });
+
+  it('classifies Visual Studio .vs folder as review', async () => {
+    const root = await createTmpRoot('deco-vs-');
+    tmpRoots.push(root);
+
+    const project = path.join(root, 'native');
+    await mkdir(project, { recursive: true });
+    await writeFile(path.join(project, 'app.vcxproj'), '<?xml version="1.0"?>\n', 'utf8');
+    await mkdir(path.join(project, '.vs'), { recursive: true });
+
+    const report = await buildReport({ ...createOptions(root), profile: 'balanced' });
+    const vs = report.candidates.find((c) => c.absPath === path.join(project, '.vs'));
+    expect(vs?.kind).toBe('build-artifact');
+    expect(vs?.risk).toBe('review');
+    expect(vs?.reasonCodes).toContain('CPP_VS_IDE_FOLDER');
+  });
+
   it('discovers dist-firefox as a build artifact inside a project', async () => {
     const root = await createTmpRoot('deco-firefox-');
     tmpRoots.push(root);

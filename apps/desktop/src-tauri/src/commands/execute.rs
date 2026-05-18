@@ -392,6 +392,10 @@ fn prepare_cleanup(req: &ExecuteRequest, state: &AppState) -> Result<CleanupPrep
         bun: settings.check_bun_cache,
         nuget: settings.check_nuget_cache,
         composer: settings.check_composer_cache,
+        vcpkg: settings.check_vcpkg_cache,
+        conan: settings.check_conan_cache,
+        ccache: settings.check_ccache,
+        sccache: settings.check_sccache,
     };
 
     Ok(CleanupPrepared {

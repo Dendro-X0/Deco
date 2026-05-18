@@ -14,6 +14,10 @@ const HINTS: Partial<Record<TargetDirKind, string>> = {
   'bun-global-cache': '`bun pm cache rm`; packages re-fetch on install',
   'nuget-global-cache': 'Restore with `dotnet restore` / `nuget restore`',
   'composer-global-cache': '`composer clear-cache`; packages re-fetch on install',
+  'vcpkg-installed-cache': 'Reinstall ports with `vcpkg install` for your triplet',
+  'conan-global-cache': '`conan remove "*"` -c; packages re-fetch on next build',
+  'ccache-global-cache': '`ccache -C` or delete cache dir; objects rebuild on compile',
+  'sccache-global-cache': 'Clear sccache store; compiler cache repopulates on build',
 };
 
 export function regenerationHintForKind(kind: TargetDirKind): string | undefined {

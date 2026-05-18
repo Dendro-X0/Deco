@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.6.10] - 2026-05-18
+
+### Added
+
+- **Bazel output dirs** — `bazel-*` folders (e.g. `bazel-out`, `bazel-bin`) when `WORKSPACE`, `WORKSPACE.bazel`, or `MODULE.bazel` exists (`balanced+`).
+- **Global native tool caches (opt-in, review tier)** — vcpkg `installed/`, Conan 2 `.conan2/p`, **ccache**, **sccache**; Settings toggles + CLI `--check-vcpkg-cache`, `--check-conan-cache`, `--check-ccache`, `--check-sccache`.
+- **Scan contract `2.7.0`** — new kinds: `vcpkg_installed_cache`, `conan_global_cache`, `ccache_global_cache`, `sccache_global_cache`.
+
+See [v0.6.10-manifest.md](docs/product/v0.6.10-manifest.md).
+
+## [0.6.9] - 2026-05-18
+
+### Added
+
+- **C++ / native build discovery** — Meson `builddir` / `_build` when `meson.build` is present; CMake `out/` on `balanced+` (not aggressive-only); Visual Studio `.vs/` when `.vcxproj` / `.sln` markers exist (classified **review**). See [v0.6.9-manifest.md](docs/product/v0.6.9-manifest.md).
+
 ## [0.6.8] - 2026-05-18
 
 ### Added
@@ -16,6 +32,7 @@
 ## [0.6.7] - 2026-05-18
 
 ### Added
+
 
 - **Quick-update benchmark (L3)** — `deco-bench --quick-update` compares full vs quick scan on a synthetic fixture; `pnpm benchmark:quick-update` + CI; gates ≥30% faster classify+size pipeline and ≥95% inventory reuse (`benchmarks/baseline.quick-update.json`).
 - **Fast dependency size estimate (L4)** — `fast_dependency_size_estimate` (default on): sampled sizing for `node_modules` / `target` / build trees; `~` prefix in UI; fewer 30s “Not calculated” timeouts; see [size-estimate.md](docs/experiments/size-estimate.md).

@@ -5,6 +5,11 @@ import {
   dirHasCppNativeMarker,
   hasCmakeProjectAncestor,
   hasCppNativeProjectAncestor,
+  hasMesonProjectAncestor,
+  hasBazelProjectAncestor,
+  isBazelOutputDirName,
+  isCppIdeDirName,
+  isMesonBuildDirName,
   hasDotnetProjectAncestor,
   hasGoModAncestor,
   hasJvmProjectAncestor,
@@ -185,11 +190,31 @@ async function shouldTargetDir(
   }
 
   if (options.profile !== 'safe') {
-    if (
-      dirName.startsWith('cmake-build-') ||
-      (options.profile === 'aggressive' && dirName === 'out')
-    ) {
+    if (dirName.startsWith('cmake-build-')) {
       if (await hasCmakeProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (dirName === 'out') {
+      if (
+        (await hasCmakeProjectAncestor(parentAbsPath, 6)) ||
+        (await hasMesonProjectAncestor(parentAbsPath, 6))
+      ) {
+        return 'build-artifact';
+      }
+    }
+    if (isMesonBuildDirName(dirName)) {
+      if (await hasMesonProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (isCppIdeDirName(dirName)) {
+      if (await hasCppNativeProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (isBazelOutputDirName(dirName)) {
+      if (await hasBazelProjectAncestor(parentAbsPath, 6)) {
         return 'build-artifact';
       }
     }

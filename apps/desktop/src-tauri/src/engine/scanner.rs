@@ -2,14 +2,16 @@ use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
 use super::discovery_patterns::match_walk_pattern;
 use super::ecosystem_globals::{
-    discover_bun_global_caches, discover_cargo_registry_caches, discover_composer_global_caches,
-    discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
-    discover_conda_pkgs_caches, discover_nuget_global_caches, discover_pip_global_caches,
-    discover_pnpm_global_store, discover_uv_global_caches, discover_yarn_global_caches,
-    is_pnpm_store_root,
+    discover_bun_global_caches, discover_cargo_registry_caches, discover_ccache_global_caches,
+    discover_composer_global_caches, discover_conan_global_caches, discover_ide_global_caches,
+    discover_jvm_global_caches, discover_npm_global_caches, discover_conda_pkgs_caches,
+    discover_nuget_global_caches, discover_pip_global_caches, discover_pnpm_global_store,
+    discover_sccache_global_caches, discover_uv_global_caches, discover_vcpkg_installed_caches,
+    discover_yarn_global_caches, is_pnpm_store_root,
 };
 use super::project_detection::{
-    dir_has_cpp_native_marker, is_msvc_arch_dir_name, is_msvc_config_dir_name,
+    dir_has_cpp_native_marker, is_bazel_output_dir_name, is_cpp_ide_dir_name, is_meson_build_dir_name,
+    is_msvc_arch_dir_name, is_msvc_config_dir_name,
 };
 use super::path_policy::PathPolicy;
 use super::types::{EcosystemScanOptions, Kind};
@@ -162,11 +164,34 @@ fn detect_kind(
         ".next" | ".svelte-kit" | ".astro" | ".cache" | "dist-firefox" => {
             return Some(Kind::BuildArtifact);
         }
-        name if profile != "safe"
-            && (name.starts_with("cmake-build-")
-                || (profile == "aggressive" && name == "out")) =>
-        {
+        name if profile != "safe" && name.starts_with("cmake-build-") => {
             if cache.has_cmake_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && name == "out" => {
+            if cache.has_cmake_project_ancestor(entry_path, 6)
+                || cache.has_meson_project_ancestor(entry_path, 6)
+            {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && is_meson_build_dir_name(name) => {
+            if cache.has_meson_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && is_cpp_ide_dir_name(name) => {
+            if cache.has_cpp_native_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && is_bazel_output_dir_name(name) => {
+            if cache.has_bazel_project_ancestor(entry_path, 6) {
                 return Some(Kind::BuildArtifact);
             }
             return None;
@@ -731,6 +756,26 @@ fn discover_targets_inner(
         all_targets.extend(nuget_targets);
         warnings.extend(nuget_warnings);
     }
+    if eco.check_vcpkg_cache && !canceled {
+        let (vcpkg_targets, vcpkg_warnings) = discover_vcpkg_installed_caches();
+        all_targets.extend(vcpkg_targets);
+        warnings.extend(vcpkg_warnings);
+    }
+    if eco.check_conan_cache && !canceled {
+        let (conan_targets, conan_warnings) = discover_conan_global_caches();
+        all_targets.extend(conan_targets);
+        warnings.extend(conan_warnings);
+    }
+    if eco.check_ccache && !canceled {
+        let (ccache_targets, ccache_warnings) = discover_ccache_global_caches();
+        all_targets.extend(ccache_targets);
+        warnings.extend(ccache_warnings);
+    }
+    if eco.check_sccache && !canceled {
+        let (sccache_targets, sccache_warnings) = discover_sccache_global_caches();
+        all_targets.extend(sccache_targets);
+        warnings.extend(sccache_warnings);
+    }
 
     let targets = dedupe_targets_by_canonical_path(all_targets, &mut warnings);
 
@@ -991,6 +1036,79 @@ mod tests {
             .targets
             .iter()
             .any(|t| t.kind == Kind::GoGlobalCache));
+    }
+
+    #[test]
+    fn discovers_bazel_output_on_balanced() {
+        use std::fs::write;
+
+        let root = temp_root("scan-bazel");
+        write(root.join("MODULE.bazel"), "module(name = \"demo\")\n").expect("write module");
+        create_dir_all(root.join("bazel-out")).expect("create bazel-out");
+
+        let policy = PathPolicy::new(vec![], vec![]);
+        let result = discover_targets(
+            &[root.to_string_lossy().to_string()],
+            8,
+            "balanced",
+            &[],
+            &policy,
+            EcosystemScanOptions::default(),
+            false,
+            &ExtraDiscoverNames::default(),
+            false,
+            6,
+            None,
+            None,
+        );
+
+        assert!(result.targets.iter().any(|t| {
+            t.kind == Kind::BuildArtifact && t.abs_path.ends_with("bazel-out")
+        }));
+
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn discovers_meson_builddir_and_cmake_out_on_balanced() {
+        use std::fs::write;
+
+        let root = temp_root("scan-cpp-native");
+        let cmake = root.join("cmake-app");
+        create_dir_all(&cmake).expect("create cmake app");
+        write(cmake.join("CMakeLists.txt"), "cmake_minimum_required(VERSION 3.16)\n")
+            .expect("write cmake");
+        create_dir_all(cmake.join("out")).expect("create out");
+
+        let meson = root.join("meson-app");
+        create_dir_all(&meson).expect("create meson app");
+        write(meson.join("meson.build"), "project('demo', 'c')\n").expect("write meson");
+        create_dir_all(meson.join("builddir")).expect("create builddir");
+
+        let policy = PathPolicy::new(vec![], vec![]);
+        let result = discover_targets(
+            &[root.to_string_lossy().to_string()],
+            8,
+            "balanced",
+            &[],
+            &policy,
+            EcosystemScanOptions::default(),
+            false,
+            &ExtraDiscoverNames::default(),
+            false,
+            6,
+            None,
+            None,
+        );
+
+        assert!(result.targets.iter().any(|t| {
+            t.kind == Kind::BuildArtifact && t.abs_path.ends_with("out")
+        }));
+        assert!(result.targets.iter().any(|t| {
+            t.kind == Kind::BuildArtifact && t.abs_path.ends_with("builddir")
+        }));
+
+        remove_dir_all(root).expect("cleanup");
     }
 
     #[test]

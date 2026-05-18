@@ -76,6 +76,10 @@ fn classify_discovered_target(
             | Kind::BunGlobalCache
             | Kind::NugetGlobalCache
             | Kind::ComposerGlobalCache
+            | Kind::VcpkgInstalledCache
+            | Kind::ConanGlobalCache
+            | Kind::CcacheGlobalCache
+            | Kind::SccacheGlobalCache
     ) {
         let mut reason_codes = vec![
             "GLOBAL_CACHE_TARGET".to_string(),
@@ -115,6 +119,32 @@ fn classify_discovered_target(
             can_delete: false,
             reason_codes,
             project_root: None,
+            stale_days: None,
+        };
+    }
+
+    if is_cpp_vs_ide_folder(&target.abs_path) {
+        let reason_codes = vec![
+            "CPP_VS_IDE_FOLDER".to_string(),
+            "IDE_INDEX_NOT_COMPILE_OUTPUT".to_string(),
+        ];
+        let containing_root = find_containing_root(&target.abs_path, roots);
+        let start_dir = Path::new(&target.abs_path)
+            .parent()
+            .unwrap_or_else(|| Path::new(&target.abs_path));
+        let evidence = cache.detect(start_dir, 4, containing_root.as_ref().map(Path::new));
+        return CleanupCandidate {
+            id: Uuid::new_v4().to_string(),
+            kind: target.kind,
+            abs_path: target.abs_path,
+            size_bytes: None,
+            mtime_ms: target.mtime_ms,
+            risk: RiskLevel::Review,
+            safety_class: SafetyClass::ProjectArtifact,
+            display_reason_summary: Some(reason_summary(&reason_codes)),
+            can_delete: true,
+            reason_codes,
+            project_root: evidence.map(|ev| ev.project_root),
             stale_days: None,
         };
     }
@@ -232,6 +262,12 @@ fn classify_discovered_target(
             stale_days: None,
         }
     }
+}
+
+fn is_cpp_vs_ide_folder(abs_path: &str) -> bool {
+    Path::new(abs_path)
+        .file_name()
+        .is_some_and(|name| name == ".vs")
 }
 
 fn reason_summary(reasons: &[String]) -> String {

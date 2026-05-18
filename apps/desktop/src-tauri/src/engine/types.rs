@@ -45,6 +45,10 @@ pub enum Kind {
     BunGlobalCache,
     NugetGlobalCache,
     ComposerGlobalCache,
+    VcpkgInstalledCache,
+    ConanGlobalCache,
+    CcacheGlobalCache,
+    SccacheGlobalCache,
 }
 
 impl Kind {
@@ -74,6 +78,10 @@ impl Kind {
             Kind::BunGlobalCache => "bun_global_cache",
             Kind::NugetGlobalCache => "nuget_global_cache",
             Kind::ComposerGlobalCache => "composer_global_cache",
+            Kind::VcpkgInstalledCache => "vcpkg_installed_cache",
+            Kind::ConanGlobalCache => "conan_global_cache",
+            Kind::CcacheGlobalCache => "ccache_global_cache",
+            Kind::SccacheGlobalCache => "sccache_global_cache",
         }
     }
 
@@ -102,6 +110,10 @@ impl Kind {
             "bun_global_cache" => Kind::BunGlobalCache,
             "nuget_global_cache" => Kind::NugetGlobalCache,
             "composer_global_cache" => Kind::ComposerGlobalCache,
+            "vcpkg_installed_cache" => Kind::VcpkgInstalledCache,
+            "conan_global_cache" => Kind::ConanGlobalCache,
+            "ccache_global_cache" => Kind::CcacheGlobalCache,
+            "sccache_global_cache" => Kind::SccacheGlobalCache,
             _ => return None,
         })
     }
@@ -204,6 +216,10 @@ pub struct EcosystemScanOptions {
     pub check_bun_cache: bool,
     pub check_nuget_cache: bool,
     pub check_composer_cache: bool,
+    pub check_vcpkg_cache: bool,
+    pub check_conan_cache: bool,
+    pub check_ccache: bool,
+    pub check_sccache: bool,
 }
 
 impl Default for EcosystemScanOptions {
@@ -225,6 +241,10 @@ impl Default for EcosystemScanOptions {
             check_bun_cache: false,
             check_nuget_cache: false,
             check_composer_cache: false,
+            check_vcpkg_cache: false,
+            check_conan_cache: false,
+            check_ccache: false,
+            check_sccache: false,
         }
     }
 }
@@ -248,6 +268,10 @@ impl From<&ScanRequest> for EcosystemScanOptions {
             check_bun_cache: req.check_bun_cache,
             check_nuget_cache: req.check_nuget_cache,
             check_composer_cache: req.check_composer_cache,
+            check_vcpkg_cache: req.check_vcpkg_cache,
+            check_conan_cache: req.check_conan_cache,
+            check_ccache: req.check_ccache,
+            check_sccache: req.check_sccache,
         }
     }
 }
@@ -267,6 +291,10 @@ pub struct GlobalCacheAllow {
     pub bun: bool,
     pub nuget: bool,
     pub composer: bool,
+    pub vcpkg: bool,
+    pub conan: bool,
+    pub ccache: bool,
+    pub sccache: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -350,6 +378,14 @@ pub struct ScanRequest {
     #[serde(default)]
     pub check_composer_cache: bool,
     #[serde(default)]
+    pub check_vcpkg_cache: bool,
+    #[serde(default)]
+    pub check_conan_cache: bool,
+    #[serde(default)]
+    pub check_ccache: bool,
+    #[serde(default)]
+    pub check_sccache: bool,
+    #[serde(default)]
     pub exclude_abs_path_contains: Vec<String>,
     #[serde(default)]
     pub extra_protected_path_contains: Vec<String>,
@@ -365,7 +401,7 @@ fn default_scan_mode_full() -> String {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.6.0";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.7.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {
@@ -579,6 +615,14 @@ pub struct Settings {
     #[serde(default)]
     pub check_nuget_cache: bool,
     pub check_composer_cache: bool,
+    #[serde(default)]
+    pub check_vcpkg_cache: bool,
+    #[serde(default)]
+    pub check_conan_cache: bool,
+    #[serde(default)]
+    pub check_ccache: bool,
+    #[serde(default)]
+    pub check_sccache: bool,
     /// In-place delete of heavy dependency trees via `rmdir` / `rm -rf` (experimental).
     #[serde(default = "default_fast_tree_delete_enabled")]
     pub fast_tree_delete_enabled: bool,
@@ -635,6 +679,10 @@ impl Default for Settings {
             check_bun_cache: false,
             check_nuget_cache: false,
             check_composer_cache: false,
+            check_vcpkg_cache: false,
+            check_conan_cache: false,
+            check_ccache: false,
+            check_sccache: false,
             fast_tree_delete_enabled: default_fast_tree_delete_enabled(),
             cleanup_disk_mode: default_cleanup_disk_mode(),
             delete_mode: "delete".to_string(),

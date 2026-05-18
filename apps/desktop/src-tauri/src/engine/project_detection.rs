@@ -221,6 +221,10 @@ fn dir_has_cmake_marker(dir: &Path) -> bool {
     exists(dir.join("CMakeLists.txt")) || exists(dir.join("CMakeCache.txt"))
 }
 
+fn dir_has_meson_marker(dir: &Path) -> bool {
+    exists(dir.join("meson.build"))
+}
+
 fn dir_has_vcxproj_marker(dir: &Path) -> bool {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return false;
@@ -234,15 +238,41 @@ fn dir_has_vcxproj_marker(dir: &Path) -> bool {
 }
 
 pub fn dir_has_cpp_native_marker(dir: &Path) -> bool {
-    dir_has_cmake_marker(dir) || dir_has_vcxproj_marker(dir)
+    dir_has_cmake_marker(dir) || dir_has_vcxproj_marker(dir) || dir_has_meson_marker(dir)
 }
 
 pub fn has_cmake_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
     has_marker_ancestor(start_dir, max_ascend, dir_has_cmake_marker)
 }
 
+pub fn has_meson_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
+    has_marker_ancestor(start_dir, max_ascend, dir_has_meson_marker)
+}
+
 pub fn has_cpp_native_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
     has_marker_ancestor(start_dir, max_ascend, dir_has_cpp_native_marker)
+}
+
+pub fn is_meson_build_dir_name(name: &str) -> bool {
+    matches!(name, "builddir" | "_build")
+}
+
+pub fn is_cpp_ide_dir_name(name: &str) -> bool {
+    name == ".vs"
+}
+
+fn dir_has_bazel_marker(dir: &Path) -> bool {
+    exists(dir.join("WORKSPACE"))
+        || exists(dir.join("WORKSPACE.bazel"))
+        || exists(dir.join("MODULE.bazel"))
+}
+
+pub fn has_bazel_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
+    has_marker_ancestor(start_dir, max_ascend, dir_has_bazel_marker)
+}
+
+pub fn is_bazel_output_dir_name(name: &str) -> bool {
+    name.starts_with("bazel-")
 }
 
 pub fn is_msvc_config_dir_name(name: &str) -> bool {
@@ -290,6 +320,28 @@ mod tests {
             detected.expect("has project").project_root,
             root.to_string_lossy().to_string()
         );
+
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn has_bazel_project_ancestor_finds_module_bazel() {
+        let root = temp_root("bazel-ancestor");
+        write(root.join("MODULE.bazel"), "module(name = \"demo\")\n").expect("write module");
+        create_dir_all(root.join("bazel-bin")).expect("create bazel-bin");
+
+        assert!(has_bazel_project_ancestor(&root.join("bazel-bin"), 6));
+
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn has_meson_project_ancestor_finds_meson_build() {
+        let root = temp_root("meson-ancestor");
+        write(root.join("meson.build"), "project('demo', 'c')\n").expect("write meson");
+        create_dir_all(root.join("builddir")).expect("create builddir");
+
+        assert!(has_meson_project_ancestor(&root.join("builddir"), 6));
 
         remove_dir_all(root).expect("cleanup");
     }

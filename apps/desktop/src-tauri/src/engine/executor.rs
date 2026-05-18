@@ -851,6 +851,18 @@ fn opt_in_refusal(
         Kind::ComposerGlobalCache if !allow_global.composer => Some(format!(
             "Refused Composer cache (enable “Composer cache” in settings and re-scan): {path}"
         )),
+        Kind::VcpkgInstalledCache if !allow_global.vcpkg => Some(format!(
+            "Refused vcpkg installed tree (enable “vcpkg installed” in settings and re-scan): {path}"
+        )),
+        Kind::ConanGlobalCache if !allow_global.conan => Some(format!(
+            "Refused Conan package cache (enable “Conan cache” in settings and re-scan): {path}"
+        )),
+        Kind::CcacheGlobalCache if !allow_global.ccache => Some(format!(
+            "Refused ccache directory (enable “ccache” in settings and re-scan): {path}"
+        )),
+        Kind::SccacheGlobalCache if !allow_global.sccache => Some(format!(
+            "Refused sccache directory (enable “sccache” in settings and re-scan): {path}"
+        )),
         Kind::PythonVenv if !allow_python_venv => Some(format!(
             "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {path}"
         )),
