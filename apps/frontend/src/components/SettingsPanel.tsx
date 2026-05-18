@@ -393,6 +393,13 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
               </div>
             </div>
             <ToggleRow
+              label="Git dormancy hint (candidate detail)"
+              description="When a candidate is selected, run git log for last commit touching that path. Opt-in; does not affect scan speed."
+              checked={draft.check_git_dormancy ?? false}
+              onCheckedChange={(v) => patch({ check_git_dormancy: v })}
+              disabled={scanning || saving}
+            />
+            <ToggleRow
               label="Incremental inventory (Quick update)"
               description="Reuse classify and size for unchanged paths. Run a full scan after changing profile or discovery options."
               checked={draft.incremental_inventory_enabled ?? true}

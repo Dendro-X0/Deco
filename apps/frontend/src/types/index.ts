@@ -9,6 +9,7 @@ export interface Candidate {
   display_reason_summary?: string;
   project_root?: string;
   stale_days?: number;
+  mtime_ms?: number;
   reason_codes?: string[];
   can_delete?: boolean;
 }
@@ -131,6 +132,8 @@ export interface Settings {
   quarantine_layout?: string;
   quarantine_custom_path?: string;
   quarantine_retention_days: number;
+  /** When true, fetch git last-commit age in candidate detail (v0.7.1). */
+  check_git_dormancy?: boolean;
   advanced_mode: boolean;
   default_target_gb: number;
   exclude_abs_path_contains?: string[];

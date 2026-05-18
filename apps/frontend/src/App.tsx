@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useDeco } from './hooks/use-deco';
+import { useGitDormancy } from './hooks/use-git-dormancy';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
 import { ScanTargetsDashboardCard } from './components/ScanTargetsDashboardCard';
@@ -76,6 +77,7 @@ import {
   type CandidateSortColumn,
   type CandidateSortState,
 } from './lib/candidate-sort';
+import { dormancySummary, formatGitDormancyHint } from './lib/dormancy-signals';
 import {
   reasonSummaryWithoutRegeneration,
   resolveRegenerationHint,
@@ -433,6 +435,20 @@ export default function App() {
         selectedCandidate.display_reason_summary,
       )
     : undefined;
+
+  const selectedDormancy = useMemo(
+    () =>
+      selectedCandidate
+        ? dormancySummary(selectedCandidate, settings?.stale_days ?? 45)
+        : null,
+    [selectedCandidate, settings?.stale_days],
+  );
+
+  const gitDormancyEnabled = Boolean(settings?.check_git_dormancy && selectedCandidate);
+  const { hint: gitDormancy, loading: gitDormancyLoading } = useGitDormancy(
+    selectedCandidate?.abs_path,
+    gitDormancyEnabled,
+  );
 
   const hasScanResults = Boolean(summary?.scan_id);
 
@@ -927,6 +943,15 @@ export default function App() {
                               Path
                             </CandidateSortHeading>
                             <CandidateSortHeading
+                              column="stale"
+                              sort={sort}
+                              onToggleSort={toggleSortHeader}
+                              alignEnd
+                              className="text-right whitespace-nowrap px-2 py-2.5 w-[4.5rem]"
+                            >
+                              Stale
+                            </CandidateSortHeading>
+                            <CandidateSortHeading
                               column="size"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
@@ -1044,6 +1069,38 @@ export default function App() {
                                  <p className="text-xs font-semibold">{selectedCandidate.project_root || 'N/A'}</p>
                                </div>
                              </div>
+                             {selectedDormancy ? (
+                               <div
+                                 className={cn(
+                                   'space-y-1 rounded-md border p-3',
+                                   selectedDormancy.tone === 'stale' &&
+                                     'border-amber-500/30 bg-amber-500/5',
+                                   selectedDormancy.tone === 'recent' &&
+                                     'border-sky-500/30 bg-sky-500/5',
+                                   selectedDormancy.tone === 'unknown' &&
+                                     'border-border/50 bg-muted/15',
+                                 )}
+                               >
+                                 <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                                   Dormancy
+                                 </p>
+                                 <p className="text-xs font-semibold leading-relaxed">
+                                   {selectedDormancy.headline}
+                                 </p>
+                                 <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                   {selectedDormancy.detail}
+                                 </p>
+                                 {gitDormancyEnabled ? (
+                                   <p className="text-[11px] font-mono text-muted-foreground pt-1 border-t border-border/40">
+                                     {gitDormancyLoading
+                                       ? 'Loading git last-commit hint…'
+                                       : gitDormancy
+                                         ? formatGitDormancyHint(gitDormancy)
+                                         : 'No git history for this path (or git unavailable).'}
+                                   </p>
+                                 ) : null}
+                               </div>
+                             ) : null}
                              {selectedRegenerationHint ? (
                                <div className="space-y-1 rounded-md border border-border/50 bg-muted/15 p-3">
                                  <p className="text-[10px] uppercase font-bold text-muted-foreground">

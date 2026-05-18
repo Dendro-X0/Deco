@@ -1,6 +1,6 @@
 import type { Candidate, RiskLevel } from '../types';
 
-export type CandidateSortColumn = 'size' | 'kind' | 'risk' | 'path';
+export type CandidateSortColumn = 'size' | 'kind' | 'risk' | 'path' | 'stale';
 export type SortDirection = 'asc' | 'desc';
 
 export type CandidateSortState = {
@@ -60,6 +60,15 @@ export function compareCandidates(
       if (cmp !== 0) return ascending ? cmp : -cmp;
       return 0;
     }
+    case 'stale': {
+      const aMissing = a.stale_days == null;
+      const bMissing = b.stale_days == null;
+      if (aMissing !== bMissing) return aMissing ? 1 : -1;
+      const av = a.stale_days ?? 0;
+      const bv = b.stale_days ?? 0;
+      if (av !== bv) return ascending ? av - bv : bv - av;
+      return 0;
+    }
     default:
       return 0;
   }
@@ -76,7 +85,8 @@ export function compareCandidatesSorted(
 }
 
 export function defaultDirForColumn(column: CandidateSortColumn): SortDirection {
-  return column === 'size' ? 'desc' : 'asc';
+  if (column === 'size' || column === 'stale') return 'desc';
+  return 'asc';
 }
 
 /** Click active column → flip direction; click another → sort by that column. */

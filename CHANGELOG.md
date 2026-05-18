@@ -4,6 +4,12 @@
 
 Development line **v0.7.1** — see [v0.7.1-manifest.md](docs/product/v0.7.1-manifest.md).
 
+### Added
+
+- **Dormancy panel (candidate detail)** — explains stale vs recent using `stale_days`, classifier age, and settings threshold; surfaces `mtime_ms` from scan payloads.
+- **Git dormancy hint (opt-in)** — Settings toggle runs `git log` when a candidate is selected (not during scan).
+- **Sort by Stale** — candidate table column sorts by dormancy age (days).
+
 ## [0.7.0] - 2026-05-18
 
 Opens **v0.7.x** trust/community track — see [v0.7.0-manifest.md](docs/product/v0.7.0-manifest.md).

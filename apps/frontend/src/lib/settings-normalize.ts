@@ -111,6 +111,7 @@ export function normalizeSettings(raw: unknown): Settings {
     quarantine_layout: str('quarantine_layout', 'quarantineLayout', 'per_drive'),
     quarantine_custom_path: str('quarantine_custom_path', 'quarantineCustomPath', ''),
     quarantine_retention_days: num('quarantine_retention_days', 'quarantineRetentionDays', 30),
+    check_git_dormancy: bool('check_git_dormancy', 'checkGitDormancy', false),
     advanced_mode: bool('advanced_mode', 'advancedMode', false),
     default_target_gb: num('default_target_gb', 'defaultTargetGb', 10),
     exclude_abs_path_contains: strList('exclude_abs_path_contains', 'excludeAbsPathContains'),

@@ -19,6 +19,7 @@ Current implementation progress and handoff details: [status.md](status.md).
 - Selection actions: `Select Only Safe` and `Select Visible`.
 - Candidate detail panel showing reason, full path, project root, size, reason codes, and a **Regenerate** block for global-cache kinds (CLI/Rust hint parity).
 - **Cleanup profiles** in Settings (`first_scan`, `monorepo_maintainer`, `ci_agent`) bundle scan scope, safety profile, discovery flags, and scan strategy; dashboard shows active profile summary.
+- **Dormancy context** in candidate detail (stale vs recent vs unknown) and optional git last-commit hint; sort candidates by **Stale** days.
 - **Scan strategy** presets (`thorough` / `balanced` / `fast` / `background`) tune depth, concurrency, and Quick update separately from cleanup profiles.
 - Review-risk deletion requires a stronger two-step modal confirmation with explicit target details.
   - final step requires typing `DELETE REVIEW`.

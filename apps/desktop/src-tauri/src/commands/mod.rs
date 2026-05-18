@@ -1,4 +1,5 @@
 pub mod classify;
+pub mod dormancy;
 pub mod execute;
 pub mod explorer;
 pub mod quarantine;

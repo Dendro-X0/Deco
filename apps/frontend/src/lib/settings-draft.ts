@@ -37,6 +37,7 @@ const DRAFT_KEYS: (keyof Settings)[] = [
   'quarantine_layout',
   'quarantine_custom_path',
   'quarantine_retention_days',
+  'check_git_dormancy',
   'advanced_mode',
   'default_target_gb',
 ];

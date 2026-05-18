@@ -74,6 +74,7 @@ pub fn run() {
             commands::settings::suggest_scan_roots_command,
             commands::settings::list_storage_volumes_command,
             commands::classify::classify_targets_preview,
+            commands::dormancy::get_git_dormancy_hint,
             commands::explorer::reveal_path_in_explorer,
             commands::explorer::open_url,
             commands::release::get_app_platform,

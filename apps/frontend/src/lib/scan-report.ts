@@ -23,6 +23,10 @@ export function normalizeCandidate(raw: unknown): Candidate {
     display_reason_summary: (c.display_reason_summary ?? c.displayReasonSummary) as string | undefined,
     project_root: (c.project_root ?? c.projectRoot) as string | undefined,
     stale_days: c.stale_days ?? c.staleDays ? Number(c.stale_days ?? c.staleDays) : undefined,
+    mtime_ms:
+      c.mtime_ms != null || c.mtimeMs != null
+        ? Number(c.mtime_ms ?? c.mtimeMs)
+        : undefined,
     reason_codes: Array.isArray(c.reason_codes)
       ? (c.reason_codes as string[])
       : Array.isArray(c.reasonCodes)

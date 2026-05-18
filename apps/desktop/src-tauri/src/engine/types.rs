@@ -655,6 +655,9 @@ pub struct Settings {
     #[serde(default)]
     pub quarantine_custom_path: String,
     pub quarantine_retention_days: u32,
+    /// When true, candidate detail may query `git log` for last touch age (v0.7.1).
+    #[serde(default)]
+    pub check_git_dormancy: bool,
     pub advanced_mode: bool,
     pub default_target_gb: u32,
     pub exclude_abs_path_contains: Vec<String>,
@@ -710,6 +713,7 @@ impl Default for Settings {
             quarantine_layout: default_quarantine_layout(),
             quarantine_custom_path: String::new(),
             quarantine_retention_days: 30,
+            check_git_dormancy: false,
             advanced_mode: false,
             default_target_gb: 10,
             exclude_abs_path_contains: vec![],
