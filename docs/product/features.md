@@ -17,7 +17,9 @@ Current implementation progress and handoff details: [status.md](status.md).
 - Candidate table tools: search, risk filtering, and sorting.
 - Persistent selection state across filters/sorting.
 - Selection actions: `Select Only Safe` and `Select Visible`.
-- Candidate detail panel showing reason, full path, project root, stale-days, and reason codes.
+- Candidate detail panel showing reason, full path, project root, size, reason codes, and a **Regenerate** block for global-cache kinds (CLI/Rust hint parity).
+- **Cleanup profiles** in Settings (`first_scan`, `monorepo_maintainer`, `ci_agent`) bundle scan scope, safety profile, discovery flags, and scan strategy; dashboard shows active profile summary.
+- **Scan strategy** presets (`thorough` / `balanced` / `fast` / `background`) tune depth, concurrency, and Quick update separately from cleanup profiles.
 - Review-risk deletion requires a stronger two-step modal confirmation with explicit target details.
   - final step requires typing `DELETE REVIEW`.
 - Scan history panel with quick rerun using prior roots/profile/stale-days.

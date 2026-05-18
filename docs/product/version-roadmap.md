@@ -203,9 +203,9 @@ CLI already reports `discover → classify → size`; desktop should match seman
 | **Classification parity** | Reduce TS/Rust drift; shared fixture trees in `tests/fixtures/` |
 | **Automation** | Documented CI recipe: `deco --json` + exit codes + max reclaim threshold |
 
-| Version | Scope |
-|---------|--------|
-| `v0.7.0` | Profiles + regeneration hints in UI |
+| Version | Scope | Status |
+|---------|--------|--------|
+| `v0.7.0` | Profiles + regeneration hints in UI | Implemented (unreleased) |
 | `v0.7.1` | Dormancy signals (mtime + optional git last-commit hook — opt-in) |
 | `v0.7.2` | Policy pack validation CLI + examples repo |
 

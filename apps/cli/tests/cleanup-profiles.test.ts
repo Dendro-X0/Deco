@@ -33,4 +33,17 @@ describe('cleanup-profiles', () => {
     const custom = { ...base(), ...applyCleanupProfilePreset('monorepo_maintainer'), check_npm_cache: false };
     expect(deriveCleanupProfile(custom)).toBe('custom');
   });
+
+  it('applies monorepo_maintainer and ci_agent presets', () => {
+    const mono = { ...base(), ...applyCleanupProfilePreset('monorepo_maintainer') };
+    expect(deriveCleanupProfile(mono)).toBe('monorepo_maintainer');
+    expect(mono.check_pnpm_store).toBe(true);
+    expect(mono.smart_discovery_enabled).toBe(true);
+
+    const ci = { ...base(), ...applyCleanupProfilePreset('ci_agent') };
+    expect(deriveCleanupProfile(ci)).toBe('ci_agent');
+    expect(ci.scan_scope).toBe('drives');
+    expect(ci.check_ccache).toBe(true);
+    expect(ci.include_project_folders).toBe(false);
+  });
 });
