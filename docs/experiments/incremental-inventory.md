@@ -1,6 +1,6 @@
 # Incremental inventory experiment
 
-**Manifest:** [v0.6.1-manifest.md](../product/v0.6.1-manifest.md)
+**Manifest:** [v0.6.1-manifest.md](../product/v0.6.1-manifest.md) · **v0.6.7 bench (L3):** [benchmarks/README.md](../../benchmarks/README.md#quick-update-v067-l3)
 
 ## Hypothesis
 
@@ -16,6 +16,16 @@ Reusing **classify + size** results when `abs_path` and `mtime_ms` are unchanged
 | Full scan | Always re-classify; still refreshes inventory |
 
 ## Benchmark protocol
+
+### Automated (CI)
+
+```bash
+pnpm benchmark:quick-update
+```
+
+Runs full → quick on a synthetic `node_modules` fixture; asserts ≥30% faster **classify+size** pipeline and ≥95% inventory reuse. See `benchmarks/baseline.quick-update.json`.
+
+### Manual
 
 1. Pick reference tree (≥200 candidates, mixed kinds).  
 2. Run **Full scan** — record total time and phase timings from status.  

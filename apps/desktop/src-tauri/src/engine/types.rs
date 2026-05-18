@@ -177,6 +177,10 @@ fn default_classify_parallel_threshold() -> u32 {
     8
 }
 
+fn default_fast_dependency_size_estimate() -> bool {
+    true
+}
+
 fn default_fast_tree_delete_enabled() -> bool {
     true
 }
@@ -539,6 +543,9 @@ pub struct Settings {
     /// Minimum targets before parallel classify (rayon); advanced tuning — v0.6.5.
     #[serde(default = "default_classify_parallel_threshold")]
     pub classify_parallel_threshold: u32,
+    /// Sampled sizing for `node_modules` / `target` trees (v0.6.7) — fewer 30s timeouts.
+    #[serde(default = "default_fast_dependency_size_estimate")]
+    pub fast_dependency_size_estimate: bool,
     pub show_blocked: bool,
     pub check_go_cache: bool,
     #[serde(default = "default_true")]
@@ -609,6 +616,7 @@ impl Default for Settings {
             scan_strategy: default_scan_strategy(),
             smart_discovery_enabled: false,
             classify_parallel_threshold: default_classify_parallel_threshold(),
+            fast_dependency_size_estimate: default_fast_dependency_size_estimate(),
             show_blocked: false,
             check_go_cache: false,
             include_python_artifacts: true,

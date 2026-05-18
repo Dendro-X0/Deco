@@ -18,6 +18,7 @@
     "lint": "pnpm -F @dendro-x0/deco-frontend lint",
     "check": "pnpm typecheck && pnpm lint && pnpm test:all",
     "benchmark:scan": "cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri/Cargo.toml -- --projects 20 --compare benchmarks/baseline.synthetic.json",
+    "benchmark:quick-update": "cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri/Cargo.toml -- --quick-update --projects 20 --include-size --compare-quick benchmarks/baseline.quick-update.json",
     "package:cli": "pnpm build:cli && node scripts/package-cli.mjs",
     "icons:generate": "python scripts/generate-deco-icon.py && pnpm -F @dendro-x0/deco-desktop exec tauri icon src-tauri/icons/app-icon.png",
     "install:all": "pnpm install",

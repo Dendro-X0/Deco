@@ -7,7 +7,7 @@ use crate::engine::inventory::{
 use crate::engine::path_policy::PathPolicy;
 use crate::engine::scan_concurrency::{scan_worker_count, size_concurrency_plan, SizeConcurrencyPlan};
 use crate::engine::scanner::{discover_targets, DiscoverProgressCallback};
-use crate::engine::sizer::size_candidates_parallel;
+use crate::engine::sizer::{size_candidates_parallel, SizeWalkConfig};
 use std::time::{Duration, Instant};
 use crate::engine::types::{
     CleanupCandidate, ClearScanHistoryResponse, DeleteScanHistoryResponse, RiskLevel, RiskTotals,
@@ -299,6 +299,9 @@ pub(crate) fn run_scan(
     };
 
     let size_plan = size_concurrency_plan(&settings_snapshot.scan_concurrency_mode);
+    let size_walk_config = SizeWalkConfig {
+        fast_dependency_estimate: settings_snapshot.fast_dependency_size_estimate,
+    };
     let inventory_fingerprint = inventory_fingerprint(&req);
     let scan_mode = ScanMode::parse(&req.scan_mode);
     let use_quick =
@@ -430,6 +433,7 @@ pub(crate) fn run_scan(
             let canceled = size_candidates_slice(
                 &mut candidates[batch_start..],
                 &size_plan,
+                size_walk_config,
                 &cancel_handles,
                 &mut warnings,
                 |done_in_chunk, chunk_total| {
@@ -786,6 +790,7 @@ pub(crate) fn clear_scan_history_core(
 fn size_candidates_slice(
     candidates: &mut [CleanupCandidate],
     plan: &SizeConcurrencyPlan,
+    size_config: SizeWalkConfig,
     cancel_handles: &ScanCancelHandles,
     warnings: &mut Vec<String>,
     mut on_batch_sized: impl FnMut(usize, usize),
@@ -793,6 +798,7 @@ fn size_candidates_slice(
     let (mut size_warnings, canceled) = size_candidates_parallel(
         candidates,
         plan,
+        size_config,
         || sizing_canceled(cancel_handles),
         |done, total| on_batch_sized(done, total),
     );

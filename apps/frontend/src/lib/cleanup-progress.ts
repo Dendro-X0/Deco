@@ -7,6 +7,7 @@ export type CleanupStage =
   | 'fast_remove_tree'
   | 'fast_remove_tree_start'
   | 'parallel_pulse'
+  | 'chunk_boundary'
   | 'move'
   | 'record'
   | 'skip'
@@ -59,6 +60,15 @@ export function formatCleanupProgress(payload: CleanupProgressPayload): {
   const done = progressDone(payload);
   const inFlight = payload.in_flight_count ?? 0;
   const prefix = total > 1 ? `${done}/${total}: ` : '';
+
+  if (stage === 'chunk_boundary') {
+    return {
+      text: `${prefix}Chunk complete`,
+      detail:
+        payload.detail ||
+        'Batch finished — cancel or pause before the next chunk starts. Throughput is estimated from folders removed so far.',
+    };
+  }
 
   if (stage === 'parallel_pulse') {
     if (inFlight <= 1) {

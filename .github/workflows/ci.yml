@@ -90,3 +90,6 @@ jobs:
 
       - name: Run synthetic scan benchmark
         run: pnpm benchmark:scan
+
+      - name: Run quick-update benchmark
+        run: pnpm benchmark:quick-update

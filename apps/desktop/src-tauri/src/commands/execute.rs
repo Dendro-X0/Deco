@@ -273,6 +273,12 @@ fn cleanup_event_copy(progress: &CleanupItemProgress) -> (String, String) {
             .contains("/node_modules");
 
     match progress.stage {
+        "chunk_boundary" => (
+            format!("{prefix}Chunk complete"),
+            progress.active_summary.clone().unwrap_or_else(|| {
+                "Chunk finished — you can cancel before the next batch starts.".to_string()
+            }),
+        ),
         "parallel_pulse" => (
             format!("{prefix}{in_flight} folder(s) removing in parallel…"),
             progress.active_summary.clone().unwrap_or_else(|| {

@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   groupCandidatesByProject,
+  groupSelectionState,
   inferProjectRootFromPath,
   kindSummaryForGroup,
+  listSelectionHeaderState,
   resolveProjectRoot,
   sortProjectGroups,
   visibleProjectGroupSlice,
   PROJECT_GROUP_COLLAPSED_LIMIT,
 } from '../../frontend/src/lib/project-grouping';
+import type { ProjectGroup } from '../../frontend/src/lib/project-grouping';
 import type { Candidate } from '../../frontend/src/types';
 import { DEFAULT_SORT } from '../../frontend/src/lib/candidate-sort';
 
@@ -81,6 +84,51 @@ describe('project-grouping', () => {
     ]);
     const sorted = sortProjectGroups(groups, DEFAULT_SORT);
     expect(sorted[0]?.projectRoot).toBe('G:/big');
+  });
+
+  it('group header is indeterminate when only safe items are auto-selected in a mixed group', () => {
+    const group: ProjectGroup = {
+      key: 'g',
+      projectRoot: 'G:/proj',
+      candidates: [
+        cand({ id: 's1', abs_path: 'G:/proj/node_modules', kind: 'node_modules', risk: 'safe' }),
+        cand({
+          id: 'r1',
+          abs_path: 'G:/proj/.cache',
+          kind: 'build_artifact',
+          risk: 'review',
+        }),
+      ],
+      totalBytes: 0,
+      hasUnknownSize: false,
+      kindSummary: '',
+      worstRisk: 'review',
+      selectableCount: 2,
+    };
+    const selected = new Set(['s1']);
+    expect(groupSelectionState(group, selected)).toBe('some');
+    expect(listSelectionHeaderState(group.candidates, selected)).toBe('indeterminate');
+  });
+
+  it('group header shows none for review-only projects', () => {
+    const group: ProjectGroup = {
+      key: 'g',
+      projectRoot: 'G:/restaurant',
+      candidates: [
+        cand({
+          id: 'r1',
+          abs_path: 'G:/restaurant/npm-cache',
+          kind: 'npm_cache',
+          risk: 'review',
+        }),
+      ],
+      totalBytes: 0,
+      hasUnknownSize: false,
+      kindSummary: '',
+      worstRisk: 'review',
+      selectableCount: 1,
+    };
+    expect(groupSelectionState(group, new Set())).toBe('none');
   });
 
   it('paginates project groups when expanded', () => {

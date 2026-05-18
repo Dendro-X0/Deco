@@ -348,6 +348,13 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
               onCheckedChange={(v) => patch({ incremental_inventory_enabled: v })}
               disabled={scanning || saving}
             />
+            <ToggleRow
+              label="Fast size estimate for dependency trees"
+              description="Sample top-level packages in node_modules, target, and similar folders instead of walking every file (shows ~size). Reduces 30s timeouts on huge trees."
+              checked={draft.fast_dependency_size_estimate ?? true}
+              onCheckedChange={(v) => patch({ fast_dependency_size_estimate: v })}
+              disabled={scanning || saving}
+            />
           </div>
         </SettingsSection>
 

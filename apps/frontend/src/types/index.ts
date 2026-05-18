@@ -95,6 +95,8 @@ export interface Settings {
   smart_discovery_enabled?: boolean;
   /** Rayon classify when chunk has at least this many targets (v0.6.5). */
   classify_parallel_threshold?: number;
+  /** Sampled sizing for node_modules / target trees (v0.6.7). */
+  fast_dependency_size_estimate?: boolean;
   show_blocked: boolean;
   check_go_cache: boolean;
   include_python_artifacts: boolean;

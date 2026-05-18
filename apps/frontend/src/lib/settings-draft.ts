@@ -19,6 +19,7 @@ const DRAFT_KEYS: (keyof Settings)[] = [
   'smart_discovery_enabled',
   'classify_parallel_threshold',
   'incremental_inventory_enabled',
+  'fast_dependency_size_estimate',
   'scan_concurrency_mode',
   'max_depth',
   'profile',

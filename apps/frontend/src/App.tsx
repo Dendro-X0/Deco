@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import {
   LayoutDashboard,
@@ -13,9 +13,6 @@ import {
   Info,
   AlertTriangle,
   Sparkles,
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   FolderOpen,
 } from 'lucide-react';
 import { useDeco } from './hooks/use-deco';
@@ -33,10 +30,12 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import { CleanupBusyOverlay } from './components/CleanupBusyOverlay';
 import { CandidateListBanner } from './components/CandidateListBanner';
 import { CandidateProjectGroupTable } from './components/CandidateProjectGroupTable';
+import { CandidateSortHeading } from './components/CandidateSortHeading';
 import { visibleCandidateSlice } from './lib/candidate-list-display';
 import {
   GROUP_BY_PROJECT_DEFAULT_THRESHOLD,
   groupCandidatesByProject,
+  listSelectionHeaderState,
   PROJECT_GROUP_COLLAPSED_LIMIT,
   PROJECT_GROUP_PAGE_SIZE,
   sortProjectGroups,
@@ -63,6 +62,7 @@ import {
   candidateSizeIsKnown,
   compactListPath,
   formatBytes,
+  candidateSizeIsEstimated,
   formatCandidateSize,
   formatStatBytes,
 } from './lib/format';
@@ -112,50 +112,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-
-function SortHeading({
-  column,
-  sort,
-  onToggleSort,
-  children,
-  className,
-  alignEnd,
-}: {
-  column: CandidateSortColumn;
-  sort: CandidateSortState;
-  onToggleSort: (column: CandidateSortColumn) => void;
-  children: ReactNode;
-  className?: string;
-  alignEnd?: boolean;
-}) {
-  const active = sort.column === column;
-  const dir = active ? sort.dir : null;
-  return (
-    <TableHead className={className}>
-      <button
-        type="button"
-        title={active ? 'Click to reverse sort direction' : 'Click to sort by this column'}
-        onClick={() => onToggleSort(column)}
-        className={cn(
-          'inline-flex items-center gap-1.5 font-semibold tracking-tight text-foreground hover:text-primary transition-colors select-none rounded-sm leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
-          alignEnd && 'w-full justify-end',
-          active && 'text-primary',
-        )}
-      >
-        <span>{children}</span>
-        {active && dir ? (
-          dir === 'asc' ? (
-            <ArrowUp className="h-3.5 w-3.5 shrink-0 opacity-70" />
-          ) : (
-            <ArrowDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
-          )
-        ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
-        )}
-      </button>
-    </TableHead>
-  );
-}
 
 export default function App() {
   const {
@@ -886,6 +842,8 @@ export default function App() {
                           onSetSelectedIds={setSelectedIds}
                           onToggleCandidate={toggleCandidate}
                           onSelectCandidate={setSelectedCandidateId}
+                          sort={sort}
+                          onToggleSort={toggleSortHeader}
                         />
                       ) : (
                       <Table className="table-fixed w-full">
@@ -899,36 +857,36 @@ export default function App() {
                         <TableHeader className="bg-muted/30">
                           <TableRow>
                             <TableHead className="w-10 px-2 py-2.5 text-center">
-                              <Checkbox 
+                              <Checkbox
                                 onCheckedChange={handleSelectAll}
-                                checked={candidates.length > 0 && Array.from(selectedIds).length === candidates.filter(c => c.risk !== 'blocked').length}
+                                checked={listSelectionHeaderState(candidates, selectedIds)}
                               />
                             </TableHead>
-                            <SortHeading
+                            <CandidateSortHeading
                               column="risk"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
                               className="px-2 py-2.5 w-[4.5rem]"
                             >
                               Risk
-                            </SortHeading>
-                            <SortHeading
+                            </CandidateSortHeading>
+                            <CandidateSortHeading
                               column="kind"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
                               className="px-2 py-2.5 w-[7.5rem]"
                             >
                               Kind
-                            </SortHeading>
-                            <SortHeading
+                            </CandidateSortHeading>
+                            <CandidateSortHeading
                               column="path"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
                               className="px-2 py-2.5"
                             >
                               Path
-                            </SortHeading>
-                            <SortHeading
+                            </CandidateSortHeading>
+                            <CandidateSortHeading
                               column="size"
                               sort={sort}
                               onToggleSort={toggleSortHeader}
@@ -936,7 +894,7 @@ export default function App() {
                               className="text-right whitespace-nowrap px-2 py-2.5 w-[5.5rem]"
                             >
                               Size
-                            </SortHeading>
+                            </CandidateSortHeading>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -983,7 +941,11 @@ export default function App() {
                                       : 'font-medium text-muted-foreground tabular-nums text-xs'
                                   }
                                 >
-                                  {formatCandidateSize(c.size_bytes, scanning)}
+                                  {formatCandidateSize(
+                                    c.size_bytes,
+                                    scanning,
+                                    candidateSizeIsEstimated(c.reason_codes),
+                                  )}
                                 </span>
                               </TableCell>
                             </TableRow>
@@ -1041,7 +1003,11 @@ export default function App() {
                              <div className="space-y-1">
                                <p className="text-[10px] uppercase font-bold text-muted-foreground">Size</p>
                                <p className="text-xs font-black tabular-nums">
-                                 {formatCandidateSize(selectedCandidate.size_bytes, scanning)}
+                                 {formatCandidateSize(
+                                   selectedCandidate.size_bytes,
+                                   scanning,
+                                   candidateSizeIsEstimated(selectedCandidate.reason_codes),
+                                 )}
                                </p>
                              </div>
                              <div className="space-y-1">

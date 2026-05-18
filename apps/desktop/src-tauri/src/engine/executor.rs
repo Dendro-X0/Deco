@@ -1,3 +1,7 @@
+use super::cleanup_batch::{
+    self, format_chunk_boundary_detail, format_throughput, should_chunk_deletes,
+    CLEANUP_CHUNK_SIZE,
+};
 use super::cleanup_coalesce::coalesce_for_delete;
 use super::cleanup_disk_mode::{delete_parallelism_for_cleanup, parse_cleanup_disk_mode};
 use super::delete_parallel::is_bulk_tree_delete;
@@ -13,10 +17,10 @@ use rayon::prelude::*;
 use rusqlite::Connection;
 use std::fs;
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone)]
 pub struct CleanupItemProgress {
@@ -113,6 +117,10 @@ pub fn execute_cleanup(
     let delete_parallelism =
         delete_parallelism_for_cleanup(disk_mode, scan_concurrency_mode, candidates.len());
     let mut parallel_batch: Vec<CleanupCandidate> = Vec::new();
+    let mut sequential_chunk: Option<SequentialChunkState> = None;
+    if in_place && should_chunk_deletes(candidates.len()) {
+        sequential_chunk = Some(SequentialChunkState::new(candidates.len()));
+    }
     if coalesced_skipped > 0 {
         errors.push(format!(
             "Merged {coalesced_skipped} nested/duplicate paths into parent deletes."
@@ -172,6 +180,22 @@ pub fn execute_cleanup(
                 &mut freed_bytes,
                 &mut errors,
             );
+            if let Some(chunk) = sequential_chunk.as_mut() {
+                chunk.record(candidate.size_bytes.unwrap_or(0));
+                if chunk.should_emit_boundary() {
+                    chunk.emit_boundary(
+                        &on_progress,
+                        deleted_count,
+                        total,
+                        &cancel,
+                        &pause,
+                    );
+                    if wait_while_paused_or_canceled(&cancel, &pause) {
+                        errors.push("Cleanup canceled by user.".to_string());
+                        break;
+                    }
+                }
+            }
             continue;
         }
 
@@ -192,7 +216,14 @@ pub fn execute_cleanup(
         );
     }
 
+    if let Some(chunk) = sequential_chunk.as_mut() {
+        if chunk.chunk_deleted > 0 {
+            chunk.emit_boundary(&on_progress, deleted_count, total, &cancel, &pause);
+        }
+    }
+
     if !parallel_batch.is_empty() && !wait_while_paused_or_canceled(&cancel, &pause) {
+        let batch_done_before = deleted_count;
         let (p_deleted, p_freed, p_errors) = run_parallel_in_place_deletes(
             parallel_batch,
             total,
@@ -201,6 +232,7 @@ pub fn execute_cleanup(
             cancel,
             pause,
             on_progress.clone(),
+            batch_done_before,
         );
         deleted_count += p_deleted;
         freed_bytes = freed_bytes.saturating_add(p_freed);
@@ -236,6 +268,120 @@ fn wait_while_paused_or_canceled(
     }
 }
 
+struct SequentialChunkState {
+    chunk_deleted: u32,
+    chunk_bytes: u64,
+    chunk_started: Instant,
+    session_deleted: u32,
+    session_bytes: u64,
+    session_started: Instant,
+    chunk_index: usize,
+    chunk_total: usize,
+}
+
+impl SequentialChunkState {
+    fn new(total_items: usize) -> Self {
+        let now = Instant::now();
+        Self {
+            chunk_deleted: 0,
+            chunk_bytes: 0,
+            chunk_started: now,
+            session_deleted: 0,
+            session_bytes: 0,
+            session_started: now,
+            chunk_index: 0,
+            chunk_total: cleanup_batch::chunk_count(total_items),
+        }
+    }
+
+    fn record(&mut self, bytes: u64) {
+        self.chunk_deleted += 1;
+        self.chunk_bytes = self.chunk_bytes.saturating_add(bytes);
+        self.session_deleted += 1;
+        self.session_bytes = self.session_bytes.saturating_add(bytes);
+    }
+
+    fn should_emit_boundary(&self) -> bool {
+        self.chunk_deleted >= CLEANUP_CHUNK_SIZE as u32
+    }
+
+    fn emit_boundary(
+        &mut self,
+        on_progress: &Option<ProgressFn>,
+        done: u32,
+        total: u32,
+        cancel: &Option<Arc<AtomicBool>>,
+        pause: &Option<Arc<AtomicBool>>,
+    ) {
+        if self.chunk_deleted == 0 {
+            return;
+        }
+        let chunk_elapsed = self.chunk_started.elapsed().as_millis() as u64;
+        let session_elapsed = self.session_started.elapsed().as_millis() as u64;
+        emit_chunk_boundary(
+            on_progress,
+            done,
+            total,
+            self.chunk_index,
+            self.chunk_total,
+            self.chunk_deleted,
+            self.chunk_bytes,
+            chunk_elapsed,
+            self.session_deleted,
+            self.session_bytes,
+            session_elapsed,
+        );
+        self.chunk_index += 1;
+        self.chunk_deleted = 0;
+        self.chunk_bytes = 0;
+        self.chunk_started = Instant::now();
+        let _ = (cancel, pause);
+    }
+}
+
+fn emit_chunk_boundary(
+    on_progress: &Option<ProgressFn>,
+    done: u32,
+    total: u32,
+    chunk_index: usize,
+    chunk_total: usize,
+    chunk_deleted: u32,
+    chunk_bytes: u64,
+    chunk_elapsed_ms: u64,
+    session_deleted: u32,
+    session_bytes: u64,
+    session_elapsed_ms: u64,
+) {
+    let chunk_tp = format_throughput(chunk_deleted, chunk_bytes, chunk_elapsed_ms);
+    let session_tp = format_throughput(session_deleted, session_bytes, session_elapsed_ms);
+    let detail = format_chunk_boundary_detail(chunk_index, chunk_total, chunk_deleted, &chunk_tp);
+    let placeholder = CleanupCandidate {
+        id: String::new(),
+        kind: Kind::NodeModules,
+        abs_path: String::new(),
+        size_bytes: None,
+        mtime_ms: None,
+        risk: RiskLevel::Safe,
+        safety_class: SafetyClass::ProjectArtifact,
+        reason_codes: vec![],
+        display_reason_summary: None,
+        can_delete: true,
+        project_root: None,
+        stale_days: None,
+    };
+    emit_item_progress_ex(
+        on_progress,
+        done,
+        total,
+        &placeholder,
+        "delete",
+        "chunk_boundary",
+        Some(done),
+        None,
+        Some(format!("{detail} Overall: {session_tp}")),
+    );
+}
+
 fn run_parallel_in_place_deletes(
     mut items: Vec<CleanupCandidate>,
     total: u32,
@@ -244,22 +390,124 @@ fn run_parallel_in_place_deletes(
     cancel: Option<Arc<AtomicBool>>,
     pause: Option<Arc<AtomicBool>>,
     on_progress: Option<ProgressFn>,
+    completed_before: u32,
 ) -> (u32, u64, Vec<String>) {
-    // Smaller trees finish first so the progress counter moves steadily.
     items.sort_by_key(|c| c.size_bytes.unwrap_or(u64::MAX));
 
+    if !should_chunk_deletes(items.len()) {
+        return run_parallel_chunk(
+            items,
+            total,
+            fast_tree_delete,
+            parallelism,
+            cancel,
+            pause,
+            on_progress,
+            completed_before,
+            None,
+        );
+    }
+
+    let chunk_total = cleanup_batch::chunk_count(items.len());
+    let session_start = Instant::now();
+    let session_bytes = Arc::new(AtomicU64::new(0));
+    let session_deleted = Arc::new(AtomicU32::new(0));
+    let mut total_deleted = 0u32;
+    let mut total_freed = 0u64;
+    let mut all_errors = Vec::new();
+    let mut batch_done = completed_before;
+    let mut prev_chunk_deleted = 0u32;
+    let mut prev_chunk_bytes = 0u64;
+    let mut prev_chunk_elapsed_ms = 0u64;
+
+    for (chunk_idx, chunk) in items.chunks(CLEANUP_CHUNK_SIZE).enumerate() {
+        if wait_while_paused_or_canceled(&cancel, &pause) {
+            all_errors.push("Cleanup canceled by user.".to_string());
+            break;
+        }
+        if chunk_idx > 0 {
+            emit_chunk_boundary(
+                &on_progress,
+                batch_done,
+                total,
+                chunk_idx - 1,
+                chunk_total,
+                prev_chunk_deleted,
+                prev_chunk_bytes,
+                prev_chunk_elapsed_ms,
+                session_deleted.load(Ordering::Relaxed),
+                session_bytes.load(Ordering::Relaxed),
+                session_start.elapsed().as_millis() as u64,
+            );
+        }
+
+        let chunk_start = Instant::now();
+        let chunk_vec = chunk.to_vec();
+        let (d, f, mut e) = run_parallel_chunk(
+            chunk_vec,
+            total,
+            fast_tree_delete,
+            parallelism,
+            cancel.clone(),
+            pause.clone(),
+            on_progress.clone(),
+            batch_done,
+            Some((session_start, Arc::clone(&session_bytes), Arc::clone(&session_deleted))),
+        );
+        batch_done = batch_done.saturating_add(d);
+        total_deleted += d;
+        total_freed = total_freed.saturating_add(f);
+        all_errors.append(&mut e);
+        prev_chunk_deleted = d;
+        prev_chunk_bytes = f;
+        prev_chunk_elapsed_ms = chunk_start.elapsed().as_millis() as u64;
+
+        if chunk_idx + 1 == chunk_total {
+            emit_chunk_boundary(
+                &on_progress,
+                batch_done,
+                total,
+                chunk_idx,
+                chunk_total,
+                d,
+                f,
+                prev_chunk_elapsed_ms,
+                session_deleted.load(Ordering::Relaxed),
+                session_bytes.load(Ordering::Relaxed),
+                session_start.elapsed().as_millis() as u64,
+            );
+        }
+    }
+
+    (total_deleted, total_freed, all_errors)
+}
+
+fn run_parallel_chunk(
+    items: Vec<CleanupCandidate>,
+    total: u32,
+    fast_tree_delete: bool,
+    parallelism: usize,
+    cancel: Option<Arc<AtomicBool>>,
+    pause: Option<Arc<AtomicBool>>,
+    on_progress: Option<ProgressFn>,
+    completed_before: u32,
+    session: Option<(Instant, Arc<AtomicU64>, Arc<AtomicU32>)>,
+) -> (u32, u64, Vec<String>) {
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(parallelism.max(1))
         .build()
         .expect("rayon delete pool");
-    let completed = Arc::new(AtomicU32::new(0));
+    let batch_total = items.len() as u32;
+    let completed = Arc::new(AtomicU32::new(completed_before));
+    let done_target = completed_before.saturating_add(batch_total);
     let in_flight = Arc::new(AtomicU32::new(0));
     let deleted = AtomicU32::new(0);
     let freed = std::sync::atomic::AtomicU64::new(0);
     let errors: Mutex<Vec<String>> = Mutex::new(Vec::new());
     let active_paths: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
     let stop_heartbeat = Arc::new(AtomicBool::new(false));
-    let batch_total = items.len() as u32;
+    let session_bytes_ref = session.as_ref().map(|(_, b, _)| Arc::clone(b));
+    let session_deleted_ref = session.as_ref().map(|(_, _, d)| Arc::clone(d));
     let stage_done = if fast_tree_delete {
         "fast_remove_tree"
     } else {
@@ -303,7 +551,7 @@ fn run_parallel_in_place_deletes(
                 }
                 let c = completed.load(Ordering::Relaxed);
                 let n = in_flight.load(Ordering::Relaxed);
-                if n == 0 && c >= batch_total {
+                if n == 0 && c >= done_target {
                     break;
                 }
                 let summary = active_paths_summary(&active_paths);
@@ -355,11 +603,15 @@ fn run_parallel_in_place_deletes(
             let path = Path::new(&candidate.abs_path);
             match delete_in_place(path, fast_tree_delete, &candidate.kind) {
                 Ok(()) => {
+                    let bytes = candidate.size_bytes.unwrap_or(0);
                     deleted.fetch_add(1, Ordering::Relaxed);
-                    freed.fetch_add(
-                        candidate.size_bytes.unwrap_or(0),
-                        Ordering::Relaxed,
-                    );
+                    freed.fetch_add(bytes, Ordering::Relaxed);
+                    if let Some(ref b) = session_bytes_ref {
+                        b.fetch_add(bytes, Ordering::Relaxed);
+                    }
+                    if let Some(ref d) = session_deleted_ref {
+                        d.fetch_add(1, Ordering::Relaxed);
+                    }
                 }
                 Err(e) => {
                     if let Ok(mut errs) = errors.lock() {

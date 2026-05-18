@@ -29,9 +29,20 @@ export function candidateSizeIsKnown(bytes: number | undefined): bytes is number
   return typeof bytes === 'number' && !Number.isNaN(bytes);
 }
 
+export function candidateSizeIsEstimated(reasonCodes?: string[]): boolean {
+  return reasonCodes?.includes('size_estimated') ?? false;
+}
+
 /** Table/detail size cell: known bytes, in-progress label, or not calculated after scan ends. */
-export function formatCandidateSize(bytes: number | undefined, scanActive: boolean): string {
-  if (candidateSizeIsKnown(bytes)) return formatBytes(bytes);
+export function formatCandidateSize(
+  bytes: number | undefined,
+  scanActive: boolean,
+  estimated = false,
+): string {
+  if (candidateSizeIsKnown(bytes)) {
+    const label = formatBytes(bytes);
+    return estimated ? `~${label}` : label;
+  }
   if (scanActive) return 'Sizing…';
   return SIZE_NOT_CALCULATED_LABEL;
 }

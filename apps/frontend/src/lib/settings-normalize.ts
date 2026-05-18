@@ -72,6 +72,11 @@ export function normalizeSettings(raw: unknown): Settings {
       'classifyParallelThreshold',
       8,
     ),
+    fast_dependency_size_estimate: bool(
+      'fast_dependency_size_estimate',
+      'fastDependencySizeEstimate',
+      true,
+    ),
     show_blocked: bool('show_blocked', 'showBlocked', false),
     check_go_cache: bool('check_go_cache', 'checkGoCache', false),
     include_python_artifacts: bool('include_python_artifacts', 'includePythonArtifacts', true),

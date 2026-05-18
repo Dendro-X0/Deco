@@ -23,13 +23,20 @@ Drive `E:\` scan (~80+ candidates): discover ~20–30s; classify + size + UI ~30
 
 Record: candidate count, discover_ms, classify_ms, size_ms, total wall time.
 
-## Automated suite (v0.6.2)
+## Automated suite (v0.6.2+)
 
 ```bash
 pnpm benchmark:scan
-# strict CI parity:
+pnpm benchmark:quick-update   # v0.6.7 — full vs quick on unchanged fixture
+```
+
+Strict CI parity:
+
+```bash
 cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri/Cargo.toml -- \
   --projects 20 --compare benchmarks/baseline.synthetic.json
+cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri/Cargo.toml -- \
+  --quick-update --include-size --compare-quick benchmarks/baseline.quick-update.json
 ```
 
 - **Fixture:** `bench-proj-NNN/Cargo.toml` + `target/debug/deps/` under `target/deco-bench-runs/` (not `%LocalAppData%` — path policy prunes `AppData`).  

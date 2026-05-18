@@ -205,19 +205,35 @@ export function visibleProjectGroupSlice(
 
 export type GroupSelectionState = 'all' | 'some' | 'none';
 
+function selectableInGroup(group: ProjectGroup): Candidate[] {
+  return group.candidates.filter((c) => c.risk !== 'blocked' && c.can_delete !== false);
+}
+
+/** Checkbox state for a project group row (header). */
 export function groupSelectionState(
   group: ProjectGroup,
   selectedIds: Set<string>,
 ): GroupSelectionState {
-  const selectable = group.candidates.filter((c) => c.risk !== 'blocked' && c.can_delete !== false);
+  const selectable = selectableInGroup(group);
   if (selectable.length === 0) return 'none';
-  let selected = 0;
-  for (const c of selectable) {
-    if (selectedIds.has(c.id)) selected += 1;
-  }
-  if (selected === 0) return 'none';
-  if (selected === selectable.length) return 'all';
+
+  const selected = selectable.filter((c) => selectedIds.has(c.id));
+  if (selected.length === 0) return 'none';
+  if (selected.length === selectable.length) return 'all';
   return 'some';
+}
+
+/** Header "select all" checkbox in flat candidate list. */
+export function listSelectionHeaderState(
+  candidates: Candidate[],
+  selectedIds: Set<string>,
+): boolean | 'indeterminate' {
+  const selectable = candidates.filter((c) => c.risk !== 'blocked' && c.can_delete !== false);
+  if (selectable.length === 0) return false;
+  const selectedCount = selectable.filter((c) => selectedIds.has(c.id)).length;
+  if (selectedCount === 0) return false;
+  if (selectedCount === selectable.length) return true;
+  return 'indeterminate';
 }
 
 export function toggleGroupSelection(

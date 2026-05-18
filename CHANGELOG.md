@@ -2,9 +2,22 @@
 
 ## [Unreleased]
 
-### Planned (v0.6.7)
+## [0.6.7] - 2026-05-18
 
-- Quick-update benchmark, size-phase optimizations, and batch delete UX — see [v0.6.7-manifest.md](docs/product/v0.6.7-manifest.md).
+### Added
+
+- **Quick-update benchmark (L3)** — `deco-bench --quick-update` compares full vs quick scan on a synthetic fixture; `pnpm benchmark:quick-update` + CI; gates ≥30% faster classify+size pipeline and ≥95% inventory reuse (`benchmarks/baseline.quick-update.json`).
+- **Fast dependency size estimate (L4)** — `fast_dependency_size_estimate` (default on): sampled sizing for `node_modules` / `target` / build trees; `~` prefix in UI; fewer 30s “Not calculated” timeouts; see [size-estimate.md](docs/experiments/size-estimate.md).
+- **Batch delete UX (L5)** — cleanups with 80+ trees run in chunks of 40; cancel/pause honored between chunks; `chunk_boundary` progress shows per-chunk and overall throughput (`folders/min`, `MB/s`); see [batch-delete.md](docs/experiments/batch-delete.md).
+
+### Docs
+
+- **v0.6.7 release notes (L6)** — [v0.6.7-manifest.md](docs/product/v0.6.7-manifest.md) shipped; [experiments/README.md](docs/experiments/README.md) indexes L3–L5 docs; verification: `pnpm check`, `pnpm benchmark:scan`, `pnpm benchmark:quick-update`.
+
+### Fixed
+
+- **Project-group selection UI** — mixed safe/review groups no longer show a full green check when only safe items are auto-selected; partial state uses a minus (indeterminate) control; preview cleanup counts match the list.
+- **Grouped results sorting** — project-grouped list restores clickable column headers (Risk, Project, Artifacts/kind, Total size) with sort indicators, same as flat list.
 
 ## [0.6.6] - 2026-05-17
 

@@ -1,8 +1,15 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CandidateSortHeading } from '@/components/CandidateSortHeading';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { compactListPath, formatCandidateSize, formatBytes } from '@/lib/format';
+import type { CandidateSortColumn, CandidateSortState } from '@/lib/candidate-sort';
+import {
+  candidateSizeIsEstimated,
+  compactListPath,
+  formatCandidateSize,
+  formatBytes,
+} from '@/lib/format';
 import type { ProjectGroup } from '@/lib/project-grouping';
 import { groupSelectionState, toggleGroupSelection } from '@/lib/project-grouping';
 import type { Candidate } from '@/types';
@@ -18,6 +25,8 @@ type Props = {
   onSetSelectedIds: (ids: Set<string>) => void;
   onToggleCandidate: (id: string) => void;
   onSelectCandidate: (id: string) => void;
+  sort: CandidateSortState;
+  onToggleSort: (column: CandidateSortColumn) => void;
 };
 
 function riskBadgeClass(risk: Candidate['risk']): string {
@@ -39,6 +48,8 @@ export function CandidateProjectGroupTable({
   onSetSelectedIds,
   onToggleCandidate,
   onSelectCandidate,
+  sort,
+  onToggleSort,
 }: Props) {
   return (
     <Table className={tableClass}>
@@ -54,16 +65,38 @@ export function CandidateProjectGroupTable({
         <TableRow>
           <TableHead className={cn(cellPad, 'w-10')} />
           <TableHead className={cn(cellPad, 'w-10 text-center')} />
-          <TableHead className={cn(cellPad, 'w-[4.5rem]')}>Risk</TableHead>
-          <TableHead className={cellPad}>Project</TableHead>
-          <TableHead className={cellPad}>Artifacts</TableHead>
-          <TableHead className={cn(cellPad, 'text-right whitespace-nowrap')}>Total size</TableHead>
+          <CandidateSortHeading
+            column="risk"
+            sort={sort}
+            onToggleSort={onToggleSort}
+            className={cn(cellPad, 'w-[4.5rem]')}
+          >
+            Risk
+          </CandidateSortHeading>
+          <CandidateSortHeading column="path" sort={sort} onToggleSort={onToggleSort} className={cellPad}>
+            Project
+          </CandidateSortHeading>
+          <CandidateSortHeading column="kind" sort={sort} onToggleSort={onToggleSort} className={cellPad}>
+            Artifacts
+          </CandidateSortHeading>
+          <CandidateSortHeading
+            column="size"
+            sort={sort}
+            onToggleSort={onToggleSort}
+            alignEnd
+            className={cn(cellPad, 'text-right whitespace-nowrap')}
+          >
+            Total size
+          </CandidateSortHeading>
         </TableRow>
       </TableHeader>
       <TableBody>
         {groups.map((group) => {
           const expanded = expandedGroupKeys.has(group.key);
           const selection = groupSelectionState(group, selectedIds);
+          const selectedInGroup = group.candidates.filter(
+            (c) => c.risk !== 'blocked' && c.can_delete !== false && selectedIds.has(c.id),
+          ).length;
           const sizeLabel = group.hasUnknownSize
             ? `${formatBytes(group.totalBytes)}+`
             : formatBytes(group.totalBytes);
@@ -74,6 +107,7 @@ export function CandidateProjectGroupTable({
               group={group}
               expanded={expanded}
               selection={selection}
+              selectedInGroup={selectedInGroup}
               sizeLabel={sizeLabel}
               selectedIds={selectedIds}
               selectedCandidateId={selectedCandidateId}
@@ -96,6 +130,7 @@ function ProjectGroupRows({
   group,
   expanded,
   selection,
+  selectedInGroup,
   sizeLabel,
   selectedIds,
   selectedCandidateId,
@@ -108,6 +143,7 @@ function ProjectGroupRows({
   group: ProjectGroup;
   expanded: boolean;
   selection: 'all' | 'some' | 'none';
+  selectedInGroup: number;
   sizeLabel: string;
   selectedIds: Set<string>;
   selectedCandidateId: string | null;
@@ -140,7 +176,14 @@ function ProjectGroupRows({
               selection === 'all' ? true : selection === 'some' ? 'indeterminate' : false
             }
             disabled={group.selectableCount === 0}
-            onCheckedChange={() => onToggleGroupSelect(selection !== 'all')}
+            title={
+              selection === 'some'
+                ? `${selectedInGroup} of ${group.selectableCount} selected — review items are not included unless you expand and check them`
+                : selection === 'all'
+                  ? `${group.selectableCount} selected`
+                  : undefined
+            }
+            onCheckedChange={(checked) => onToggleGroupSelect(checked === true)}
           />
         </TableCell>
         <TableCell className={cellPad}>
@@ -211,7 +254,11 @@ function ProjectGroupRows({
                       : 'text-muted-foreground'
                   }
                 >
-                  {formatCandidateSize(c.size_bytes, scanning)}
+                  {formatCandidateSize(
+                    c.size_bytes,
+                    scanning,
+                    candidateSizeIsEstimated(c.reason_codes),
+                  )}
                 </span>
               </TableCell>
             </TableRow>

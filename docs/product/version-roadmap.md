@@ -134,7 +134,7 @@ Follow [scanning philosophy](../../PROJECT.md#scanning-philosophy-whitelist--lay
 | `v0.6.4` | Scan statistics panel (phase timings, reuse %, kinds) | Shipped |
 | `v0.6.5` | Smart discovery, fast delete, HDD cleanup basics, scan progress fix | Shipped |
 | `v0.6.6` | Large-scan UX, HDD delete mode, candidate list layout | Shipped |
-| `v0.6.7` | Quick-update bench, size phase, batch delete UX | In progress — see [v0.6.7-manifest.md](v0.6.7-manifest.md) |
+| `v0.6.7` | Quick-update bench, size phase, batch delete UX | Shipped — [v0.6.7-manifest.md](v0.6.7-manifest.md) |
 
 **Exit criteria:** Each new kind has documented “what breaks if I delete this” text; false-positive tests for Cursor/VS Code/Electron and MSVC paths.
 

@@ -1,5 +1,6 @@
 pub mod ancestor_cache;
 pub mod benchmark;
+pub mod cleanup_batch;
 pub mod cleanup_coalesce;
 pub mod cleanup_disk_mode;
 pub mod classifier;
@@ -17,5 +18,6 @@ pub mod regeneration_hints;
 pub mod project_root_cache;
 pub mod scan_concurrency;
 pub mod scanner;
+pub mod size_estimate;
 pub mod sizer;
 pub mod types;

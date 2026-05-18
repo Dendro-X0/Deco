@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "fixture_projects": 20,
+  "files_per_node_modules": 30,
+  "include_size": true,
+  "min_pipeline_speedup_ratio": 0.30,
+  "min_inventory_reuse_ratio": 0.95,
+  "limits": {
+    "full_total_ms_max": 300000,
+    "quick_total_ms_max": 300000,
+    "full_pipeline_ms_max": 180000,
+    "quick_pipeline_ms_max": 60000
+  }
+}
