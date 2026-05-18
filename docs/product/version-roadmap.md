@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-17 · **Latest shipped:** `v0.6.12` (Bazel disk cache + `.cxx` + in-app update; scan contract **2.8.0** — see [v0.6.12-manifest.md](v0.6.12-manifest.md)) · **Development head:** `v0.7.x` trust/community track
+**Last updated:** 2026-05-17 · **Latest shipped:** `v0.6.12` · **Development head:** `v0.7.0` (trust/community — see [v0.7.0-manifest.md](v0.7.0-manifest.md))
 
 ---
 

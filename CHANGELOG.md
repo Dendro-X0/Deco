@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-Next work follows the **v0.7.x** trust/community track — see [version-roadmap.md](docs/product/version-roadmap.md).
+Development line **v0.7.0** — see [v0.7.0-manifest.md](docs/product/v0.7.0-manifest.md) and [v0.7.x-roadmap.md](docs/product/v0.7.x-roadmap.md).
 
 ## [0.6.12] - 2026-05-17
 
