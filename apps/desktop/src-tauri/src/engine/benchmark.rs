@@ -3,7 +3,7 @@
 use super::classifier::classify_targets;
 use super::disk_cleanup_config::merge_disk_cleanup_layers;
 use super::path_policy::PathPolicy;
-use super::scan_concurrency::size_concurrency_plan;
+use super::scan_concurrency::{scan_worker_count, size_concurrency_plan};
 use super::scanner::discover_targets;
 use super::sizer::size_candidates_parallel;
 use super::types::ScanRequest;
@@ -160,6 +160,8 @@ pub fn run_scan_pipeline_bench(
         req.into(),
         req.check_go_cache,
         &disk.extra_names,
+        false,
+        scan_worker_count(concurrency_mode),
         None,
         None,
     );
@@ -173,7 +175,13 @@ pub fn run_scan_pipeline_bench(
 
     for chunk in targets.chunks(CLASSIFY_PIPELINE_CHUNK) {
         let classify_start = Instant::now();
-        let classified = classify_targets(chunk.to_vec(), roots, req.stale_days, &policy);
+        let classified = classify_targets(
+            chunk.to_vec(),
+            roots,
+            req.stale_days,
+            &policy,
+            crate::engine::classifier::DEFAULT_CLASSIFY_PARALLEL_THRESHOLD,
+        );
         classify_ms = classify_ms.saturating_add(classify_start.elapsed().as_millis() as u64);
         candidates.extend(classified);
 
@@ -184,6 +192,7 @@ pub fn run_scan_pipeline_bench(
                 &mut candidates[batch_start..],
                 &size_plan,
                 || false,
+                |_, _| {},
             );
             size_ms = size_ms.saturating_add(size_start.elapsed().as_millis() as u64);
         }

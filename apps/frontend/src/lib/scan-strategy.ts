@@ -47,7 +47,7 @@ export const SCAN_STRATEGY_PRESETS: ScanStrategyMeta[] = [
   {
     id: 'fast',
     label: 'Fast',
-    description: 'Shallower walk, higher size parallelism — SSD / NVMe friendly.',
+    description: 'Shallower walk, 8 parallel workers — SSD / NVMe friendly.',
     tuning: {
       max_depth: 6,
       scan_concurrency_mode: 'high',
@@ -57,7 +57,7 @@ export const SCAN_STRATEGY_PRESETS: ScanStrategyMeta[] = [
   {
     id: 'background',
     label: 'Background',
-    description: 'Gentle disk use — HDD or low-priority scans.',
+    description: 'Gentle disk use — 2 workers, shallow walk (HDD).',
     tuning: {
       max_depth: 5,
       scan_concurrency_mode: 'low',

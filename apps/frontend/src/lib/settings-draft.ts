@@ -16,6 +16,8 @@ export const SCAN_TARGET_SETTINGS_KEYS = [
 const DRAFT_KEYS: (keyof Settings)[] = [
   'scan_scope',
   'scan_strategy',
+  'smart_discovery_enabled',
+  'classify_parallel_threshold',
   'incremental_inventory_enabled',
   'scan_concurrency_mode',
   'max_depth',
@@ -26,6 +28,7 @@ const DRAFT_KEYS: (keyof Settings)[] = [
   'include_jvm_artifacts',
   'include_dotnet_artifacts',
   ...DISCOVERY_OPTION_KEYS,
+  'fast_tree_delete_enabled',
   'delete_mode',
   'quarantine_layout',
   'quarantine_custom_path',

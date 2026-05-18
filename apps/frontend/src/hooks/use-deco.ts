@@ -19,7 +19,11 @@ import { formatBytes, formatDurationMs } from '../lib/format';
 import { volumeMountsFromPaths } from '../lib/volume-from-path';
 import { toast } from '../lib/toast';
 import { formatCleanupResultSummary } from '../lib/cleanup-result';
-import { IDLE_PROGRESS, type ScanProgress } from '../lib/scan-progress';
+import {
+  computeScanProgressPercent,
+  IDLE_PROGRESS,
+  type ScanProgress,
+} from '../lib/scan-progress';
 import { readPhaseTimings, type ScanRunMetrics } from '../lib/scan-statistics';
 
 export function useDeco() {
@@ -134,6 +138,17 @@ export function useDeco() {
     operationStartedAtRef.current = null;
     setElapsedMs(0);
   }, []);
+
+  const cancelCleanup = async () => {
+    const jobId = activeCleanupJobIdRef.current;
+    if (!jobId) return;
+    try {
+      await invoke('cancel_cleanup', { jobId });
+      setStatus({ text: 'Stopping cleanup…', type: 'active' });
+    } catch {
+      /* surfaced via tauriInvoke */
+    }
+  };
 
   const cancelScan = async () => {
     const id = activeScanIdRef.current ?? scanId;
@@ -536,27 +551,29 @@ export function useDeco() {
         rawPhase === 'cleanup'
           ? rawPhase
           : null;
-      let percent = 0;
+      const totalCandidates = Number(payload.total_size_candidates ?? 0);
+      const processedSizes = Number(payload.processed_sizes ?? 0);
+      const classifiedTargets = Number(payload.classified_targets ?? 0);
+      const scannedDirs = Number(payload.scanned_dirs ?? 0);
+      let percent = computeScanProgressPercent(progressPhase, {
+        scannedDirs,
+        classified: classifiedTargets,
+        sized: processedSizes,
+        total: totalCandidates,
+      });
       const text = (payload.message as string) || 'Scanning...';
 
       if (progressPhase === 'discover') {
-        const scanned = Number(payload.scanned_dirs ?? 0);
         const found = Number(payload.discovered_targets ?? 0);
-        percent = Math.min(18, 5 + Math.log10(scanned + 10) * 3);
         if (!payload.message) {
           setProgress({
             percent,
-            text: `Scanning directories… ${scanned} scanned, ${found} found`,
+            text: `Scanning directories… ${scannedDirs} scanned, ${found} found`,
             phase: 'discover',
           });
-          setStatus({ text: `Scanning… ${scanned} dirs`, type: 'active' });
+          setStatus({ text: `Scanning… ${scannedDirs} dirs`, type: 'active' });
           return;
         }
-      } else if (progressPhase === 'classify') percent = 20;
-      else if (progressPhase === 'size') {
-        const total = Number(payload.total_size_candidates || 0);
-        const done = Number(payload.processed_sizes || 0);
-        percent = total > 0 ? 20 + (done / total) * 75 : 65;
       } else if (progressPhase === 'done') {
         percent = 100;
         const dMs = Number(payload.discover_ms);
@@ -704,10 +721,24 @@ export function useDeco() {
         kind: (payload.kind as string) ?? undefined,
         message: payload.message as string | undefined,
         detail: payload.detail as string | undefined,
+        completed_count:
+          payload.completed_count != null
+            ? Number(payload.completed_count)
+            : payload.completedCount != null
+              ? Number(payload.completedCount)
+              : undefined,
+        in_flight_count:
+          payload.in_flight_count != null
+            ? Number(payload.in_flight_count)
+            : payload.inFlightCount != null
+              ? Number(payload.inFlightCount)
+              : undefined,
       };
+      const done =
+        progressPayload.completed_count ?? progressPayload.index;
       const percent =
         progressPayload.total > 0
-          ? Math.min(99, Math.round((progressPayload.index / progressPayload.total) * 100))
+          ? Math.min(99, Math.round((done / progressPayload.total) * 100))
           : 50;
       const scanProgress = cleanupProgressToScanProgress(progressPayload, percent);
       setProgress(scanProgress);
@@ -756,7 +787,8 @@ export function useDeco() {
       if (start != null) setElapsedMs(Date.now() - start);
     };
     tick();
-    const id = window.setInterval(tick, 1000);
+    const intervalMs = busy && !scanning ? 250 : 1000;
+    const id = window.setInterval(tick, intervalMs);
     return () => window.clearInterval(id);
   }, [scanning, busy]);
 
@@ -783,6 +815,7 @@ export function useDeco() {
     setError,
     scan,
     cancelScan,
+    cancelCleanup,
     scanStopStage: searchStopped ? ('analysis' as const) : ('search' as const),
     searchStopped,
     loadSettings,

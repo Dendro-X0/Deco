@@ -45,6 +45,7 @@ pub fn run() {
                 scans: Mutex::new(HashMap::new()),
                 scan_cancels: Mutex::new(HashMap::new()),
                 scan_phases: Mutex::new(HashMap::new()),
+                cleanup_cancels: Mutex::new(HashMap::new()),
                 settings: Mutex::new(Settings::default()),
             }));
 
@@ -57,6 +58,7 @@ pub fn run() {
             commands::scan::delete_scan_history,
             commands::scan::clear_scan_history,
             commands::execute::start_cleanup,
+            commands::execute::cancel_cleanup,
             commands::execute::execute_cleanup_command,
             commands::execute::preview_execute,
             commands::execute::plan_free_space,

@@ -3,10 +3,18 @@ import type { ScanProgress } from './scan-progress';
 export type CleanupStage =
   | 'prepare'
   | 'remove_tree'
+  | 'remove_tree_start'
+  | 'fast_remove_tree'
+  | 'fast_remove_tree_start'
+  | 'parallel_pulse'
   | 'move'
   | 'record'
   | 'skip'
   | 'done';
+
+function progressDone(payload: CleanupProgressPayload): number {
+  return payload.completed_count ?? payload.index;
+}
 
 export type CleanupProgressPayload = {
   index: number;
@@ -17,6 +25,8 @@ export type CleanupProgressPayload = {
   kind?: string;
   message?: string;
   detail?: string;
+  completed_count?: number;
+  in_flight_count?: number;
 };
 
 function fileNameFromPath(absPath: string): string {
@@ -41,13 +51,45 @@ export function formatCleanupProgress(payload: CleanupProgressPayload): {
   }
 
   const name = fileNameFromPath(payload.abs_path);
-  const index = payload.index;
   const total = payload.total;
   const action = payload.action;
   const stage = (payload.stage ?? 'prepare') as CleanupStage;
   const heavy = isNodeModulesPath(payload.abs_path, payload.kind);
 
-  const prefix = total > 1 ? `Item ${index}/${total}: ` : '';
+  const done = progressDone(payload);
+  const inFlight = payload.in_flight_count ?? 0;
+  const prefix = total > 1 ? `${done}/${total}: ` : '';
+
+  if (stage === 'parallel_pulse') {
+    return {
+      text: `${prefix}${inFlight} folder(s) removing in parallel…`,
+      detail:
+        payload.detail ||
+        'Large trees can take several minutes each on a slow disk — the counter updates when each finishes.',
+    };
+  }
+
+  if (stage === 'fast_remove_tree_start' || stage === 'remove_tree_start') {
+    return {
+      text: `${prefix}Started ${name}…`,
+      detail:
+        inFlight > 1
+          ? `${inFlight} deletes in flight. ${payload.detail || ''}`.trim()
+          : payload.detail || 'Bulk system delete (rmdir / rm -rf).',
+    };
+  }
+
+  if (stage === 'fast_remove_tree') {
+    return {
+      text: `${prefix}Finished ${name} (fast)`,
+      detail:
+        inFlight > 0
+          ? `${inFlight} still removing in parallel.`
+          : total > 1
+            ? 'Bulk system delete — several folders may run in parallel (Scan behavior → Performance).'
+            : 'Using the system bulk-remove command (like rmdir /s /q or rm -rf) instead of walking every file in Rust.',
+    };
+  }
 
   if (stage === 'remove_tree' || (stage === 'prepare' && action === 'delete' && heavy)) {
     return {

@@ -62,6 +62,16 @@ export function normalizeSettings(raw: unknown): Settings {
     scan_concurrency_mode,
     incremental_inventory_enabled,
     scan_strategy,
+    smart_discovery_enabled: bool(
+      'smart_discovery_enabled',
+      'smartDiscoveryEnabled',
+      false,
+    ),
+    classify_parallel_threshold: num(
+      'classify_parallel_threshold',
+      'classifyParallelThreshold',
+      8,
+    ),
     show_blocked: bool('show_blocked', 'showBlocked', false),
     check_go_cache: bool('check_go_cache', 'checkGoCache', false),
     include_python_artifacts: bool('include_python_artifacts', 'includePythonArtifacts', true),
@@ -80,6 +90,11 @@ export function normalizeSettings(raw: unknown): Settings {
     check_cargo_registry: bool('check_cargo_registry', 'checkCargoRegistry', false),
     check_nuget_cache: bool('check_nuget_cache', 'checkNugetCache', false),
     check_composer_cache: bool('check_composer_cache', 'checkComposerCache', false),
+    fast_tree_delete_enabled: bool(
+      'fast_tree_delete_enabled',
+      'fastTreeDeleteEnabled',
+      true,
+    ),
     delete_mode: str('delete_mode', 'deleteMode', 'delete'),
     quarantine_layout: str('quarantine_layout', 'quarantineLayout', 'per_drive'),
     quarantine_custom_path: str('quarantine_custom_path', 'quarantineCustomPath', ''),

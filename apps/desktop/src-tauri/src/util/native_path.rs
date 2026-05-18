@@ -25,3 +25,25 @@ pub fn io_path(path: &Path) -> PathBuf {
 pub fn io_path(path: &Path) -> PathBuf {
     path.to_path_buf()
 }
+
+/// Long-path prefix for delete without `canonicalize` (avoids slow metadata walks on huge trees).
+#[cfg(windows)]
+pub fn io_path_for_delete(path: &Path) -> PathBuf {
+    let raw = path.as_os_str().to_string_lossy();
+    if raw.starts_with(r"\\?\") {
+        return path.to_path_buf();
+    }
+    if path.is_absolute() {
+        if raw.starts_with(r"\\") {
+            let trimmed = raw.trim_start_matches('\\');
+            return PathBuf::from(format!(r"\\?\UNC\{trimmed}"));
+        }
+        return PathBuf::from(format!(r"\\?\{}", raw));
+    }
+    io_path(path)
+}
+
+#[cfg(not(windows))]
+pub fn io_path_for_delete(path: &Path) -> PathBuf {
+    path.to_path_buf()
+}

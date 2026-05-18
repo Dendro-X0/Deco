@@ -37,7 +37,7 @@ fn is_npm_cache_root(path: &Path) -> bool {
     path.is_dir() && path.join("_cacache").is_dir()
 }
 
-fn is_pnpm_store_root(path: &Path) -> bool {
+pub(crate) fn is_pnpm_store_root(path: &Path) -> bool {
     path.is_dir() && path.join("v3").is_dir()
 }
 

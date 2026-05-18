@@ -319,7 +319,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  Size calculation speed
+                  Parallel workers (discover / size / delete)
                 </label>
                 <Select
                   value={
@@ -334,9 +334,9 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="auto">Auto — balanced for your CPU</SelectItem>
-                    <SelectItem value="low">Low — gentler on HDDs / background use</SelectItem>
-                    <SelectItem value="high">High — faster on SSD / NVMe</SelectItem>
+                    <SelectItem value="auto">Auto — 6 parallel workers (recommended)</SelectItem>
+                    <SelectItem value="low">Low — 2 workers (HDD / background)</SelectItem>
+                    <SelectItem value="high">High — 8 workers (fast SSD)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -392,6 +392,26 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
             <p className="text-xs text-muted-foreground">
               Delete in place does not store backups. Use it when cleaning C: or when the disk is almost full.
             </p>
+          </div>
+          <div className="flex items-start gap-3 rounded-lg border border-border/60 p-4">
+            <Checkbox
+              id="fast-tree-delete"
+              checked={draft.fast_tree_delete_enabled ?? true}
+              onCheckedChange={(v) => patch({ fast_tree_delete_enabled: v === true })}
+              disabled={scanning || saving}
+            />
+            <div className="space-y-1">
+              <label htmlFor="fast-tree-delete" className="text-sm font-medium leading-none cursor-pointer">
+                Fast delete for dependency trees (experimental)
+              </label>
+              <p className="text-xs text-muted-foreground">
+                When deleting in place, removes <code className="text-[0.7rem]">node_modules</code>,{' '}
+                <code className="text-[0.7rem]">target</code>, and build folders via system commands (Windows{' '}
+                <code className="text-[0.7rem]">rmdir /s /q</code>, Unix <code className="text-[0.7rem]">rm -rf</code>).
+                Multiple trees delete in parallel — concurrency follows Scan behavior → Performance (auto / low / high).
+                Not used for quarantine.
+              </p>
+            </div>
           </div>
           <div
             className={`space-y-3 rounded-lg border p-4 ${quarantineEnabled ? 'border-border/60' : 'border-border/30 opacity-60'}`}
@@ -475,6 +495,29 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
             onCheckedChange={(v) => patch({ advanced_mode: v })}
             disabled={scanning || saving}
           />
+          {draft.advanced_mode ? (
+            <div className="space-y-2 max-w-xs pl-1">
+              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                Classify parallel threshold
+              </label>
+              <NumberInput
+                min={1}
+                max={128}
+                step={1}
+                value={draft.classify_parallel_threshold ?? 8}
+                disabled={scanning || saving}
+                onValueChange={(v) =>
+                  patch({
+                    classify_parallel_threshold: Math.min(128, Math.max(1, Math.round(v))),
+                  })
+                }
+                aria-label="Minimum targets before parallel classify"
+              />
+              <p className="text-xs text-muted-foreground">
+                Rayon classify runs when a chunk has at least this many targets (default 8).
+              </p>
+            </div>
+          ) : null}
         </SettingsSection>
 
         <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-border/40">

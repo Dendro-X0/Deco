@@ -1,10 +1,12 @@
 use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
+use super::discovery_patterns::match_walk_pattern;
 use super::ecosystem_globals::{
     discover_bun_global_caches, discover_cargo_registry_caches, discover_composer_global_caches,
     discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
     discover_conda_pkgs_caches, discover_nuget_global_caches, discover_pip_global_caches,
     discover_pnpm_global_store, discover_uv_global_caches, discover_yarn_global_caches,
+    is_pnpm_store_root,
 };
 use super::project_detection::{
     dir_has_cpp_native_marker, is_msvc_arch_dir_name, is_msvc_config_dir_name,
@@ -75,6 +77,8 @@ pub struct DiscoveryResult {
 /// Do not descend into these directory names after recording them as targets (saves walk time).
 pub const SKIP_DESCENT_DIR_NAMES: &[&str] = &[
     "node_modules",
+    ".pnpm-store",
+    "pnpm-store",
     "target",
     ".git",
     ".next",
@@ -101,6 +105,35 @@ pub fn should_skip_descent(dir_name: &str) -> bool {
     SKIP_DESCENT_DIR_NAMES.contains(&dir_name)
 }
 
+/// True when `path` is strictly inside a `node_modules` / `target` / … folder under `walk_root`.
+///
+/// Parent checks stop at `walk_root` so unrelated ancestors (e.g. repo `target/deco-bench-runs/`)
+/// do not mark the whole scan tree as "inside target".
+fn is_deeper_than_skip_descent_root(path: &Path, walk_root: &Path) -> bool {
+    if path == walk_root || !path.starts_with(walk_root) {
+        return false;
+    }
+    let mut current = path;
+    while let Some(parent) = current.parent() {
+        if parent == walk_root {
+            break;
+        }
+        if !parent.starts_with(walk_root) {
+            break;
+        }
+        if parent
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(should_skip_descent)
+            .unwrap_or(false)
+        {
+            return true;
+        }
+        current = parent;
+    }
+    false
+}
+
 const GO_ARTIFACT_DIR_NAMES: &[&str] = &["bin", "dist", "build", "bin-win"];
 
 fn is_go_artifact_dir_name(name: &str, extra: &ExtraDiscoverNames) -> bool {
@@ -114,10 +147,16 @@ fn detect_kind(
     extra: &ExtraDiscoverNames,
     eco: EcosystemScanOptions,
     cache: &mut AncestorCache,
+    smart_discovery: bool,
 ) -> Option<Kind> {
     // Names that never need ancestor marker probes (saves HDD stat storms).
     match name {
         "node_modules" => return Some(Kind::NodeModules),
+        ".pnpm-store" | "pnpm-store"
+            if eco.check_pnpm_store && is_pnpm_store_root(entry_path) =>
+        {
+            return Some(Kind::PnpmGlobalStore);
+        }
         "test-results" | "playwright-report" => return Some(Kind::PlaywrightArtifact),
         "target" | ".cargo-target" | "pkg" => return Some(Kind::RustArtifact),
         ".next" | ".svelte-kit" | ".astro" | ".cache" | "dist-firefox" => {
@@ -241,7 +280,7 @@ fn detect_kind(
         return Some(Kind::BuildArtifact);
     }
 
-    None
+    match_walk_pattern(entry_path, name, eco, smart_discovery)
 }
 
 fn dedupe_roots(roots: &[String]) -> Vec<String> {
@@ -290,6 +329,57 @@ struct RootDiscovery {
     canceled: bool,
 }
 
+/// Minimum immediate child folders before splitting discovery across workers.
+const MIN_PARALLEL_CHILDREN: usize = 2;
+
+fn list_discover_child_roots(
+    root_path: &Path,
+    excludes: &[String],
+    policy: &PathPolicy,
+) -> Vec<String> {
+    let Ok(entries) = std::fs::read_dir(root_path) else {
+        return vec![];
+    };
+    let mut children = Vec::new();
+    for entry in entries.flatten() {
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if !file_type.is_dir() {
+            continue;
+        }
+        let dir_name = entry.file_name().to_string_lossy().to_string();
+        if should_skip_volume_system_dir(&dir_name) {
+            continue;
+        }
+        let abs = entry.path().to_string_lossy().to_string();
+        if policy.should_prune(&abs) {
+            continue;
+        }
+        if excludes.iter().any(|pattern| abs.contains(pattern)) {
+            continue;
+        }
+        children.push(abs);
+    }
+    children
+}
+
+fn merge_root_discoveries(partials: Vec<RootDiscovery>) -> RootDiscovery {
+    let mut merged = RootDiscovery {
+        targets: vec![],
+        scanned_dirs: 0,
+        warnings: vec![],
+        canceled: false,
+    };
+    for part in partials {
+        merged.scanned_dirs += part.scanned_dirs;
+        merged.targets.extend(part.targets);
+        merged.warnings.extend(part.warnings);
+        merged.canceled |= part.canceled;
+    }
+    merged
+}
+
 fn discover_under_root(
     root: &str,
     max_depth: u32,
@@ -298,9 +388,12 @@ fn discover_under_root(
     policy: &PathPolicy,
     eco: EcosystemScanOptions,
     extra_names: &ExtraDiscoverNames,
+    smart_discovery: bool,
     cancel: Option<&AtomicBool>,
     progress: Option<&DiscoverProgressCallback>,
     total_scanned: &AtomicU64,
+    discover_workers: usize,
+    allow_parallel_split: bool,
 ) -> RootDiscovery {
     let mut warnings = vec![];
     let mut scanned_dirs = 0u64;
@@ -316,6 +409,50 @@ fn discover_under_root(
             warnings,
             canceled,
         };
+    }
+
+    if cancel.is_some_and(|t| t.load(Ordering::Relaxed)) {
+        return RootDiscovery {
+            targets,
+            scanned_dirs,
+            warnings: vec!["Scan canceled during discovery.".to_string()],
+            canceled: true,
+        };
+    }
+
+    if allow_parallel_split && discover_workers > 1 && max_depth > 0 {
+        let children = list_discover_child_roots(&root_path, excludes, policy);
+        if children.len() >= MIN_PARALLEL_CHILDREN {
+            use rayon::prelude::*;
+            let partials: Vec<RootDiscovery> = children
+                .par_iter()
+                .map(|child| {
+                    discover_under_root(
+                        child,
+                        max_depth.saturating_sub(1),
+                        profile,
+                        excludes,
+                        policy,
+                        eco,
+                        extra_names,
+                        smart_discovery,
+                        cancel,
+                        progress,
+                        total_scanned,
+                        discover_workers,
+                        false,
+                    )
+                })
+                .collect();
+            let merged = merge_root_discoveries(partials);
+            if merged.scanned_dirs > 0 || !merged.targets.is_empty() {
+                return merged;
+            }
+            warnings.push(
+                "Parallel discover returned no directories; falling back to serial walk."
+                    .to_string(),
+            );
+        }
     }
 
     let mut walker = WalkDir::new(&root_path)
@@ -365,6 +502,11 @@ fn discover_under_root(
 
         let dir_name = entry.file_name().to_string_lossy().to_string();
 
+        if is_deeper_than_skip_descent_root(entry.path(), &root_path) {
+            walker.skip_current_dir();
+            continue;
+        }
+
         if should_skip_volume_system_dir(&dir_name) {
             walker.skip_current_dir();
             continue;
@@ -373,9 +515,15 @@ fn discover_under_root(
         scanned_dirs += 1;
         let total = total_scanned.fetch_add(1, Ordering::Relaxed) + 1;
 
-        if let Some(kind) =
-            detect_kind(entry.path(), &dir_name, profile, extra_names, eco, &mut ancestor_cache)
-        {
+        if let Some(kind) = detect_kind(
+            entry.path(),
+            &dir_name,
+            profile,
+            extra_names,
+            eco,
+            &mut ancestor_cache,
+            smart_discovery,
+        ) {
             let abs = entry.path().to_string_lossy().to_string();
             let mtime_ms = std::fs::metadata(entry.path())
                 .ok()
@@ -417,6 +565,46 @@ pub fn discover_targets(
     eco: EcosystemScanOptions,
     check_go_cache: bool,
     extra_names: &ExtraDiscoverNames,
+    smart_discovery: bool,
+    discover_workers: usize,
+    cancel: Option<&AtomicBool>,
+    progress: Option<DiscoverProgressCallback>,
+) -> DiscoveryResult {
+    let workers = discover_workers.max(1);
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(workers)
+        .build()
+        .expect("discover thread pool");
+
+    pool.install(|| {
+        discover_targets_inner(
+            roots,
+            max_depth,
+            profile,
+            excludes,
+            policy,
+            eco,
+            check_go_cache,
+            extra_names,
+            smart_discovery,
+            workers,
+            cancel,
+            progress,
+        )
+    })
+}
+
+fn discover_targets_inner(
+    roots: &[String],
+    max_depth: u32,
+    profile: &str,
+    excludes: &[String],
+    policy: &PathPolicy,
+    eco: EcosystemScanOptions,
+    check_go_cache: bool,
+    extra_names: &ExtraDiscoverNames,
+    smart_discovery: bool,
+    discover_workers: usize,
     cancel: Option<&AtomicBool>,
     progress: Option<DiscoverProgressCallback>,
 ) -> DiscoveryResult {
@@ -441,9 +629,12 @@ pub fn discover_targets(
                     policy,
                     eco,
                     extra_names,
+                    smart_discovery,
                     cancel,
                     progress.as_ref(),
                     &total_scanned,
+                    discover_workers,
+                    true,
                 )
             })
             .collect();
@@ -462,9 +653,12 @@ pub fn discover_targets(
             policy,
             eco,
             extra_names,
+            smart_discovery,
             cancel,
             progress.as_ref(),
             &total_scanned,
+            discover_workers,
+            true,
         );
         scanned_dirs = part.scanned_dirs;
         all_targets = part.targets;
@@ -623,6 +817,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );
@@ -655,6 +851,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );
@@ -685,6 +883,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );
@@ -726,6 +926,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );
@@ -757,6 +959,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             Some(&cancel),
             None,
         );
@@ -778,6 +982,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );
@@ -802,6 +1008,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );
@@ -835,6 +1043,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );
@@ -872,6 +1082,8 @@ mod tests {
             EcosystemScanOptions::default(),
             false,
             &ExtraDiscoverNames::default(),
+            false,
+            6,
             None,
             None,
         );

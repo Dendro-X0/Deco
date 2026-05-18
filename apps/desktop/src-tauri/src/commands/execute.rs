@@ -1,4 +1,5 @@
 use crate::engine::executor::{execute_cleanup, CleanupItemProgress};
+use std::sync::atomic::{AtomicBool, Ordering};
 use crate::engine::quarantine_store::QuarantineStorage;
 use crate::engine::types::{
     CleanupCandidate, ExecutePreviewResponse, ExecuteRequest, ExecuteResponse, GlobalCacheAllow,
@@ -28,6 +29,10 @@ struct CleanupProgressEvent {
     kind: String,
     message: String,
     detail: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    completed_count: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    in_flight_count: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -48,7 +53,10 @@ struct CleanupPrepared {
     include_review: bool,
     allow_global: GlobalCacheAllow,
     allow_python_venv: bool,
+    fast_tree_delete_enabled: bool,
+    scan_concurrency_mode: String,
     quarantine_storage: QuarantineStorage,
+    cancel: Arc<AtomicBool>,
 }
 
 /// Runs cleanup on a background thread so the webview stays responsive during large deletes.
@@ -60,6 +68,15 @@ pub fn start_cleanup(
 ) -> Result<StartCleanupResponse, String> {
     let prepared = prepare_cleanup(&req, state.inner())?;
     let job_id = Uuid::new_v4().to_string();
+    let cancel_flag = prepared.cancel.clone();
+    {
+        let mut cancels = state
+            .inner()
+            .cleanup_cancels
+            .lock()
+            .map_err(|_| "cleanup_cancels mutex poisoned".to_string())?;
+        cancels.insert(job_id.clone(), cancel_flag);
+    }
     let job_id_spawn = job_id.clone();
     let state_arc = state.inner().clone();
     let app_handle = app.clone();
@@ -71,6 +88,9 @@ pub fn start_cleanup(
         ))
         .spawn(move || {
             let result = run_cleanup_background(prepared, &state_arc, &app_handle, &job_id_spawn);
+            if let Ok(mut cancels) = state_arc.cleanup_cancels.lock() {
+                cancels.remove(&job_id_spawn);
+            }
             match result {
                 Ok(response) => {
                     let _ = app_handle.emit(
@@ -125,12 +145,14 @@ fn run_cleanup_background(
     app: &AppHandle,
     job_id: &str,
 ) -> Result<ExecuteResponse, String> {
-    let mut emit_progress = |progress: CleanupItemProgress| {
+    let job_id_emit = job_id.to_string();
+    let app_emit = app.clone();
+    let on_progress = std::sync::Arc::new(move |progress: CleanupItemProgress| {
         let (message, detail) = cleanup_event_copy(&progress);
-        let _ = app.emit(
+        let _ = app_emit.emit(
             "cleanup-progress",
             CleanupProgressEvent {
-                job_id: job_id.to_string(),
+                job_id: job_id_emit.clone(),
                 index: progress.index,
                 total: progress.total,
                 abs_path: progress.abs_path.clone(),
@@ -139,19 +161,24 @@ fn run_cleanup_background(
                 kind: progress.kind_wire.clone(),
                 message,
                 detail,
+                completed_count: progress.completed_count,
+                in_flight_count: progress.in_flight_count,
             },
         );
-    };
+    });
 
     Ok(execute_cleanup(
         &state.db,
         &prepared.quarantine_storage,
-        &prepared.selected,
+        prepared.selected,
         &prepared.delete_mode,
         prepared.include_review,
         prepared.allow_global,
         prepared.allow_python_venv,
-        Some(&mut emit_progress),
+        prepared.fast_tree_delete_enabled,
+        &prepared.scan_concurrency_mode,
+        Some(&prepared.cancel),
+        Some(on_progress),
     ))
 }
 
@@ -163,13 +190,30 @@ pub(crate) fn execute_cleanup_core(
     Ok(execute_cleanup(
         &state.db,
         &prepared.quarantine_storage,
-        &prepared.selected,
+        prepared.selected,
         &prepared.delete_mode,
         prepared.include_review,
         prepared.allow_global,
         prepared.allow_python_venv,
+        prepared.fast_tree_delete_enabled,
+        &prepared.scan_concurrency_mode,
+        Some(&prepared.cancel),
         None,
     ))
+}
+
+/// Stop an in-flight cleanup started with [`start_cleanup`].
+#[tauri::command]
+pub fn cancel_cleanup(job_id: String, state: State<Arc<AppState>>) -> Result<(), String> {
+    let cancels = state
+        .cleanup_cancels
+        .lock()
+        .map_err(|_| "cleanup_cancels mutex poisoned".to_string())?;
+    let Some(flag) = cancels.get(&job_id) else {
+        return Err("No active cleanup with this job id.".to_string());
+    };
+    flag.store(true, Ordering::Relaxed);
+    Ok(())
 }
 
 fn cleanup_event_copy(progress: &CleanupItemProgress) -> (String, String) {
@@ -177,8 +221,10 @@ fn cleanup_event_copy(progress: &CleanupItemProgress) -> (String, String) {
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| progress.abs_path.clone());
+    let done = progress.completed_count.unwrap_or(progress.index);
+    let in_flight = progress.in_flight_count.unwrap_or(0);
     let prefix = if progress.total > 1 {
-        format!("Item {}/{}: ", progress.index, progress.total)
+        format!("{done}/{}: ", progress.total)
     } else {
         String::new()
     };
@@ -190,6 +236,33 @@ fn cleanup_event_copy(progress: &CleanupItemProgress) -> (String, String) {
             .contains("/node_modules");
 
     match progress.stage {
+        "parallel_pulse" => (
+            format!("{prefix}{in_flight} folder(s) removing in parallel…"),
+            progress.active_summary.clone().unwrap_or_else(|| {
+                "Large trees (node_modules, target, …) can take several minutes each on a slow disk — the counter updates when each one finishes.".to_string()
+            }),
+        ),
+        "fast_remove_tree_start" | "remove_tree_start" => (
+            format!("{prefix}Started {file_name}…"),
+            if in_flight > 1 {
+                format!(
+                    "{in_flight} deletes in flight. {}",
+                    progress.active_summary.clone().unwrap_or_default()
+                )
+            } else {
+                "Bulk system delete (rmdir / rm -rf).".to_string()
+            },
+        ),
+        "fast_remove_tree" => (
+            format!("{prefix}Finished {file_name} (fast)"),
+            if in_flight > 0 {
+                format!("{in_flight} still removing in parallel.")
+            } else if progress.total > 1 {
+                "Bulk system delete — several folders may delete in parallel (see Scan behavior → Performance).".to_string()
+            } else {
+                "Using the system bulk-remove command (like rmdir /s /q or rm -rf) instead of walking every file in Rust.".to_string()
+            },
+        ),
         "remove_tree" => (
             format!("{prefix}Removing {file_name}…"),
             if heavy {
@@ -284,7 +357,10 @@ fn prepare_cleanup(req: &ExecuteRequest, state: &AppState) -> Result<CleanupPrep
         include_review: req.include_review,
         allow_global,
         allow_python_venv: settings.include_python_venv,
+        fast_tree_delete_enabled: settings.fast_tree_delete_enabled,
+        scan_concurrency_mode: settings.scan_concurrency_mode.clone(),
         quarantine_storage,
+        cancel: Arc::new(AtomicBool::new(false)),
     })
 }
 

@@ -13,27 +13,22 @@ impl SizeConcurrencyPlan {
     }
 }
 
+/// Worker count for scan sizing, parallel discover splits, and delete batches.
+/// `auto` targets ~6 (sweet spot for mixed CPU + HDD); `high` = 8; `low` = 2.
+pub fn scan_worker_count(mode: &str) -> usize {
+    match mode.trim().to_lowercase().as_str() {
+        "low" => 2,
+        "high" => 8,
+        _ => 6,
+    }
+}
+
 /// `mode`: `auto` | `low` | `high`
 pub fn size_concurrency_plan(mode: &str) -> SizeConcurrencyPlan {
-    match mode.trim().to_lowercase().as_str() {
-        "low" => SizeConcurrencyPlan {
-            batch_size: 8,
-            max_in_flight_batches: 1,
-        },
-        "high" => SizeConcurrencyPlan {
-            batch_size: 32,
-            max_in_flight_batches: 8,
-        },
-        _ => {
-            let cpus = std::thread::available_parallelism()
-                .map(|n| n.get())
-                .unwrap_or(4);
-            let batches = (cpus / 2).clamp(2, 6);
-            SizeConcurrencyPlan {
-                batch_size: 25,
-                max_in_flight_batches: batches,
-            }
-        }
+    let workers = scan_worker_count(mode);
+    SizeConcurrencyPlan {
+        batch_size: workers,
+        max_in_flight_batches: 1,
     }
 }
 
@@ -44,14 +39,20 @@ mod tests {
     #[test]
     fn low_mode_is_conservative() {
         let p = size_concurrency_plan("low");
-        assert_eq!(p.max_parallel_sizers(), 8);
+        assert_eq!(p.max_parallel_sizers(), 2);
     }
 
     #[test]
-    fn auto_mode_within_bounds() {
+    fn auto_mode_targets_six_workers() {
+        assert_eq!(scan_worker_count("auto"), 6);
         let p = size_concurrency_plan("auto");
-        assert!(p.batch_size >= 20);
-        assert!(p.max_in_flight_batches >= 2);
-        assert!(p.max_parallel_sizers() <= 25 * 6);
+        assert_eq!(p.max_parallel_sizers(), 6);
+    }
+
+    #[test]
+    fn high_mode_targets_eight_workers() {
+        assert_eq!(scan_worker_count("high"), 8);
+        let p = size_concurrency_plan("high");
+        assert_eq!(p.max_parallel_sizers(), 8);
     }
 }

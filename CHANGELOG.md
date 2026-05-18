@@ -2,7 +2,25 @@
 
 ## [Unreleased]
 
-_Planned: v0.6.5 smart discovery patterns + classify parallelism — see [docs/product/v0.6.5-manifest.md](docs/product/v0.6.5-manifest.md)._
+## [0.6.5] - 2026-05-17
+
+### Added
+
+- **Fast tree delete (experimental)** — `fast_tree_delete_enabled` (default on): in-place cleanup of `node_modules`, `target`, and build folders uses `rmdir /s /q` (Windows) or `rm -rf` (Unix) instead of per-file Rust removal; Settings → Safety.
+- **Parallel in-place deletes** — bulk trees delete concurrently; worker count follows Scan behavior → Performance (`auto` / `low` / `high`); caps parallel deletes on huge batches (HDD-friendly).
+- **Scan parallelism retuned** — `auto` uses 6 workers, `high` 8, `low` 2 (discover subtree split, classify/size batches, delete); parallel discover when a root has multiple immediate child folders (e.g. whole `G:\`).
+- **Discover** — no longer walks inside `node_modules` / `target` interiors (avoids 50k+ useless directory visits).
+- **Delete coalescing** — merges nested/duplicate paths before delete.
+- **Cancel cleanup** — Stop cleanup button + `cancel_cleanup` command.
+- **Large result lists** — default show 150 rows; optional pagination (200/page); cleanup timer updates every 250ms.
+- **Smart discovery** (`smart_discovery_enabled`) — declarative walk patterns map path signals to registered kinds (Android Studio / JetBrains `caches` → IDE global cache when opted in).
+- **`discovery_patterns`** module + experiment doc [smart-scan-strategy.md](docs/experiments/smart-scan-strategy.md).
+- **`classify_parallel_threshold`** (Advanced, default 8) — tunes when rayon classify runs.
+
+### Fixed
+
+- **Scan progress phase** — UI no longer sits on “Classifying” during slow size walks; phase switches to **Size** before measuring, with throttled in-chunk updates; progress bar weights size ~55% of the bar (classify ~7%). Removed misleading “remaining in pipeline” classify text.
+- **Discover skip logic** — “inside `target`/`node_modules`” checks respect the current walk root (fixes scans under `target/deco-bench-runs/` and benchmark regressions).
 
 ## [0.6.4] - 2026-05-17
 
@@ -62,7 +80,6 @@ _Planned: v0.6.5 smart discovery patterns + classify parallelism — see [docs/p
 - Scan completion reports `inventory_reused` count in warnings and `ScanResponse`.
 
 ## [0.6.0] - 2026-05-15
-
 ### Added
 
 - **Scan pipeline (v0.6.0)** — discover, then classify and size in 64-target chunks so candidates and sizes stream sooner on large drives.

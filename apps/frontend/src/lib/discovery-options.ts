@@ -18,6 +18,7 @@ export type DiscoveryOptionKey = Extract<
   | 'check_nuget_cache'
   | 'check_composer_cache'
   | 'include_python_venv'
+  | 'smart_discovery_enabled'
 >;
 
 export type DiscoveryCategoryId =
@@ -82,7 +83,8 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
         type: 'option',
         key: 'check_pnpm_store',
         label: 'pnpm store',
-        description: 'pnpm content store (v3); respects PNPM_STORE_PATH / pnpm store path.',
+        description:
+          'Global store and project `.pnpm-store` folders (v3 marker); respects PNPM_STORE_PATH / pnpm store path.',
       },
       {
         type: 'option',
@@ -161,8 +163,15 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
       {
         type: 'option',
         key: 'check_ide_global_cache',
-        label: 'Xcode DerivedData',
-        description: 'IDE global cache (review tier; opt-in).',
+        label: 'IDE global caches',
+        description: 'Xcode DerivedData plus JetBrains/Android Studio caches when smart discovery is on.',
+      },
+      {
+        type: 'option',
+        key: 'smart_discovery_enabled',
+        label: 'Smart discovery',
+        description:
+          'Match declarative path patterns (e.g. Android Studio caches) to registered kinds. Requires the matching opt-in flags.',
       },
     ],
   },

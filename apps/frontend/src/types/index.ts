@@ -91,6 +91,10 @@ export interface Settings {
   incremental_inventory_enabled?: boolean;
   /** `thorough` | `balanced` | `fast` | `background` | `custom` (v0.6.3). */
   scan_strategy?: string;
+  /** Declarative IDE/tool path patterns (v0.6.5). */
+  smart_discovery_enabled?: boolean;
+  /** Rayon classify when chunk has at least this many targets (v0.6.5). */
+  classify_parallel_threshold?: number;
   show_blocked: boolean;
   check_go_cache: boolean;
   include_python_artifacts: boolean;
@@ -109,6 +113,8 @@ export interface Settings {
   check_cargo_registry?: boolean;
   check_nuget_cache?: boolean;
   check_composer_cache?: boolean;
+  /** Experimental: rmdir / rm -rf for node_modules when deleting in place (v0.6.5). */
+  fast_tree_delete_enabled?: boolean;
   delete_mode: string;
   /** per_drive | custom — only when delete_mode is quarantine */
   quarantine_layout?: string;

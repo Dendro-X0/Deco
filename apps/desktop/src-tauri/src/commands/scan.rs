@@ -5,10 +5,10 @@ use crate::engine::inventory::{
     split_targets_with_inventory, upsert_candidates, ScanMode,
 };
 use crate::engine::path_policy::PathPolicy;
-use crate::engine::scan_concurrency::{size_concurrency_plan, SizeConcurrencyPlan};
+use crate::engine::scan_concurrency::{scan_worker_count, size_concurrency_plan, SizeConcurrencyPlan};
 use crate::engine::scanner::{discover_targets, DiscoverProgressCallback};
 use crate::engine::sizer::size_candidates_parallel;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use crate::engine::types::{
     CleanupCandidate, ClearScanHistoryResponse, DeleteScanHistoryResponse, RiskLevel, RiskTotals,
     ScanHistoryItem, ScanHistoryResponse, ScanRequest, ScanResponse, Totals,
@@ -276,6 +276,8 @@ pub(crate) fn run_scan(
         (&req).into(),
         req.check_go_cache,
         &disk.extra_names,
+        settings_snapshot.smart_discovery_enabled,
+        scan_worker_count(&settings_snapshot.scan_concurrency_mode),
         Some(cancel_handles.discovery.as_ref()),
         Some(progress),
     );
@@ -343,9 +345,32 @@ pub(crate) fn run_scan(
     }
 
     let total_targets = discovery_target_count;
-    let pipeline_targets = targets.len();
 
     set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Classify);
+
+    if targets.is_empty() && !candidates.is_empty() {
+        if req.include_size {
+            set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Size);
+            emit_progress(
+                &app,
+                ScanProgressEvent::base(
+                    &scan_id,
+                    "size",
+                    format!(
+                        "Calculating sizes… {processed_sizes}/{total_targets} (inventory reuse)"
+                    ),
+                )
+                .with_counts(
+                    discovery.scanned_dirs,
+                    total_targets as u64,
+                    candidates.len() as u64,
+                    processed_sizes,
+                    total_targets as u64,
+                )
+                .with_timings(&timings),
+            );
+        }
+    }
 
     for chunk in targets.chunks(CLASSIFY_PIPELINE_CHUNK) {
         if sizing_canceled(&cancel_handles) {
@@ -358,8 +383,16 @@ pub(crate) fn run_scan(
         }
 
         let classify_start = Instant::now();
-        let classified =
-            classify_targets(chunk.to_vec(), &roots, req.stale_days, &policy);
+        let classify_parallel = settings_snapshot
+            .classify_parallel_threshold
+            .clamp(1, 128) as usize;
+        let classified = classify_targets(
+            chunk.to_vec(),
+            &roots,
+            req.stale_days,
+            &policy,
+            classify_parallel,
+        );
         timings.classify_ms = timings
             .classify_ms
             .saturating_add(classify_start.elapsed().as_millis() as u64);
@@ -368,34 +401,63 @@ pub(crate) fn run_scan(
         candidates.extend(classified);
 
         let classified_so_far = candidates.len() as u64;
-        emit_progress(
-            &app,
-            ScanProgressEvent::base(
-                &scan_id,
-                "classify",
-                format!(
-                    "Classifying… {classified_so_far}/{total_targets} ({pipeline_targets} remaining in pipeline)"
-                ),
-            )
-            .with_counts(
-                discovery.scanned_dirs,
-                total_targets as u64,
-                classified_so_far,
-                processed_sizes,
-                total_targets as u64,
-            )
-            .with_timings(&timings),
-        );
 
         if req.include_size {
             set_scan_phase(state.as_ref(), &scan_id, ScanRunPhase::Size);
-            let size_start = Instant::now();
             let batch_start = candidates.len().saturating_sub(chunk.len());
+            let chunk_len = chunk.len();
+
+            emit_progress(
+                &app,
+                ScanProgressEvent::base(
+                    &scan_id,
+                    "size",
+                    format!("Calculating sizes… {processed_sizes}/{total_targets}"),
+                )
+                .with_counts(
+                    discovery.scanned_dirs,
+                    total_targets as u64,
+                    classified_so_far,
+                    processed_sizes,
+                    total_targets as u64,
+                )
+                .with_timings(&timings),
+            );
+
+            let size_start = Instant::now();
+            let mut last_size_emit = Instant::now();
+            let chunk_base_processed = processed_sizes;
             let canceled = size_candidates_slice(
                 &mut candidates[batch_start..],
                 &size_plan,
                 &cancel_handles,
                 &mut warnings,
+                |done_in_chunk, chunk_total| {
+                    let done = chunk_base_processed + done_in_chunk as u64;
+                    let now = Instant::now();
+                    if done_in_chunk < chunk_total
+                        && now.duration_since(last_size_emit) < Duration::from_millis(350)
+                    {
+                        return;
+                    }
+                    last_size_emit = now;
+                    emit_progress(
+                        &app,
+                        ScanProgressEvent::base(
+                            &scan_id,
+                            "size",
+                            format!("Calculating sizes… {done}/{total_targets}"),
+                        )
+                        .with_counts(
+                            discovery.scanned_dirs,
+                            total_targets as u64,
+                            classified_so_far,
+                            done,
+                            total_targets as u64,
+                        )
+                        .with_timings(&timings),
+                    );
+                },
             );
             timings.size_ms = timings
                 .size_ms
@@ -410,7 +472,7 @@ pub(crate) fn run_scan(
                 ScanCandidateBatchEvent {
                     scan_id: scan_id.clone(),
                     phase: "size".to_string(),
-                    candidates: candidates[batch_start..].to_vec(),
+                    candidates: candidates[batch_start..batch_start + chunk_len].to_vec(),
                 },
             );
 
@@ -439,6 +501,23 @@ pub(crate) fn run_scan(
                 );
                 break;
             }
+        } else {
+            emit_progress(
+                &app,
+                ScanProgressEvent::base(
+                    &scan_id,
+                    "classify",
+                    format!("Classifying… {classified_so_far}/{total_targets}"),
+                )
+                .with_counts(
+                    discovery.scanned_dirs,
+                    total_targets as u64,
+                    classified_so_far,
+                    processed_sizes,
+                    total_targets as u64,
+                )
+                .with_timings(&timings),
+            );
         }
     }
 
@@ -709,10 +788,14 @@ fn size_candidates_slice(
     plan: &SizeConcurrencyPlan,
     cancel_handles: &ScanCancelHandles,
     warnings: &mut Vec<String>,
+    mut on_batch_sized: impl FnMut(usize, usize),
 ) -> bool {
-    let (mut size_warnings, canceled) = size_candidates_parallel(candidates, plan, || {
-        sizing_canceled(cancel_handles)
-    });
+    let (mut size_warnings, canceled) = size_candidates_parallel(
+        candidates,
+        plan,
+        || sizing_canceled(cancel_handles),
+        |done, total| on_batch_sized(done, total),
+    );
     warnings.append(&mut size_warnings);
     canceled
 }

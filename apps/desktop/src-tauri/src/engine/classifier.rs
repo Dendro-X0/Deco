@@ -7,16 +7,18 @@ use std::path::Path;
 use std::sync::Mutex;
 use uuid::Uuid;
 
-const PARALLEL_CLASSIFY_MIN: usize = 8;
+pub const DEFAULT_CLASSIFY_PARALLEL_THRESHOLD: usize = 8;
 
 pub fn classify_targets(
     discovered: Vec<DiscoveredTarget>,
     roots: &[String],
     stale_days_threshold: u32,
     policy: &PathPolicy,
+    parallel_threshold: usize,
 ) -> Vec<CleanupCandidate> {
     let now_ms = chrono::Utc::now().timestamp_millis();
-    if discovered.len() < PARALLEL_CLASSIFY_MIN {
+    let min_parallel = parallel_threshold.max(1);
+    if discovered.len() < min_parallel {
         let mut cache = ProjectRootCache::default();
         return discovered
             .into_iter()
@@ -290,7 +292,13 @@ mod tests {
 
         let policy = PathPolicy::new(vec![], vec![]);
         let roots = vec![root.to_string_lossy().to_string()];
-        let classified = classify_targets(discovered, &roots, 45, &policy);
+        let classified = classify_targets(
+            discovered,
+            &roots,
+            45,
+            &policy,
+            DEFAULT_CLASSIFY_PARALLEL_THRESHOLD,
+        );
         assert_eq!(classified[0].risk, RiskLevel::Safe);
         assert!(classified[0]
             .reason_codes
@@ -312,7 +320,13 @@ mod tests {
 
         let policy = PathPolicy::new(vec![], vec![]);
         let roots = vec![root.to_string_lossy().to_string()];
-        let classified = classify_targets(discovered, &roots, 45, &policy);
+        let classified = classify_targets(
+            discovered,
+            &roots,
+            45,
+            &policy,
+            DEFAULT_CLASSIFY_PARALLEL_THRESHOLD,
+        );
         assert_eq!(classified[0].risk, RiskLevel::Blocked);
         assert!(classified[0]
             .reason_codes

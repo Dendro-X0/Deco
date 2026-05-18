@@ -1,4 +1,5 @@
 import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { formatDurationMs } from '@/lib/format';
 
 type Props = {
@@ -6,10 +7,11 @@ type Props = {
   message: string;
   detail?: string;
   elapsedMs: number;
+  onCancel?: () => void;
 };
 
 /** Blocks pointer input while cleanup runs on a background thread; shows timer + context. */
-export function CleanupBusyOverlay({ visible, message, detail, elapsedMs }: Props) {
+export function CleanupBusyOverlay({ visible, message, detail, elapsedMs, onCancel }: Props) {
   if (!visible) return null;
 
   return (
@@ -29,12 +31,17 @@ export function CleanupBusyOverlay({ visible, message, detail, elapsedMs }: Prop
             ) : null}
           </div>
         </div>
-        <div className="flex items-center justify-between border-t border-border/50 pt-2 text-xs">
+        <div className="flex items-center justify-between border-t border-border/50 pt-2 text-xs gap-3">
           <span className="text-muted-foreground">Elapsed</span>
           <span className="font-mono font-semibold tabular-nums text-primary">
-            {elapsedMs > 0 ? formatDurationMs(elapsedMs) : '0s'}
+            {formatDurationMs(Math.max(0, elapsedMs))}
           </span>
         </div>
+        {onCancel ? (
+          <Button type="button" variant="outline" size="sm" className="w-full" onClick={onCancel}>
+            Stop cleanup
+          </Button>
+        ) : null}
       </div>
     </div>
   );

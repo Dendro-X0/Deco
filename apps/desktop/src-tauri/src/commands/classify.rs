@@ -12,5 +12,11 @@ pub fn classify_targets_preview(
     allow_path_contains: Vec<String>,
 ) -> Result<Vec<CleanupCandidate>, String> {
     let policy = PathPolicy::new(extra_protected_path_contains, allow_path_contains);
-    Ok(classify_targets(discovered, &roots, stale_days, &policy))
+    Ok(classify_targets(
+        discovered,
+        &roots,
+        stale_days,
+        &policy,
+        crate::engine::classifier::DEFAULT_CLASSIFY_PARALLEL_THRESHOLD,
+    ))
 }

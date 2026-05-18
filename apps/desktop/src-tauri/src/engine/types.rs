@@ -19,7 +19,7 @@ pub enum SafetyClass {
     Unknown,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "snake_case")]
 pub enum Kind {
     NodeModules,
@@ -167,6 +167,14 @@ fn default_scan_concurrency_mode() -> String {
 
 fn default_scan_strategy() -> String {
     "balanced".to_string()
+}
+
+fn default_classify_parallel_threshold() -> u32 {
+    8
+}
+
+fn default_fast_tree_delete_enabled() -> bool {
+    true
 }
 
 /// Per-ecosystem discovery toggles (M7). Global caches stay opt-in via `check_*_global_cache` on scan request.
@@ -521,6 +529,12 @@ pub struct Settings {
     /// `thorough` | `balanced` | `fast` | `background` | `custom` — UI preset label (v0.6.3).
     #[serde(default = "default_scan_strategy")]
     pub scan_strategy: String,
+    /// Declarative walk patterns (Android Studio, JetBrains, …) — v0.6.5.
+    #[serde(default)]
+    pub smart_discovery_enabled: bool,
+    /// Minimum targets before parallel classify (rayon); advanced tuning — v0.6.5.
+    #[serde(default = "default_classify_parallel_threshold")]
+    pub classify_parallel_threshold: u32,
     pub show_blocked: bool,
     pub check_go_cache: bool,
     #[serde(default = "default_true")]
@@ -554,6 +568,9 @@ pub struct Settings {
     #[serde(default)]
     pub check_nuget_cache: bool,
     pub check_composer_cache: bool,
+    /// In-place delete of heavy dependency trees via `rmdir` / `rm -rf` (experimental).
+    #[serde(default = "default_fast_tree_delete_enabled")]
+    pub fast_tree_delete_enabled: bool,
     pub delete_mode: String,
     /// `per_drive` (default): `{drive}\.deco-quarantine` — never `%AppData%`.
     #[serde(default = "default_quarantine_layout")]
@@ -583,6 +600,8 @@ impl Default for Settings {
             scan_concurrency_mode: default_scan_concurrency_mode(),
             incremental_inventory_enabled: true,
             scan_strategy: default_scan_strategy(),
+            smart_discovery_enabled: false,
+            classify_parallel_threshold: default_classify_parallel_threshold(),
             show_blocked: false,
             check_go_cache: false,
             include_python_artifacts: true,
@@ -601,6 +620,7 @@ impl Default for Settings {
             check_bun_cache: false,
             check_nuget_cache: false,
             check_composer_cache: false,
+            fast_tree_delete_enabled: default_fast_tree_delete_enabled(),
             delete_mode: "delete".to_string(),
             quarantine_layout: default_quarantine_layout(),
             quarantine_custom_path: String::new(),

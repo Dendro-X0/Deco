@@ -31,6 +31,8 @@ import {
 } from './lib/direct-delete';
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { CleanupBusyOverlay } from './components/CleanupBusyOverlay';
+import { CandidateListBanner } from './components/CandidateListBanner';
+import { visibleCandidateSlice } from './lib/candidate-list-display';
 import type { ScanMode } from './components/ScanModeSelector';
 import { volumeMountsFromPaths } from './lib/volume-from-path';
 import { ScanTargetsModal } from './components/ScanTargetsModal';
@@ -178,6 +180,7 @@ export default function App() {
     clearScanHistory,
     tauriInvoke,
     cancelScan,
+    cancelCleanup,
     scanStopStage,
     searchStopped,
     storageRefreshToken,
@@ -201,6 +204,8 @@ export default function App() {
   const [plannerMessage, setPlannerMessage] = useState<string | null>(null);
   const [scanTargetsModalOpen, setScanTargetsModalOpen] = useState(false);
   const [scanTargetsAfterWizard, setScanTargetsAfterWizard] = useState(false);
+  const [candidateListExpanded, setCandidateListExpanded] = useState(false);
+  const [candidatePage, setCandidatePage] = useState(1);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [onboardingOpen, setOnboardingOpen] = useState(() => !hasCompletedOnboarding());
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -370,6 +375,11 @@ export default function App() {
         compareCandidatesSorted(a, b, sort),
       ),
     [candidates, activeFilterState, sort],
+  );
+
+  const candidateDisplay = useMemo(
+    () => visibleCandidateSlice(filteredCandidates, candidateListExpanded, candidatePage),
+    [filteredCandidates, candidateListExpanded, candidatePage],
   );
 
   const clearFilters = () => {
@@ -774,6 +784,23 @@ export default function App() {
                       />
                     </CardHeader>
                     <CardContent className="p-0">
+                      <CandidateListBanner
+                        total={filteredCandidates.length}
+                        expanded={candidateListExpanded}
+                        page={candidatePage}
+                        pageCount={candidateDisplay.pageCount}
+                        showingFrom={candidateDisplay.showingFrom}
+                        showingTo={candidateDisplay.showingTo}
+                        onExpand={() => {
+                          setCandidateListExpanded(true);
+                          setCandidatePage(1);
+                        }}
+                        onCollapse={() => {
+                          setCandidateListExpanded(false);
+                          setCandidatePage(1);
+                        }}
+                        onPageChange={setCandidatePage}
+                      />
                       <Table>
                         <TableHeader className="bg-muted/30">
                           <TableRow>
@@ -817,7 +844,7 @@ export default function App() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredCandidates.map((c) => (
+                          {candidateDisplay.visible.map((c) => (
                             <TableRow 
                               key={c.id} 
                               className={`cursor-pointer hover:bg-muted/20 transition-colors ${selectedCandidateId === c.id ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
@@ -1113,6 +1140,7 @@ export default function App() {
         message={progress.text || 'Cleanup in progress…'}
         detail={progress.detail}
         elapsedMs={elapsedMs}
+        onCancel={() => void cancelCleanup()}
       />
 
       {error && (

@@ -6,5 +6,6 @@ Optional spikes that may graduate into a [version roadmap](../product/version-ro
 |-----|--------|
 | [scan-performance.md](scan-performance.md) | Manual + automated bench protocol (`pnpm benchmark:scan`) |
 | [incremental-inventory.md](incremental-inventory.md) | Active — v0.6.1 quick update |
+| [smart-scan-strategy.md](smart-scan-strategy.md) | Shipped — v0.6.5 pattern registry |
 
 **Rules:** feature-flagged, fallback documented, benchmark or manual test note attached before promotion.

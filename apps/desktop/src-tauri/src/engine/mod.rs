@@ -1,10 +1,14 @@
 pub mod ancestor_cache;
 pub mod benchmark;
+pub mod cleanup_coalesce;
 pub mod classifier;
+pub mod delete_parallel;
+pub mod discovery_patterns;
 pub mod disk_cleanup_config;
 pub mod ecosystem_globals;
 pub mod inventory;
 pub mod executor;
+pub mod fast_tree_delete;
 pub mod path_policy;
 pub mod project_detection;
 pub mod quarantine_store;

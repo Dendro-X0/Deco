@@ -65,6 +65,7 @@ pub fn size_candidates_parallel(
     candidates: &mut [CleanupCandidate],
     plan: &SizeConcurrencyPlan,
     mut should_cancel: impl FnMut() -> bool,
+    mut on_batch_sized: impl FnMut(usize, usize),
 ) -> (Vec<String>, bool) {
     let mut warnings = Vec::new();
     let total = candidates.len();
@@ -95,6 +96,7 @@ pub fn size_candidates_parallel(
             warnings.append(&mut size_warnings);
             candidates[idx].size_bytes = size;
         }
+        on_batch_sized(batch_end, total);
     }
     (warnings, false)
 }
