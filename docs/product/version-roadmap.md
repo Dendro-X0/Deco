@@ -208,7 +208,7 @@ CLI already reports `discover → classify → size`; desktop should match seman
 | `v0.7.0` | Profiles + regeneration hints in UI | Shipped |
 | `v0.7.1` | Dormancy signals (mtime + optional git last-commit hook — opt-in) | Shipped |
 | `v0.7.2` | Policy pack validation CLI + examples repo | Shipped |
-| `v0.7.3` | Classification parity fixtures + CI automation recipe | In progress |
+| `v0.7.3` | Classification parity fixtures + CI automation recipe | Implemented (unreleased) |
 
 ---
 

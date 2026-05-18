@@ -54,3 +54,7 @@ pnpm -F @dendro-x0/deco-cli test
 ```
 
 See [Configuration](configuration.md) for repo-level JSON policy.
+
+## CI automation
+
+Dry-run scans, JSON reports, exit codes, and a reclaim threshold example: [ci-automation.md](ci-automation.md).

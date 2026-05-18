@@ -2,7 +2,12 @@
 
 ## [Unreleased]
 
-Development line **v0.7.3** — classification parity + CI automation recipe; README demos deferred to `v0.8.x` / `v1.x` (see [v0.7.3-manifest.md](docs/product/v0.7.3-manifest.md)).
+Development line **v0.7.3** — see [v0.7.3-manifest.md](docs/product/v0.7.3-manifest.md).
+
+### Added
+
+- **Classification parity fixtures** — shared `tests/fixtures/classification/cases.json`; Vitest + Rust tests keep CLI and engine aligned.
+- **CI automation docs** — [ci-automation.md](docs/cli/ci-automation.md) and `scripts/ci-scan-gate.mjs` for dry-run JSON scans and safe-tier reclaim gates.
 
 ## [0.7.2] - 2026-05-18
 

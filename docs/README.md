@@ -34,6 +34,7 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 | Doc | What it covers |
 |-----|----------------|
 | [CLI usage](cli/usage.md) | Commands, flags, JSON output |
+| [CI automation](cli/ci-automation.md) | Dry-run `--json`, exit codes, reclaim gate script |
 | [Configuration](cli/configuration.md) | `.deco/disk-cleanup.json`, `--config` |
 
 ### Distribution

@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "stale_days": 45,
+  "cases": [
+    {
+      "id": "node_modules_stale_in_project",
+      "setup": [
+        { "path": "package.json", "content": "{}" },
+        { "path": "pnpm-lock.yaml", "content": "lockfileVersion: 9" },
+        { "path": "node_modules", "type": "dir" }
+      ],
+      "targets": [{ "kind": "node_modules", "rel_path": "node_modules", "age_days": 80 }],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["NODE_MODULES_STALE", "PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "node_modules_fresh_in_project",
+      "setup": [
+        { "path": "package.json", "content": "{}" },
+        { "path": "pnpm-lock.yaml", "content": "lockfileVersion: 9" },
+        { "path": "node_modules", "type": "dir" }
+      ],
+      "targets": [{ "kind": "node_modules", "rel_path": "node_modules", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "project_artifact",
+          "reason_codes": ["NODE_MODULES_NOT_STALE", "PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "node_modules_outside_project",
+      "setup": [{ "path": "node_modules", "type": "dir" }],
+      "targets": [{ "kind": "node_modules", "rel_path": "node_modules", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "blocked",
+          "safety_class": "unknown",
+          "reason_codes": ["NODE_MODULES_OUTSIDE_PROJECT", "PROJECT_MARKERS_MISSING"]
+        }
+      ]
+    },
+    {
+      "id": "build_artifact_in_js_project",
+      "setup": [
+        { "path": "package.json", "content": "{}" },
+        { "path": "pnpm-lock.yaml", "content": "lockfileVersion: 9" },
+        { "path": "dist/.keep", "content": "" }
+      ],
+      "targets": [{ "kind": "build-artifact", "rel_path": "dist", "age_days": 10 }],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["PROJECT_MARKERS_PRESENT"]
+        }
+      ]
+    },
+    {
+      "id": "global_package_manager_caches",
+      "setup": [],
+      "targets": [
+        { "kind": "npm-global-cache", "rel_path": "npm-cache", "age_days": 0 },
+        { "kind": "pnpm-global-store", "rel_path": "pnpm-store", "age_days": 0 },
+        { "kind": "conda-pkgs-cache", "rel_path": "miniconda3/pkgs", "age_days": 0 }
+      ],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        },
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        },
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET", "CONDA_PKGS_CACHE_ONLY"]
+        }
+      ]
+    }
+  ]
+}
