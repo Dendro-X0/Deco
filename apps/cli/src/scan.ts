@@ -7,9 +7,15 @@ import {
   hasCppNativeProjectAncestor,
   hasMesonProjectAncestor,
   hasBazelProjectAncestor,
+  hasPremakeProjectAncestor,
+  hasQmakeProjectAncestor,
+  hasXmakeProjectAncestor,
   isBazelOutputDirName,
   isCppIdeDirName,
   isMesonBuildDirName,
+  isPremakeBuildDirName,
+  isQmakeShadowBuildDirName,
+  isXmakeBuildDirName,
   hasDotnetProjectAncestor,
   hasGoModAncestor,
   hasJvmProjectAncestor,
@@ -215,6 +221,29 @@ async function shouldTargetDir(
     }
     if (isBazelOutputDirName(dirName)) {
       if (await hasBazelProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (isXmakeBuildDirName(dirName)) {
+      if (await hasXmakeProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (isPremakeBuildDirName(dirName)) {
+      if (await hasPremakeProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (isQmakeShadowBuildDirName(dirName)) {
+      if (await hasQmakeProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (dirName === 'obj') {
+      if (
+        (await hasPremakeProjectAncestor(parentAbsPath, 6)) &&
+        !(await hasDotnetProjectAncestor(parentAbsPath, 6))
+      ) {
         return 'build-artifact';
       }
     }

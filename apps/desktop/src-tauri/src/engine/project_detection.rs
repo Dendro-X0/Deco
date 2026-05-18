@@ -275,6 +275,48 @@ pub fn is_bazel_output_dir_name(name: &str) -> bool {
     name.starts_with("bazel-")
 }
 
+fn dir_has_xmake_marker(dir: &Path) -> bool {
+    exists(dir.join("xmake.lua"))
+}
+
+fn dir_has_premake_marker(dir: &Path) -> bool {
+    exists(dir.join("premake5.lua")) || exists(dir.join("premake4.lua"))
+}
+
+fn dir_has_qmake_marker(dir: &Path) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return false;
+    };
+    entries.flatten().any(|entry| {
+        let name = entry.file_name().to_string_lossy().to_lowercase();
+        name.ends_with(".pro") || name.ends_with(".qmake.stash") || name == ".qmake.cache"
+    })
+}
+
+pub fn has_xmake_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
+    has_marker_ancestor(start_dir, max_ascend, dir_has_xmake_marker)
+}
+
+pub fn has_premake_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
+    has_marker_ancestor(start_dir, max_ascend, dir_has_premake_marker)
+}
+
+pub fn has_qmake_project_ancestor(start_dir: &Path, max_ascend: u32) -> bool {
+    has_marker_ancestor(start_dir, max_ascend, dir_has_qmake_marker)
+}
+
+pub fn is_xmake_build_dir_name(name: &str) -> bool {
+    name == ".build"
+}
+
+pub fn is_premake_build_dir_name(name: &str) -> bool {
+    matches!(name, "bin-int" | "bin-int64")
+}
+
+pub fn is_qmake_shadow_build_dir_name(name: &str) -> bool {
+    name.starts_with("build-") && !name.starts_with("bazel-")
+}
+
 pub fn is_msvc_config_dir_name(name: &str) -> bool {
     matches!(
         name,
@@ -320,6 +362,39 @@ mod tests {
             detected.expect("has project").project_root,
             root.to_string_lossy().to_string()
         );
+
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn has_xmake_project_ancestor_finds_build_dir() {
+        let root = temp_root("xmake-ancestor");
+        write(root.join("xmake.lua"), "set_project(\"demo\")\n").expect("write xmake");
+        create_dir_all(root.join(".build")).expect("create .build");
+
+        assert!(has_xmake_project_ancestor(&root.join(".build"), 6));
+
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn has_premake_project_ancestor_finds_bin_int() {
+        let root = temp_root("premake-ancestor");
+        write(root.join("premake5.lua"), "workspace \"demo\"\n").expect("write premake");
+        create_dir_all(root.join("bin-int")).expect("create bin-int");
+
+        assert!(has_premake_project_ancestor(&root.join("bin-int"), 6));
+
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn has_qmake_project_ancestor_finds_shadow_build() {
+        let root = temp_root("qmake-ancestor");
+        write(root.join("app.pro"), "TEMPLATE = app\n").expect("write pro");
+        create_dir_all(root.join("build-Desktop-Debug")).expect("create shadow build");
+
+        assert!(has_qmake_project_ancestor(&root.join("build-Desktop-Debug"), 6));
 
         remove_dir_all(root).expect("cleanup");
     }

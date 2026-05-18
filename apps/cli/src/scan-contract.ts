@@ -3,7 +3,7 @@ import { displayWithRegenerationHint } from './regeneration-hints.js';
 import type { CleanupCandidate, ScanReportV2, TargetDirKind } from './types.js';
 
 /** Keep in sync with `SCAN_REPORT_SCHEMA_VERSION` in `apps/desktop/src-tauri/src/engine/types.rs`. */
-export const SCAN_REPORT_SCHEMA_VERSION = '2.7.0' as const;
+export const SCAN_REPORT_SCHEMA_VERSION = '2.7.1' as const;
 
 const KIND_TO_WIRE: Record<TargetDirKind, string> = {
   'node_modules': 'node_modules',

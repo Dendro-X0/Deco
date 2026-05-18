@@ -11,6 +11,7 @@ use super::ecosystem_globals::{
 };
 use super::project_detection::{
     dir_has_cpp_native_marker, is_bazel_output_dir_name, is_cpp_ide_dir_name, is_meson_build_dir_name,
+    is_premake_build_dir_name, is_qmake_shadow_build_dir_name, is_xmake_build_dir_name,
     is_msvc_arch_dir_name, is_msvc_config_dir_name,
 };
 use super::path_policy::PathPolicy;
@@ -192,6 +193,32 @@ fn detect_kind(
         }
         name if profile != "safe" && is_bazel_output_dir_name(name) => {
             if cache.has_bazel_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && is_xmake_build_dir_name(name) => {
+            if cache.has_xmake_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && is_premake_build_dir_name(name) => {
+            if cache.has_premake_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && is_qmake_shadow_build_dir_name(name) => {
+            if cache.has_qmake_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && name == "obj" => {
+            if cache.has_premake_project_ancestor(entry_path, 6)
+                && !cache.has_dotnet_project_ancestor(entry_path, 6)
+            {
                 return Some(Kind::BuildArtifact);
             }
             return None;
@@ -1036,6 +1063,52 @@ mod tests {
             .targets
             .iter()
             .any(|t| t.kind == Kind::GoGlobalCache));
+    }
+
+    #[test]
+    fn discovers_xmake_premake_qmake_on_balanced() {
+        use std::fs::write;
+
+        let root = temp_root("scan-native-alt");
+        let xmake = root.join("xmake-app");
+        create_dir_all(&xmake).expect("create xmake");
+        write(xmake.join("xmake.lua"), "set_project(\"demo\")\n").expect("write xmake");
+        create_dir_all(xmake.join(".build")).expect("create .build");
+
+        let premake = root.join("premake-app");
+        create_dir_all(&premake).expect("create premake");
+        write(premake.join("premake5.lua"), "workspace \"w\"\n").expect("write premake");
+        create_dir_all(premake.join("bin-int")).expect("create bin-int");
+
+        let qt = root.join("qt-app");
+        create_dir_all(&qt).expect("create qt");
+        write(qt.join("app.pro"), "TEMPLATE = app\n").expect("write pro");
+        create_dir_all(qt.join("build-Desktop-Debug")).expect("create qt build");
+
+        let policy = PathPolicy::new(vec![], vec![]);
+        let result = discover_targets(
+            &[root.to_string_lossy().to_string()],
+            8,
+            "balanced",
+            &[],
+            &policy,
+            EcosystemScanOptions::default(),
+            false,
+            &ExtraDiscoverNames::default(),
+            false,
+            6,
+            None,
+            None,
+        );
+
+        assert!(result.targets.iter().any(|t| t.abs_path.ends_with(".build")));
+        assert!(result.targets.iter().any(|t| t.abs_path.ends_with("bin-int")));
+        assert!(result
+            .targets
+            .iter()
+            .any(|t| t.abs_path.ends_with("build-Desktop-Debug")));
+
+        remove_dir_all(root).expect("cleanup");
     }
 
     #[test]

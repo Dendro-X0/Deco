@@ -9,6 +9,11 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.7.1 — 2026-05-18
+
+- **Changed** walk discovery: Xmake `.build`, Premake `bin-int` / `obj`, Qt/qmake `build-*` shadow dirs when respective project markers are present (`balanced+`). No new candidate kinds.
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.7.1`.
+
 ## 2.7.0 — 2026-05-18
 
 - **Added** candidate kinds: `vcpkg_installed_cache`, `conan_global_cache`, `ccache_global_cache`, `sccache_global_cache`.

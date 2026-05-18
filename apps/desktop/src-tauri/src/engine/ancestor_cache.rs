@@ -4,7 +4,8 @@ use std::path::Path;
 use super::project_detection::{
     has_bazel_project_ancestor, has_cmake_project_ancestor, has_cpp_native_project_ancestor,
     has_dotnet_project_ancestor, has_go_mod_ancestor, has_jvm_project_ancestor,
-    has_meson_project_ancestor, has_python_project_ancestor,
+    has_meson_project_ancestor, has_premake_project_ancestor, has_python_project_ancestor,
+    has_qmake_project_ancestor, has_xmake_project_ancestor,
 };
 
 /// Memoizes ancestor marker lookups during a single discovery walk (per scan root).
@@ -17,6 +18,9 @@ pub struct AncestorCache {
     cmake: HashMap<String, bool>,
     meson: HashMap<String, bool>,
     bazel: HashMap<String, bool>,
+    xmake: HashMap<String, bool>,
+    premake: HashMap<String, bool>,
+    qmake: HashMap<String, bool>,
     cpp_native: HashMap<String, bool>,
 }
 
@@ -100,6 +104,36 @@ impl AncestorCache {
         }
         let value = has_bazel_project_ancestor(start_dir, max_ascend);
         self.bazel.insert(key, value);
+        value
+    }
+
+    pub fn has_xmake_project_ancestor(&mut self, start_dir: &Path, max_ascend: u32) -> bool {
+        let key = cache_key(start_dir);
+        if let Some(&hit) = self.xmake.get(&key) {
+            return hit;
+        }
+        let value = has_xmake_project_ancestor(start_dir, max_ascend);
+        self.xmake.insert(key, value);
+        value
+    }
+
+    pub fn has_premake_project_ancestor(&mut self, start_dir: &Path, max_ascend: u32) -> bool {
+        let key = cache_key(start_dir);
+        if let Some(&hit) = self.premake.get(&key) {
+            return hit;
+        }
+        let value = has_premake_project_ancestor(start_dir, max_ascend);
+        self.premake.insert(key, value);
+        value
+    }
+
+    pub fn has_qmake_project_ancestor(&mut self, start_dir: &Path, max_ascend: u32) -> bool {
+        let key = cache_key(start_dir);
+        if let Some(&hit) = self.qmake.get(&key) {
+            return hit;
+        }
+        let value = has_qmake_project_ancestor(start_dir, max_ascend);
+        self.qmake.insert(key, value);
         value
     }
 

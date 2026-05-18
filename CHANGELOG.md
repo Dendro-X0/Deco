@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.6.11] - 2026-05-18
+
+### Added
+
+- **Xmake / Premake / Qt builds** — `.build` (Xmake), `bin-int` / `bin-int64` (Premake), Premake `obj/` (when not a .NET tree), Qt shadow `build-*` dirs when `.pro` is present (`balanced+`). See [v0.6.11-manifest.md](docs/product/v0.6.11-manifest.md).
+
+### Changed
+
+- **Scan contract `2.7.1`** — discovery-only patch (no new candidate kinds). See [contract/changelog.md](docs/contract/changelog.md).
+
 ## [0.6.10] - 2026-05-18
 
 ### Added

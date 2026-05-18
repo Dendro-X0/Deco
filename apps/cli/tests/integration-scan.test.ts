@@ -262,6 +262,33 @@ describe('integration scan behavior', () => {
     expect(report.candidates.some((c) => c.absPath === path.join(meson, 'builddir'))).toBe(true);
   });
 
+  it('discovers Xmake, Premake, and Qt shadow builds on balanced profile', async () => {
+    const root = await createTmpRoot('deco-native-alt-');
+    tmpRoots.push(root);
+
+    const xmake = path.join(root, 'xmake-app');
+    await mkdir(xmake, { recursive: true });
+    await writeFile(path.join(xmake, 'xmake.lua'), 'set_project("demo")\n', 'utf8');
+    await mkdir(path.join(xmake, '.build'), { recursive: true });
+
+    const premake = path.join(root, 'premake-app');
+    await mkdir(premake, { recursive: true });
+    await writeFile(path.join(premake, 'premake5.lua'), 'workspace "w"\n', 'utf8');
+    await mkdir(path.join(premake, 'bin-int'), { recursive: true });
+
+    const qt = path.join(root, 'qt-app');
+    await mkdir(qt, { recursive: true });
+    await writeFile(path.join(qt, 'app.pro'), 'TEMPLATE = app\n', 'utf8');
+    await mkdir(path.join(qt, 'build-Desktop-Debug'), { recursive: true });
+
+    const report = await buildReport({ ...createOptions(root), profile: 'balanced' });
+    expect(report.candidates.some((c) => c.absPath === path.join(xmake, '.build'))).toBe(true);
+    expect(report.candidates.some((c) => c.absPath === path.join(premake, 'bin-int'))).toBe(true);
+    expect(report.candidates.some((c) => c.absPath === path.join(qt, 'build-Desktop-Debug'))).toBe(
+      true,
+    );
+  });
+
   it('discovers Bazel bazel-out on balanced profile', async () => {
     const root = await createTmpRoot('deco-bazel-');
     tmpRoots.push(root);

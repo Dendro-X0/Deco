@@ -401,7 +401,7 @@ fn default_scan_mode_full() -> String {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.7.0";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.7.1";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {

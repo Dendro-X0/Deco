@@ -233,6 +233,50 @@ export function isBazelOutputDirName(name: string): boolean {
   return name.startsWith('bazel-');
 }
 
+async function dirHasXmakeMarker(dir: string): Promise<boolean> {
+  return exists(path.join(dir, 'xmake.lua'));
+}
+
+async function dirHasPremakeMarker(dir: string): Promise<boolean> {
+  return (await exists(path.join(dir, 'premake5.lua'))) || (await exists(path.join(dir, 'premake4.lua')));
+}
+
+async function dirHasQmakeMarker(dir: string): Promise<boolean> {
+  try {
+    const entries = await readdir(dir);
+    return entries.some((name) => {
+      const lower = name.toLowerCase();
+      return lower.endsWith('.pro') || lower.endsWith('.qmake.stash') || lower === '.qmake.cache';
+    });
+  } catch {
+    return false;
+  }
+}
+
+export function hasXmakeProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
+  return hasMarkerAncestor(fromDirectory, maxAscend, dirHasXmakeMarker);
+}
+
+export function hasPremakeProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
+  return hasMarkerAncestor(fromDirectory, maxAscend, dirHasPremakeMarker);
+}
+
+export function hasQmakeProjectAncestor(fromDirectory: string, maxAscend = 6): Promise<boolean> {
+  return hasMarkerAncestor(fromDirectory, maxAscend, dirHasQmakeMarker);
+}
+
+export function isXmakeBuildDirName(name: string): boolean {
+  return name === '.build';
+}
+
+export function isPremakeBuildDirName(name: string): boolean {
+  return name === 'bin-int' || name === 'bin-int64';
+}
+
+export function isQmakeShadowBuildDirName(name: string): boolean {
+  return name.startsWith('build-') && !name.startsWith('bazel-');
+}
+
 export function isMsvcConfigDirName(name: string): boolean {
   return name === 'Debug' || name === 'Release' || name === 'RelWithDebInfo' || name === 'MinSizeRel';
 }
