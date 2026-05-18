@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-18 · **Current release:** `v0.6.11`
+**Last updated:** 2026-05-18 · **Latest shipped:** `v0.6.11` · **Development head:** `v0.6.12`
 
 ---
 

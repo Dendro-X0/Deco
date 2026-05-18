@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+Development line **v0.6.12** — see [v0.6.12-manifest.md](docs/product/v0.6.12-manifest.md).
+
 ## [0.6.11] - 2026-05-18
 
 ### Added
