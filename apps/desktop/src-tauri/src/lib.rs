@@ -75,6 +75,7 @@ pub fn run() {
             commands::settings::list_storage_volumes_command,
             commands::classify::classify_targets_preview,
             commands::explorer::reveal_path_in_explorer,
+            commands::explorer::open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

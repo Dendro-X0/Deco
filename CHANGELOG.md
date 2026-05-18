@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-05-18
+
+### Added
+
+- **Quick update recommendation** — after the first completed scan, dashboard banner and header button hint recommend Quick update for repeat scans (especially HDD); dismissible.
+- **Check for updates** — Settings → Updates queries GitHub Releases for the latest tag and Windows installer assets; opens release notes and downloads in the browser.
+
 ### Fixed
 
 - **CI Rust tests** — `cleanup_coalesce` normalizes `\` and `/` on all platforms; quick-update bench treats sub-millisecond pipeline timings as pass when inventory reuse is verified.

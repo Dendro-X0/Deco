@@ -23,6 +23,34 @@ pub fn reveal_path_in_explorer(path: String) -> Result<(), String> {
     reveal_in_file_manager(&target).map_err(|e| format!("Failed to open in file manager: {e}"))
 }
 
+/// Open an https URL in the system browser (release notes, download links).
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    let url = url.trim();
+    if !url.starts_with("https://") {
+        return Err("Only https URLs are allowed.".to_string());
+    }
+    open_in_browser(url).map_err(|e| format!("Failed to open URL: {e}"))
+}
+
+fn open_in_browser(url: &str) -> std::io::Result<()> {
+    #[cfg(windows)]
+    {
+        Command::new("cmd")
+            .args(["/C", "start", "", url])
+            .spawn()?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("open").arg(url).spawn()?;
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        Command::new("xdg-open").arg(url).spawn()?;
+    }
+    Ok(())
+}
+
 #[cfg(windows)]
 fn reveal_in_file_manager(path: &Path) -> std::io::Result<()> {
     let path_str = path.to_string_lossy();

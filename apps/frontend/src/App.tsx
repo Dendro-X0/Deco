@@ -14,6 +14,7 @@ import {
   AlertTriangle,
   Sparkles,
   FolderOpen,
+  Zap,
 } from 'lucide-react';
 import { useDeco } from './hooks/use-deco';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
@@ -47,6 +48,8 @@ import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
 import { ScanHistoryPanel } from './components/ScanHistoryPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { QuickUpdateRecommendBanner } from './components/QuickUpdateRecommendBanner';
+import { shouldRecommendQuickUpdate } from './lib/quick-update-hint';
 import { LastScanSummaryCard } from './components/LastScanSummaryCard';
 import { ScanStatisticsCard } from './components/ScanStatisticsCard';
 import { SelectionActionBar } from './components/SelectionActionBar';
@@ -223,6 +226,16 @@ export default function App() {
   }, [candidates, selectedIds]);
 
   const lastHistoryItem = history.length > 0 ? history[0] : null;
+
+  const recommendQuickUpdate = useMemo(
+    () =>
+      shouldRecommendQuickUpdate({
+        incrementalInventoryEnabled: settings?.incremental_inventory_enabled !== false,
+        completedScanCount: history.length,
+        scanning,
+      }),
+    [settings?.incremental_inventory_enabled, history.length, scanning],
+  );
 
   const applyHistoryReuse = async (item: HistoryItem) => {
     if (!settings) return;
@@ -605,11 +618,21 @@ export default function App() {
                   </Button>
                   <Button
                     variant="secondary"
-                    className="gap-2 font-semibold"
+                    className={`gap-2 font-semibold ${recommendQuickUpdate ? 'ring-2 ring-primary/40 border-primary/30' : ''}`}
                     onClick={() => requestScan({ mode: 'quick' })}
-                    title="Reuse cached classify/size for unchanged paths. Run a full scan after changing profile or discovery options."
+                    title={
+                      recommendQuickUpdate
+                        ? 'Recommended for repeat scans — reuses inventory; much faster on HDD when paths are unchanged.'
+                        : 'Reuse cached classify/size for unchanged paths. Run a full scan after changing profile or discovery options.'
+                    }
                   >
+                    {recommendQuickUpdate ? <Zap size={16} className="text-primary" /> : null}
                     Quick update
+                    {recommendQuickUpdate ? (
+                      <span className="text-[10px] font-bold uppercase tracking-wide opacity-90">
+                        Recommended
+                      </span>
+                    ) : null}
                   </Button>
                 </>
               )}
@@ -663,6 +686,13 @@ export default function App() {
 
                 {summary && !scanning ? (
                   <ScanStatisticsCard report={summary} metrics={scanMetrics} />
+                ) : null}
+
+                {recommendQuickUpdate ? (
+                  <QuickUpdateRecommendBanner
+                    disabled={!hasScanTargetsReady}
+                    onQuickUpdate={() => requestScan({ mode: 'quick' })}
+                  />
                 ) : null}
 
                 {!summary && !scanning && (

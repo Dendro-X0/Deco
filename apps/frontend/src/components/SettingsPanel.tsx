@@ -39,6 +39,7 @@ import {
   type ScanStrategyPreset,
 } from '@/lib/scan-strategy';
 import type { Settings } from '@/types';
+import { CheckForUpdatesSection } from '@/components/CheckForUpdatesSection';
 
 type Props = {
   settings: Settings | null;
@@ -194,6 +195,15 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard }: Props) 
         ) : null}
       </CardHeader>
       <CardContent className="space-y-8">
+        <SettingsSection
+          title="Updates"
+          description="Desktop builds are distributed via GitHub Releases (Windows MSI / NSIS)."
+        >
+          <CheckForUpdatesSection disabled={scanning || saving} />
+        </SettingsSection>
+
+        <Separator className="opacity-50" />
+
         <SettingsSection
           title="Scan behavior"
           description={
