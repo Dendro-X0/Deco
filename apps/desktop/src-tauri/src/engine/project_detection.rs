@@ -143,6 +143,8 @@ fn dir_has_jvm_marker(dir: &Path) -> bool {
         "build.gradle.kts",
         "settings.gradle",
         "settings.gradle.kts",
+        "gradlew",
+        "gradlew.bat",
     ];
     FILES.iter().any(|f| exists(dir.join(f)))
 }

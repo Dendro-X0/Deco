@@ -18,6 +18,8 @@ const HINTS: Partial<Record<TargetDirKind, string>> = {
   'conan-global-cache': '`conan remove "*"` -c; packages re-fetch on next build',
   'ccache-global-cache': '`ccache -C` or delete cache dir; objects rebuild on compile',
   'sccache-global-cache': 'Clear sccache store; compiler cache repopulates on build',
+  'bazel-disk-cache':
+    'Point Bazel `--disk_cache` at a new directory or delete this tree; rebuild repopulates the cache',
 };
 
 export function regenerationHintForKind(kind: TargetDirKind): string | undefined {

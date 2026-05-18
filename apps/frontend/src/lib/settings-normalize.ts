@@ -99,6 +99,7 @@ export function normalizeSettings(raw: unknown): Settings {
     check_conan_cache: bool('check_conan_cache', 'checkConanCache', false),
     check_ccache: bool('check_ccache', 'checkCcache', false),
     check_sccache: bool('check_sccache', 'checkSccache', false),
+    check_bazel_disk_cache: bool('check_bazel_disk_cache', 'checkBazelDiskCache', false),
     fast_tree_delete_enabled: bool(
       'fast_tree_delete_enabled',
       'fastTreeDeleteEnabled',

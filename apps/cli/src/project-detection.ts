@@ -126,7 +126,15 @@ async function dirHasPythonMarker(dir: string): Promise<boolean> {
 }
 
 async function dirHasJvmMarker(dir: string): Promise<boolean> {
-  const files = ['pom.xml', 'build.gradle', 'build.gradle.kts', 'settings.gradle', 'settings.gradle.kts'];
+  const files = [
+    'pom.xml',
+    'build.gradle',
+    'build.gradle.kts',
+    'settings.gradle',
+    'settings.gradle.kts',
+    'gradlew',
+    'gradlew.bat',
+  ];
   return (await Promise.all(files.map((f) => exists(path.join(dir, f))))).some(Boolean);
 }
 

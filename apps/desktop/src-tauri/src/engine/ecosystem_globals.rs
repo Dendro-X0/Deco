@@ -735,6 +735,44 @@ pub fn discover_sccache_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) 
     (targets, warnings)
 }
 
+/// True when `path` looks like a Bazel `--disk_cache` directory (has `cas` and/or `ac` trees).
+fn is_bazel_disk_cache_layout(path: &Path) -> bool {
+    if !path.is_dir() {
+        return false;
+    }
+    path.join("cas").is_dir() || path.join("ac").is_dir()
+}
+
+/// Discovers a Bazel disk cache only when **`BAZEL_DISK_CACHE`** is set to an existing directory
+/// that matches [`is_bazel_disk_cache_layout`] (avoids guessing under arbitrary `bazel-*` paths).
+pub fn discover_bazel_disk_global_caches() -> (Vec<DiscoveredTarget>, Vec<String>) {
+    let mut targets = Vec::new();
+    let mut warnings = Vec::new();
+    let Ok(raw) = std::env::var("BAZEL_DISK_CACHE") else {
+        return (targets, warnings);
+    };
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return (targets, warnings);
+    }
+    let path = PathBuf::from(trimmed);
+    if !path.is_dir() {
+        warnings.push(format!(
+            "BAZEL_DISK_CACHE points to a missing or non-directory path: {trimmed}"
+        ));
+        return (targets, warnings);
+    }
+    if is_bazel_disk_cache_layout(&path) {
+        push_global_cache(&mut targets, path, Kind::BazelDiskCache);
+    } else {
+        warnings.push(format!(
+            "BAZEL_DISK_CACHE is set but `{}` does not look like a Bazel disk cache (expected `cas` or `ac` subdirectory)",
+            path.display()
+        ));
+    }
+    (targets, warnings)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -869,5 +907,13 @@ mod tests {
         let root = temp_root("sccache");
         create_dir_all(root.join("cache")).expect("cache");
         assert!(is_sccache_root(&root));
+    }
+
+    #[test]
+    fn bazel_disk_cache_layout_requires_cas_or_ac() {
+        let root = temp_root("bazel-disk");
+        assert!(!super::is_bazel_disk_cache_layout(&root));
+        create_dir_all(root.join("cas")).expect("cas");
+        assert!(super::is_bazel_disk_cache_layout(&root));
     }
 }

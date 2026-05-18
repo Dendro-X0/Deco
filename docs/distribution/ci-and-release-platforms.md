@@ -29,3 +29,16 @@
 4. Package CLI zips per OS (or document Node requirement per platform).
 
 See [github-releases.md — Future distribution options](github-releases.md#future-distribution-options).
+
+## Cross-platform update code (Windows-only dev machine)
+
+Maintainers may not have macOS or Linux hardware locally. Validation strategy:
+
+| Layer | What runs where | What it proves |
+|-------|-----------------|----------------|
+| **Asset matching** | `pickPlatformDownloadAssets` unit tests (Vitest, any OS) | Correct `.dmg` / `.AppImage` / `.deb` choice from GitHub asset names |
+| **Installer kind** | `installer_kind_for_target` Rust tests (Windows CI) | Extension → handler mapping for all three OSes |
+| **Download + launch** | Manual on Windows; macOS/Linux when hardware or VM available | `open` / `xdg-open` / AppImage chmod behave as expected |
+| **Engine regressions** | GitHub Actions `ubuntu-latest` + `macos-latest` test jobs | Rust scanner/classifier compile and pass on non-Windows |
+
+In-app **Download & install** on macOS/Linux follows platform conventions (`open`, `xdg-open`, `chmod +x` AppImage) but is **best-effort until release jobs ship those bundles** and someone verifies on real machines. Until then, users see a clear message and can use **Browser** / GitHub Releases.

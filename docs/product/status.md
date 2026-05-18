@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-16 · Release **v0.5.1** shipped
+Last updated: 2026-05-17 · Release **v0.6.12** shipped (see [v0.6.12-manifest.md](v0.6.12-manifest.md)); next track **v0.7.x**
 
 ## Current Direction
 

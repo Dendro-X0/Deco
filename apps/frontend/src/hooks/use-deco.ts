@@ -307,6 +307,7 @@ export function useDeco() {
         check_conan_cache: activeSettings.check_conan_cache ?? false,
         check_ccache: activeSettings.check_ccache ?? false,
         check_sccache: activeSettings.check_sccache ?? false,
+        check_bazel_disk_cache: activeSettings.check_bazel_disk_cache ?? false,
         exclude_abs_path_contains: activeSettings.exclude_abs_path_contains ?? [],
         extra_protected_path_contains: activeSettings.extra_protected_path_contains ?? [],
         allow_path_contains: activeSettings.allow_path_contains ?? [],

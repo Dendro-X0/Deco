@@ -863,6 +863,9 @@ fn opt_in_refusal(
         Kind::SccacheGlobalCache if !allow_global.sccache => Some(format!(
             "Refused sccache directory (enable “sccache” in settings and re-scan): {path}"
         )),
+        Kind::BazelDiskCache if !allow_global.bazel_disk => Some(format!(
+            "Refused Bazel disk cache (enable “Bazel disk cache” in settings and re-scan): {path}"
+        )),
         Kind::PythonVenv if !allow_python_venv => Some(format!(
             "Refused Python virtualenv (enable “Include Python venv” in settings and re-scan): {path}"
         )),

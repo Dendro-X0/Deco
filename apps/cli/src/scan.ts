@@ -86,6 +86,7 @@ export const SKIP_DESCENT_DIR_NAMES: readonly string[] = [
   'venv',
   '.venv',
   'obj',
+  '.cxx',
 ] as const;
 
 const SKIP_DESCENT = new Set<string>(SKIP_DESCENT_DIR_NAMES);
@@ -221,6 +222,11 @@ async function shouldTargetDir(
     }
     if (isBazelOutputDirName(dirName)) {
       if (await hasBazelProjectAncestor(parentAbsPath, 6)) {
+        return 'build-artifact';
+      }
+    }
+    if (dirName === '.cxx') {
+      if (await hasJvmProjectAncestor(parentAbsPath, 6)) {
         return 'build-artifact';
       }
     }

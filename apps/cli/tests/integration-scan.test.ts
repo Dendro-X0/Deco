@@ -43,6 +43,11 @@ function createOptions(root: string): CliOptions {
     checkCargoRegistry: false,
     checkNugetCache: false,
     checkComposerCache: false,
+    checkVcpkgCache: false,
+    checkConanCache: false,
+    checkCcache: false,
+    checkSccache: false,
+    checkBazelDiskCache: false,
     excludeAbsPathContains: [],
     profile: 'safe',
     deleteMode: 'quarantine',
@@ -298,6 +303,40 @@ describe('integration scan behavior', () => {
 
     const report = await buildReport({ ...createOptions(root), profile: 'balanced' });
     expect(report.candidates.some((c) => c.absPath === path.join(root, 'bazel-out'))).toBe(true);
+  });
+
+  it('discovers Android .cxx on balanced when Gradle markers present', async () => {
+    const root = await createTmpRoot('deco-cxx-');
+    tmpRoots.push(root);
+
+    const app = path.join(root, 'app');
+    await mkdir(path.join(app, '.cxx'), { recursive: true });
+    await writeFile(path.join(app, 'build.gradle'), '// stub\n', 'utf8');
+    await writeFile(path.join(root, 'settings.gradle'), 'rootProject.name = "demo"\n', 'utf8');
+
+    const report = await buildReport({ ...createOptions(root), profile: 'balanced' });
+    const cxx = report.candidates.find((c) => c.absPath === path.join(app, '.cxx'));
+    expect(cxx?.kind).toBe('build-artifact');
+    expect(cxx?.risk).toBe('review');
+    expect(cxx?.reasonCodes).toContain('GRADLE_ANDROID_CXX_BUILD');
+  });
+
+  it('discovers Bazel disk cache when BAZEL_DISK_CACHE is set and layout matches', async () => {
+    const cacheRoot = await createTmpRoot('deco-bazel-disk-');
+    tmpRoots.push(cacheRoot);
+    await mkdir(path.join(cacheRoot, 'cas'), { recursive: true });
+    const prev = process.env.BAZEL_DISK_CACHE;
+    process.env.BAZEL_DISK_CACHE = cacheRoot;
+
+    try {
+      const report = await buildReport({ ...createOptions(cacheRoot), checkBazelDiskCache: true });
+      const hit = report.candidates.find((c) => c.absPath === cacheRoot);
+      expect(hit?.kind).toBe('bazel-disk-cache');
+      expect(hit?.risk).toBe('review');
+    } finally {
+      if (prev === undefined) delete process.env.BAZEL_DISK_CACHE;
+      else process.env.BAZEL_DISK_CACHE = prev;
+    }
   });
 
   it('discovers vcpkg installed tree with opt-in flag', async () => {

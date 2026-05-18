@@ -76,6 +76,9 @@ pub fn run() {
             commands::classify::classify_targets_preview,
             commands::explorer::reveal_path_in_explorer,
             commands::explorer::open_url,
+            commands::release::get_app_platform,
+            commands::release::download_release_asset,
+            commands::release::launch_installer_for_download,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

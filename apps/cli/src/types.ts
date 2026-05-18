@@ -35,7 +35,8 @@ export type TargetDirKind =
   | 'vcpkg-installed-cache'
   | 'conan-global-cache'
   | 'ccache-global-cache'
-  | 'sccache-global-cache';
+  | 'sccache-global-cache'
+  | 'bazel-disk-cache';
 
 export type SafetyClass = 'project_artifact' | 'global_cache' | 'app_runtime' | 'system' | 'unknown';
 
@@ -59,6 +60,8 @@ export type ReasonCode =
   | 'PYTHON_VENV_REQUIRES_OPT_IN'
   | 'CPP_VS_IDE_FOLDER'
   | 'IDE_INDEX_NOT_COMPILE_OUTPUT'
+  | 'GRADLE_ANDROID_CXX_BUILD'
+  | 'EXTERNAL_NATIVE_BUILD_OUTPUT'
   | 'LOW_CONFIDENCE_ARTIFACT'
   | 'UNKNOWN_ARTIFACT';
 
@@ -133,6 +136,7 @@ export type CliOptions = {
   readonly checkConanCache: boolean;
   readonly checkCcache: boolean;
   readonly checkSccache: boolean;
+  readonly checkBazelDiskCache: boolean;
   readonly excludeAbsPathContains: readonly string[];
   readonly profile: CleanupProfile;
   readonly deleteMode: DeleteMode;

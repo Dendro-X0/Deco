@@ -2,7 +2,21 @@
 
 ## [Unreleased]
 
-Development line **v0.6.12** — see [v0.6.12-manifest.md](docs/product/v0.6.12-manifest.md).
+Next work follows the **v0.7.x** trust/community track — see [version-roadmap.md](docs/product/version-roadmap.md).
+
+## [0.6.12] - 2026-05-17
+
+Closes the **v0.6.x** scan-engine line — see [v0.6.12-manifest.md](docs/product/v0.6.12-manifest.md).
+
+### Added
+
+- **Bazel disk cache (opt-in, review tier)** — when **`BAZEL_DISK_CACHE`** points at a directory with Bazel disk-cache layout (`cas` / `ac`); Settings + CLI `--check-bazel-disk-cache`; candidate kind `bazel_disk_cache`.
+- **Gradle / Android `.cxx`** — external native build output under a Gradle/JVM marker tree (`balanced+`); classified **review** by default.
+- **In-app update (Settings → Check for updates)** — match GitHub Release assets per OS (MSI/EXE, DMG/PKG, AppImage/DEB/RPM); download to the user Downloads folder and launch the system installer (best-effort on macOS/Linux; Windows MSI/NSIS built in CI).
+
+### Changed
+
+- **Scan contract `2.8.0`** — new kind `bazel_disk_cache`; flag `check_bazel_disk_cache`. Quick-update **inventory fingerprint** includes that flag (and existing `check_*` toggles). See [contract/changelog.md](docs/contract/changelog.md).
 
 ## [0.6.11] - 2026-05-18
 

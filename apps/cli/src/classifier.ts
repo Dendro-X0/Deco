@@ -66,7 +66,8 @@ export async function classifyTargets(
         target.kind === 'vcpkg-installed-cache' ||
         target.kind === 'conan-global-cache' ||
         target.kind === 'ccache-global-cache' ||
-        target.kind === 'sccache-global-cache'
+        target.kind === 'sccache-global-cache' ||
+        target.kind === 'bazel-disk-cache'
       ) {
         const reasonCodes: CleanupCandidate['reasonCodes'] = [
           'GLOBAL_CACHE_TARGET',
@@ -95,6 +96,18 @@ export async function classifyTargets(
           'review',
           'project_artifact',
           ['CPP_VS_IDE_FOLDER', 'IDE_INDEX_NOT_COMPILE_OUTPUT'],
+          projectEvidence?.projectRoot,
+        );
+      }
+
+      if (path.basename(target.absPath) === '.cxx') {
+        const scanRoot = getContainingRoot(target.absPath);
+        const projectEvidence = await detectProjectRoot(path.dirname(target.absPath), 4, scanRoot);
+        return baseCandidate(
+          target,
+          'review',
+          'project_artifact',
+          ['GRADLE_ANDROID_CXX_BUILD', 'EXTERNAL_NATIVE_BUILD_OUTPUT'],
           projectEvidence?.projectRoot,
         );
       }

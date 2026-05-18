@@ -569,3 +569,20 @@ export async function discoverSccacheGlobalCachesIfEnabled(enabled: boolean): Pr
   }
   return out;
 }
+
+async function isBazelDiskCacheRoot(dir: string): Promise<boolean> {
+  if (!(await pathExists(dir))) return false;
+  return (await hasSubdir(dir, 'cas')) || (await hasSubdir(dir, 'ac'));
+}
+
+/** Only when `BAZEL_DISK_CACHE` is set to a directory with Bazel disk-cache layout (`cas` / `ac`). */
+export async function discoverBazelDiskGlobalCachesIfEnabled(enabled: boolean): Promise<DiscoveredTarget[]> {
+  if (!enabled) return [];
+  const raw = process.env.BAZEL_DISK_CACHE?.trim();
+  if (!raw) return [];
+  const out: DiscoveredTarget[] = [];
+  if (await isBazelDiskCacheRoot(raw)) {
+    await pushDir(out, raw, 'bazel-disk-cache');
+  }
+  return out;
+}

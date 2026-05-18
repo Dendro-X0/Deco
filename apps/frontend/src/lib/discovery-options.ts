@@ -21,6 +21,7 @@ export type DiscoveryOptionKey = Extract<
   | 'check_conan_cache'
   | 'check_ccache'
   | 'check_sccache'
+  | 'check_bazel_disk_cache'
   | 'include_python_venv'
   | 'smart_discovery_enabled'
 >;
@@ -174,6 +175,13 @@ export const DISCOVERY_CATEGORIES: DiscoveryCategoryDef[] = [
         key: 'check_sccache',
         label: 'sccache',
         description: 'Shared compiler cache (SCCACHE_DIR; review tier).',
+      },
+      {
+        type: 'option',
+        key: 'check_bazel_disk_cache',
+        label: 'Bazel disk cache',
+        description:
+          'When BAZEL_DISK_CACHE points at a directory with Bazel disk-cache layout (cas/ac subdirs; review tier).',
       },
       {
         type: 'option',

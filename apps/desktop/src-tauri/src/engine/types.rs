@@ -49,6 +49,7 @@ pub enum Kind {
     ConanGlobalCache,
     CcacheGlobalCache,
     SccacheGlobalCache,
+    BazelDiskCache,
 }
 
 impl Kind {
@@ -82,6 +83,7 @@ impl Kind {
             Kind::ConanGlobalCache => "conan_global_cache",
             Kind::CcacheGlobalCache => "ccache_global_cache",
             Kind::SccacheGlobalCache => "sccache_global_cache",
+            Kind::BazelDiskCache => "bazel_disk_cache",
         }
     }
 
@@ -114,6 +116,7 @@ impl Kind {
             "conan_global_cache" => Kind::ConanGlobalCache,
             "ccache_global_cache" => Kind::CcacheGlobalCache,
             "sccache_global_cache" => Kind::SccacheGlobalCache,
+            "bazel_disk_cache" => Kind::BazelDiskCache,
             _ => return None,
         })
     }
@@ -220,6 +223,7 @@ pub struct EcosystemScanOptions {
     pub check_conan_cache: bool,
     pub check_ccache: bool,
     pub check_sccache: bool,
+    pub check_bazel_disk_cache: bool,
 }
 
 impl Default for EcosystemScanOptions {
@@ -245,6 +249,7 @@ impl Default for EcosystemScanOptions {
             check_conan_cache: false,
             check_ccache: false,
             check_sccache: false,
+            check_bazel_disk_cache: false,
         }
     }
 }
@@ -272,6 +277,7 @@ impl From<&ScanRequest> for EcosystemScanOptions {
             check_conan_cache: req.check_conan_cache,
             check_ccache: req.check_ccache,
             check_sccache: req.check_sccache,
+            check_bazel_disk_cache: req.check_bazel_disk_cache,
         }
     }
 }
@@ -295,6 +301,7 @@ pub struct GlobalCacheAllow {
     pub conan: bool,
     pub ccache: bool,
     pub sccache: bool,
+    pub bazel_disk: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -327,6 +334,7 @@ mod kind_tests {
     fn wire_key_matches_serde_snake_case() {
         assert_eq!(Kind::NodeModules.wire_key(), "node_modules");
         assert_eq!(Kind::GoGlobalCache.wire_key(), "go_global_cache");
+        assert_eq!(Kind::BazelDiskCache.wire_key(), "bazel_disk_cache");
     }
 }
 
@@ -386,6 +394,8 @@ pub struct ScanRequest {
     #[serde(default)]
     pub check_sccache: bool,
     #[serde(default)]
+    pub check_bazel_disk_cache: bool,
+    #[serde(default)]
     pub exclude_abs_path_contains: Vec<String>,
     #[serde(default)]
     pub extra_protected_path_contains: Vec<String>,
@@ -401,7 +411,7 @@ fn default_scan_mode_full() -> String {
 }
 
 /// Bump together with CLI `SCAN_REPORT_SCHEMA_VERSION` and `docs/contract/changelog.md`.
-pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.7.1";
+pub const SCAN_REPORT_SCHEMA_VERSION: &str = "2.8.0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResponse {
@@ -623,6 +633,8 @@ pub struct Settings {
     pub check_ccache: bool,
     #[serde(default)]
     pub check_sccache: bool,
+    #[serde(default)]
+    pub check_bazel_disk_cache: bool,
     /// In-place delete of heavy dependency trees via `rmdir` / `rm -rf` (experimental).
     #[serde(default = "default_fast_tree_delete_enabled")]
     pub fast_tree_delete_enabled: bool,
@@ -683,6 +695,7 @@ impl Default for Settings {
             check_conan_cache: false,
             check_ccache: false,
             check_sccache: false,
+            check_bazel_disk_cache: false,
             fast_tree_delete_enabled: default_fast_tree_delete_enabled(),
             cleanup_disk_mode: default_cleanup_disk_mode(),
             delete_mode: "delete".to_string(),

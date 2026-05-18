@@ -9,6 +9,14 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 2.8.0 — 2026-05-17
+
+- **Added** candidate kind: `bazel_disk_cache` (Bazel `--disk_cache` tree when **`BAZEL_DISK_CACHE`** points at an existing directory with `cas` and/or `ac` subdirectories; review tier + execute guard).
+- **Added** scan/settings flag: `check_bazel_disk_cache` (default `false`).
+- **Changed** walk discovery: Gradle/Android **`.cxx`** external native build output when a JVM/Gradle marker (`build.gradle`, `settings.gradle`, `gradlew`, …) exists on an ancestor (`balanced+`); classified as **review** by default.
+- **Changed** path inventory fingerprint (`inventory_fingerprint` in `apps/desktop/src-tauri/src/engine/inventory.rs`) now includes `check_bazel_disk_cache` alongside other `check_*` discovery toggles — Quick update reuse only applies when this fingerprint matches the prior scan.
+- **Bumped** `SCAN_REPORT_SCHEMA_VERSION` to `2.8.0`.
+
 ## 2.7.1 — 2026-05-18
 
 - **Changed** walk discovery: Xmake `.build`, Premake `bin-int` / `obj`, Qt/qmake `build-*` shadow dirs when respective project markers are present (`balanced+`). No new candidate kinds.

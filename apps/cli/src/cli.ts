@@ -22,6 +22,7 @@ import {
   discoverConanGlobalCachesIfEnabled,
   discoverCcacheGlobalCachesIfEnabled,
   discoverSccacheGlobalCachesIfEnabled,
+  discoverBazelDiskGlobalCachesIfEnabled,
 } from './ecosystem-globals.js';
 import { getGoEnv } from './go-utils.js';
 import { TaskQueue } from './concurrency.js';
@@ -95,6 +96,7 @@ type ParsedArgs = {
   readonly checkConanCache: boolean;
   readonly checkCcache: boolean;
   readonly checkSccache: boolean;
+  readonly checkBazelDiskCache: boolean;
   readonly includeReview: boolean;
   readonly json: boolean;
   readonly showBlocked: boolean;
@@ -147,6 +149,7 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
   let checkConanCache = false;
   let checkCcache = false;
   let checkSccache = false;
+  let checkBazelDiskCache = false;
   let includeReview = false;
   let json = false;
   let showBlocked = false;
@@ -311,6 +314,11 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--check-bazel-disk-cache') {
+      checkBazelDiskCache = true;
+      continue;
+    }
+
     if (arg === '--include-python-venv') {
       includePythonVenv = true;
       continue;
@@ -436,6 +444,7 @@ function parseArgsV2(argv: readonly string[]): ParsedArgs {
     checkConanCache,
     checkCcache,
     checkSccache,
+    checkBazelDiskCache,
     includeReview,
     json,
     showBlocked,
@@ -503,6 +512,7 @@ export async function mergeConfigAndArgsV2(argv: readonly string[]): Promise<Cli
     checkConanCache: args.checkConanCache,
     checkCcache: args.checkCcache,
     checkSccache: args.checkSccache,
+    checkBazelDiskCache: args.checkBazelDiskCache,
     excludeAbsPathContains: config?.excludeAbsPathContains ?? [],
     profile,
     deleteMode,
@@ -595,6 +605,7 @@ export async function buildReport(options: CliOptions, onProgress?: ProgressList
     ...(await discoverConanGlobalCachesIfEnabled(options.checkConanCache)),
     ...(await discoverCcacheGlobalCachesIfEnabled(options.checkCcache)),
     ...(await discoverSccacheGlobalCachesIfEnabled(options.checkSccache)),
+    ...(await discoverBazelDiskGlobalCachesIfEnabled(options.checkBazelDiskCache)),
   ];
   const errors = [...discovery.errors];
   if (options.checkCondaPkgsCache) {
@@ -747,6 +758,7 @@ function getUsageText(): string {
     '  --check-conan-cache         Include Conan 2 package cache (.conan2/p; review tier)',
     '  --check-ccache              Include ccache directory (CCACHE_DIR; review tier)',
     '  --check-sccache             Include sccache directory (SCCACHE_DIR; review tier)',
+    '  --check-bazel-disk-cache    Include Bazel disk cache when BAZEL_DISK_CACHE points at a cas/ac layout (review tier)',
     '  --include-python-venv       Include venv/.venv (review tier; opt-in)',
     '  --no-python-artifacts       Skip Python caches/build dirs when pyproject present',
     '  --no-jvm-artifacts          Skip JVM build/ when Gradle/Maven markers present',
@@ -819,6 +831,7 @@ function getDeletableCandidates(
     | 'checkConanCache'
     | 'checkCcache'
     | 'checkSccache'
+    | 'checkBazelDiskCache'
     | 'includePythonVenv'
   >
 ): CleanupCandidate[] {
@@ -841,6 +854,7 @@ function getDeletableCandidates(
     if (candidate.kind === 'conan-global-cache' && !options.checkConanCache) return false;
     if (candidate.kind === 'ccache-global-cache' && !options.checkCcache) return false;
     if (candidate.kind === 'sccache-global-cache' && !options.checkSccache) return false;
+    if (candidate.kind === 'bazel-disk-cache' && !options.checkBazelDiskCache) return false;
     if (candidate.kind === 'python-venv' && !options.includePythonVenv) return false;
     if (candidate.risk === 'review') return includeReview;
     return true;

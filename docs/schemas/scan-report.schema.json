@@ -129,7 +129,8 @@
             "vcpkg_installed_cache",
             "conan_global_cache",
             "ccache_global_cache",
-            "sccache_global_cache"
+            "sccache_global_cache",
+            "bazel_disk_cache"
           ]
         },
         "abs_path": { "type": "string", "minLength": 1 },

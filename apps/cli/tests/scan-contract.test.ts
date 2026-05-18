@@ -18,6 +18,7 @@ describe('scan contract wire format', () => {
     expect(targetKindToWire('yarn-global-cache')).toBe('yarn_global_cache');
     expect(targetKindToWire('pip-global-cache')).toBe('pip_global_cache');
     expect(targetKindToWire('uv-global-cache')).toBe('uv_global_cache');
+    expect(targetKindToWire('bazel-disk-cache')).toBe('bazel_disk_cache');
   });
 
   it('summarizes reason codes like the Rust classifier', () => {

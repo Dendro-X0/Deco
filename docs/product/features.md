@@ -35,6 +35,7 @@ Current implementation progress and handoff details: [status.md](status.md).
 - Rust scanner/classifier/executor under `src-tauri/src/engine`.
 - Tauri commands bridge native logic to desktop UI.
 - SQLite persistence for scans, candidates, quarantine, and settings.
+- Discovery: project markers (Node, Python, JVM, .NET, Go, C++/CMake/Meson/Bazel outputs, Xmake/Premake/Qt, Android **`.cxx`** under Gradle); opt-in **global** caches (npm through **Bazel disk cache** via `BAZEL_DISK_CACHE` + layout); scan contract versioned in `docs/contract/changelog.md`.
 - Added command APIs:
   - `preview_execute`
   - `cancel_scan`

@@ -20,6 +20,7 @@ pub fn regeneration_hint_for_kind(kind: &Kind) -> Option<&'static str> {
         Kind::ConanGlobalCache => Some("`conan remove \"*\" -c`; packages re-fetch on next build"),
         Kind::CcacheGlobalCache => Some("`ccache -C` or delete cache dir; objects rebuild on compile"),
         Kind::SccacheGlobalCache => Some("Clear sccache store; compiler cache repopulates on build"),
+        Kind::BazelDiskCache => Some("Point Bazel `--disk_cache` at a new directory or delete this tree; rebuild repopulates the cache"),
         _ => None,
     }
 }

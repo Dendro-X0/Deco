@@ -119,6 +119,7 @@ export interface Settings {
   check_conan_cache?: boolean;
   check_ccache?: boolean;
   check_sccache?: boolean;
+  check_bazel_disk_cache?: boolean;
   /** Experimental: rmdir / rm -rf for node_modules when deleting in place (v0.6.5). */
   fast_tree_delete_enabled?: boolean;
   /** `auto` | `hdd` | `standard` — delete parallelism (v0.6.6). */

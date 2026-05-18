@@ -201,6 +201,7 @@ pub fn default_bench_request(include_size: bool) -> ScanRequest {
         check_conan_cache: false,
         check_ccache: false,
         check_sccache: false,
+        check_bazel_disk_cache: false,
         exclude_abs_path_contains: vec![],
         extra_protected_path_contains: vec![],
         allow_path_contains: vec![],

@@ -32,7 +32,7 @@ Scoped packages here use **`"private": true`** so accidental `npm publish` from 
 
 ### Desktop
 
-1. Download `.msi` (or NSIS `.exe`) from the latest `v*` release.
+1. Download `.msi` (or NSIS `.exe`) from the latest `v*` release — or use **Settings → Updates → Download & install** in the desktop app (Windows today; macOS/Linux when release jobs ship those assets).
 2. Run installer → launch Deco.
 3. Configure scan roots in Settings.
 
@@ -68,7 +68,7 @@ The zip includes a short README; it does **not** bundle Node — users install N
 | **macOS** `.dmg` / `.app` | Add `tauri build` job on `macos-latest` |
 | **Linux** `.deb` / AppImage | Add Linux Tauri target |
 | **CLI without Node** | `pkg` / `bun compile` / ship Node runtime in zip (larger artifact) |
-| **Auto-update** | Tauri updater + signed updates (desktop polish) |
+| **Auto-update** | In-app download to Downloads + OS installer launch (Settings → Updates); full silent upgrade still future work |
 
 Prioritize winget + macOS when expanding beyond Windows-first pilots.
 

@@ -2,12 +2,12 @@ use super::disk_cleanup_config::ExtraDiscoverNames;
 use super::ancestor_cache::AncestorCache;
 use super::discovery_patterns::match_walk_pattern;
 use super::ecosystem_globals::{
-    discover_bun_global_caches, discover_cargo_registry_caches, discover_ccache_global_caches,
-    discover_composer_global_caches, discover_conan_global_caches, discover_ide_global_caches,
-    discover_jvm_global_caches, discover_npm_global_caches, discover_conda_pkgs_caches,
-    discover_nuget_global_caches, discover_pip_global_caches, discover_pnpm_global_store,
-    discover_sccache_global_caches, discover_uv_global_caches, discover_vcpkg_installed_caches,
-    discover_yarn_global_caches, is_pnpm_store_root,
+    discover_bazel_disk_global_caches, discover_bun_global_caches, discover_cargo_registry_caches,
+    discover_ccache_global_caches, discover_composer_global_caches, discover_conan_global_caches,
+    discover_ide_global_caches, discover_jvm_global_caches, discover_npm_global_caches,
+    discover_conda_pkgs_caches, discover_nuget_global_caches, discover_pip_global_caches,
+    discover_pnpm_global_store, discover_sccache_global_caches, discover_uv_global_caches,
+    discover_vcpkg_installed_caches, discover_yarn_global_caches, is_pnpm_store_root,
 };
 use super::project_detection::{
     dir_has_cpp_native_marker, is_bazel_output_dir_name, is_cpp_ide_dir_name, is_meson_build_dir_name,
@@ -102,6 +102,7 @@ pub const SKIP_DESCENT_DIR_NAMES: &[&str] = &[
     "venv",
     ".venv",
     "obj",
+    ".cxx",
 ];
 
 pub fn should_skip_descent(dir_name: &str) -> bool {
@@ -193,6 +194,12 @@ fn detect_kind(
         }
         name if profile != "safe" && is_bazel_output_dir_name(name) => {
             if cache.has_bazel_project_ancestor(entry_path, 6) {
+                return Some(Kind::BuildArtifact);
+            }
+            return None;
+        }
+        name if profile != "safe" && name == ".cxx" => {
+            if cache.has_jvm_project_ancestor(entry_path, 6) {
                 return Some(Kind::BuildArtifact);
             }
             return None;
@@ -803,6 +810,11 @@ fn discover_targets_inner(
         all_targets.extend(sccache_targets);
         warnings.extend(sccache_warnings);
     }
+    if eco.check_bazel_disk_cache && !canceled {
+        let (bazel_disk_targets, bazel_disk_warnings) = discover_bazel_disk_global_caches();
+        all_targets.extend(bazel_disk_targets);
+        warnings.extend(bazel_disk_warnings);
+    }
 
     let targets = dedupe_targets_by_canonical_path(all_targets, &mut warnings);
 
@@ -1137,6 +1149,39 @@ mod tests {
 
         assert!(result.targets.iter().any(|t| {
             t.kind == Kind::BuildArtifact && t.abs_path.ends_with("bazel-out")
+        }));
+
+        remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn discovers_android_cxx_on_balanced_when_gradle_present() {
+        use std::fs::write;
+
+        let root = temp_root("scan-cxx");
+        let app = root.join("app");
+        create_dir_all(app.join(".cxx")).expect("create .cxx");
+        write(app.join("build.gradle"), "// android stub\n").expect("write gradle");
+        write(root.join("settings.gradle"), "rootProject.name = \"demo\"\n").expect("settings");
+
+        let policy = PathPolicy::new(vec![], vec![]);
+        let result = discover_targets(
+            &[root.to_string_lossy().to_string()],
+            8,
+            "balanced",
+            &[],
+            &policy,
+            EcosystemScanOptions::default(),
+            false,
+            &ExtraDiscoverNames::default(),
+            false,
+            6,
+            None,
+            None,
+        );
+
+        assert!(result.targets.iter().any(|t| {
+            t.kind == Kind::BuildArtifact && t.abs_path.ends_with(".cxx")
         }));
 
         remove_dir_all(root).expect("cleanup");

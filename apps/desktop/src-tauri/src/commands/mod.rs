@@ -2,6 +2,7 @@ pub mod classify;
 pub mod execute;
 pub mod explorer;
 pub mod quarantine;
+pub mod release;
 pub mod scan;
 pub mod settings;
 

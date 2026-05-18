@@ -396,6 +396,7 @@ fn prepare_cleanup(req: &ExecuteRequest, state: &AppState) -> Result<CleanupPrep
         conan: settings.check_conan_cache,
         ccache: settings.check_ccache,
         sccache: settings.check_sccache,
+        bazel_disk: settings.check_bazel_disk_cache,
     };
 
     Ok(CleanupPrepared {
