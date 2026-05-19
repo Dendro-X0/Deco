@@ -10,29 +10,41 @@ End users install Deco from **GitHub Releases** only. No npm account or registry
 
 Full reference: [GitHub Releases](../distribution/github-releases.md).
 
-## Desktop (Windows)
+## Desktop
 
-| Artifact | Install |
-|----------|---------|
-| `.msi` | Double-click installer (recommended for most users) |
-| NSIS `.exe` | Alternative installer from the same release |
+| OS | Artifact | Install |
+|----|----------|---------|
+| Windows | `.msi` | Double-click installer (recommended) |
+| Windows | NSIS `.exe` | Alternate installer |
+| macOS | `.dmg` | Open disk image, drag Deco to Applications (CI builds Apple Silicon / aarch64) |
+| Linux | `.AppImage` | `chmod +x` then run, or use your file manager |
+| Linux | `.deb` | `sudo dpkg -i …` or open with software installer |
 
-**Requirements:** Windows 10+, [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (usually already present).
+**Windows requirements:** Windows 10+, [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (usually already present).
 
-After install, launch **Deco** from the Start menu. Configure scan roots under **Settings** before the first scan.
+After install, launch **Deco**. Configure scan roots under **Settings** before the first scan.
 
 ## CLI (portable)
 
-| Artifact | Contents |
+| Artifact | Platform |
 |----------|----------|
-| `deco-cli-win-x64.zip` | `deco.cmd`, compiled `dist/`, README |
+| `deco-cli-win-x64.zip` | Windows |
+| `deco-cli-macos-aarch64.zip` | macOS |
+| `deco-cli-linux-x64.zip` | Linux |
 
 **Requirements:** [Node.js 20+](https://nodejs.org/) on PATH.
 
 ```text
+# Windows
 unzip deco-cli-win-x64.zip -d C:\Tools\deco-cli
 cd C:\Tools\deco-cli
 deco.cmd --help
+
+# macOS / Linux
+unzip deco-cli-linux-x64.zip -d ~/tools/deco-cli
+cd ~/tools/deco-cli
+chmod +x deco
+./deco --help
 ```
 
 Or run directly: `node dist/cli.js --help`

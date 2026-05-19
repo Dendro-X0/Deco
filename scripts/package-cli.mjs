@@ -33,6 +33,12 @@ await writeFile(
 );
 
 await writeFile(
+  path.join(outDir, 'deco'),
+  '#!/usr/bin/env sh\nDIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"\nexec node "$DIR/dist/cli.js" "$@"\n',
+  'utf8'
+);
+
+await writeFile(
   path.join(outDir, 'README.txt'),
   `Deco CLI ${pkg.version}
 
@@ -40,6 +46,10 @@ Requirements: Node.js 20 or newer on PATH.
 
 Windows:
   deco.cmd --help
+
+macOS / Linux:
+  chmod +x deco
+  ./deco --help
 
 Any OS:
   node dist/cli.js --help

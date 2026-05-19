@@ -5,34 +5,28 @@
 | Workflow | Trigger | Runs on | Produces installers? |
 |----------|---------|---------|----------------------|
 | [**CI**](../../.github/workflows/ci.yml) | PR + push to `main` | **`ubuntu-latest`** + **`macos-latest`** (matrix) | **No** — tests only (`pnpm test:cli`, `pnpm test:rust`) |
-| [**Release**](../../.github/workflows/release.yml) | Tag `v*` or manual | Same matrix for tests + **`windows-latest`** (build) | **Windows only** |
+| [**Release**](../../.github/workflows/release.yml) | Tag `v*` or manual | **`windows-latest`**, **`macos-latest`**, **`ubuntu-latest`** (build matrix) | **Yes** — per-OS desktop bundles + CLI zips |
 
-**Linux and macOS desktop installers are not produced by release jobs today** — only unit/integration tests run there. **Roadmap:** all three platforms ship from **`v0.8.0`** ([v0.8.0-manifest.md](../product/v0.8.0-manifest.md)).
+From **`v0.8.0`**, every tagged release ships Windows, macOS, and Linux artifacts (see [v0.8.0-manifest.md](../product/v0.8.0-manifest.md)).
 
-## Release artifacts (current)
+## Release artifacts
 
-| Artifact | OS | Job |
-|----------|-----|-----|
-| `*.msi` | Windows | `build-windows` |
-| NSIS `*.exe` | Windows | `build-windows` |
-| `deco-cli-win-x64.zip` | Windows (CLI; needs Node 20+) | `build-windows` |
+| Artifact | OS | Build job |
+|----------|-----|-----------|
+| `*.msi` | Windows x64 | `build` (windows) |
+| NSIS `*.exe` | Windows x64 | `build` (windows) |
+| `deco-cli-win-x64.zip` | Windows (CLI; Node 20+) | `build` (windows) |
+| `*.dmg` | macOS (Apple Silicon / `aarch64` on `macos-latest`) | `build` (macos) |
+| `deco-cli-macos-aarch64.zip` | macOS CLI (Node 20+) | `build` (macos) |
+| `*.deb` | Linux x64 | `build` (linux) |
+| `*.AppImage` | Linux x64 | `build` (linux) |
+| `deco-cli-linux-x64.zip` | Linux CLI (Node 20+) | `build` (linux) |
 
-`tauri.conf.json` sets `"targets": ["msi", "nsis"]` and only `icons/icon.ico` is present — both limit bundling to Windows until `.icns` / PNG icon sets and extra jobs are added.
+`tauri.conf.json` lists bundle targets `msi`, `nsis`, `dmg`, `deb`, `appimage`. Each release job passes `--bundles` for only the formats built on that runner.
 
-## Adding macOS / Linux later
+Icons: `icon.ico`, `icon.icns`, and PNG sizes under `apps/desktop/src-tauri/icons/`.
 
-1. Add icons: `icon.icns`, `32x32.png`, `128x128.png`, … (or run `pnpm tauri icon` from a master PNG).
-2. Extend `bundle.targets` in `tauri.conf.json` (e.g. `dmg`, `deb`, `appimage`).
-3. Add matrix jobs in `release.yml`:
-   - `macos-latest` → `.dmg` / `.app`
-   - `ubuntu-latest` → install `libwebkit2gtk-4.1-dev` etc., then `tauri build`
-4. Package CLI zips per OS (or document Node requirement per platform).
-
-See [github-releases.md — Future distribution options](github-releases.md#future-distribution-options).
-
-## Cross-platform update code (Windows-only dev machine)
-
-Maintainers may not have macOS or Linux hardware locally. Validation strategy:
+## Cross-platform update code
 
 | Layer | What runs where | What it proves |
 |-------|-----------------|----------------|
@@ -41,4 +35,9 @@ Maintainers may not have macOS or Linux hardware locally. Validation strategy:
 | **Download + launch** | Manual on Windows; macOS/Linux when hardware or VM available | `open` / `xdg-open` / AppImage chmod behave as expected |
 | **Engine regressions** | GitHub Actions `ubuntu-latest` + `macos-latest` test jobs | Rust scanner/classifier compile and pass on non-Windows |
 
-In-app **Download & install** on macOS/Linux follows platform conventions (`open`, `xdg-open`, `chmod +x` AppImage) but is **best-effort until release jobs ship those bundles** and someone verifies on real machines. Until then, users see a clear message and can use **Browser** / GitHub Releases.
+In-app **Download & install** uses platform conventions (`open`, `xdg-open`, `chmod +x` AppImage). Unsigned macOS/Linux bundles may require Gatekeeper or package-manager approval on first run.
+
+## Related
+
+- [github-releases.md](github-releases.md)
+- [release-process.md](release-process.md)

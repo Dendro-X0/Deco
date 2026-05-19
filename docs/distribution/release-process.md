@@ -36,14 +36,16 @@ git push origin v0.4.0
 
 The **Release** workflow (`.github/workflows/release.yml`):
 
-1. Runs CLI + Rust tests on Ubuntu.
-2. On Windows: builds frontend, Tauri bundles (MSI/NSIS), CLI zip.
-3. Attaches artifacts to the GitHub Release for that tag.
+1. Runs CLI + Rust tests on Ubuntu and macOS.
+2. Build matrix on **Windows**, **macOS**, and **Linux**: desktop bundles + per-OS CLI zip.
+3. Attaches all artifacts to the GitHub Release for that tag.
 
 ## Post-release verification
 
-- [ ] Download `.msi` on a clean VM → install → guided cleanup smoke test
-- [ ] Download `deco-cli-win-x64.zip` → `deco.cmd --help` and dry-run scan
+- [ ] Windows: `.msi` on a clean VM → guided cleanup smoke test
+- [ ] macOS: `.dmg` on Apple Silicon (or VM) → drag-to-Applications smoke test
+- [ ] Linux: `.AppImage` or `.deb` on Ubuntu → launch smoke test
+- [ ] CLI zip per OS → `deco.cmd` / `./deco --help` and dry-run scan
 - [ ] Confirm `schema_version` in CLI `--json` matches [contract changelog](../contract/changelog.md)
 
 ## Manual QA

@@ -74,12 +74,14 @@ cd apps/desktop/src-tauri && cargo test
 
 ## Distribution
 
-Install from **GitHub Releases** (tag `v*`): Windows `.msi` / NSIS desktop installers and `deco-cli-win-x64.zip` for the CLI. No npm token required for end users.
+Install from **GitHub Releases** (tag `v*`): desktop installers for **Windows, macOS, and Linux** plus per-OS CLI zips. No npm token required for end users.
 
 | Artifact | Use |
 |----------|-----|
-| `.msi` / NSIS `.exe` | Desktop app (Windows) |
-| `deco-cli-win-x64.zip` | Portable CLI (`deco.cmd`; requires Node 20+) |
+| `.msi` / NSIS `.exe` | Desktop (Windows) |
+| `.dmg` | Desktop (macOS, aarch64 from CI) |
+| `.deb` / `.AppImage` | Desktop (Linux) |
+| `deco-cli-*-*.zip` | Portable CLI (`deco.cmd` / `./deco`; requires Node 20+) |
 
 Full guide: [`docs/distribution/github-releases.md`](docs/distribution/github-releases.md) · Install: [`docs/getting-started/install.md`](docs/getting-started/install.md)
 

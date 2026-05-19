@@ -25,6 +25,15 @@ Last updated: 2026-05-18 · **Latest GitHub Release:** `v0.7.8` · **Development
 |---------|-------------|
 | `v0.8.0` | Multi-platform installers (Win / macOS / Linux) |
 
+## Pre-release gate (before tagging `v0.8.0`)
+
+```bash
+pnpm install
+pnpm check
+```
+
+Tag `v0.8.0` only after the **Release** workflow succeeds on the tag (Windows + macOS + Linux build matrix). Smoke-test at least one installer per OS when possible.
+
 ## Quick commands
 
 ```bash

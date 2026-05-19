@@ -246,12 +246,12 @@ export function platformInstallHint(platform: AppOs): string {
     case 'macos':
       return 'Opens the .dmg or .pkg from Downloads. Drag Deco to Applications when the disk image opens. If Install fails, use Browser or GitHub Releases.';
     case 'linux':
-      return 'Runs AppImage after download, or opens .deb / .rpm with your desktop package tool. Linux bundles are best-effort until release CI ships them.';
+      return 'Runs AppImage after download, or opens .deb / .rpm with your desktop package tool.';
   }
 }
 
 export function noAssetsMessage(platform: AppPlatform): string {
-  return `No ${platformLabel(platform)} installer is attached to this release yet. Open GitHub Releases to see all files — desktop bundles for macOS/Linux may still be rolling out.`;
+  return `No ${platformLabel(platform)} installer is attached to this release yet. Open GitHub Releases to see all files for your OS.`;
 }
 
 /** Infer platform in browser dev (non-Tauri); desktop uses Rust `get_app_platform`. */
