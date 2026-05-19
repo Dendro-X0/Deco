@@ -51,7 +51,7 @@ export function ScanTargetsModal({
         aria-hidden
       />
       <div
-        className="relative z-10 grid h-[min(85dvh,52rem)] w-full max-w-2xl max-h-[calc(100vh-2rem)] grid-rows-[auto_1fr_auto] overflow-hidden rounded-xl border bg-card shadow-2xl"
+        className="relative z-10 grid h-[min(88dvh,56rem)] w-full max-w-2xl max-h-[calc(100vh-2rem)] grid-rows-[auto_1fr_auto] overflow-hidden rounded-xl border bg-card shadow-2xl"
         role="dialog"
         aria-labelledby="scan-targets-title"
         onClick={(e) => e.stopPropagation()}

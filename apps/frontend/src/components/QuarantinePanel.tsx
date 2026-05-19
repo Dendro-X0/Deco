@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Download, FolderOpen, LayoutDashboard, Search, ShieldAlert, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import {
@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { CollapsibleFilterSection } from '@/components/CollapsibleFilterSection';
 import { DisabledActionHint } from '@/components/DisabledActionHint';
 import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
@@ -171,11 +172,7 @@ export function QuarantinePanel({
   return (
     <>
       <Card className="border-border/40 bg-card/30">
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>{t('quarantine.title')}</CardTitle>
-            <CardDescription>{t('quarantine.description', { days: retentionDays })}</CardDescription>
-          </div>
+        <CardContent className="space-y-4 pt-6">
           <div className="flex flex-wrap gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => void onReload()}>
               {t('quarantine.refresh')}
@@ -208,12 +205,8 @@ export function QuarantinePanel({
               </Button>
             </DisabledActionHint>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-background/40 p-3">
-            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-              {t('history.filters')}
-            </p>
+
+          <CollapsibleFilterSection label={t('history.filters')} active={filtersActive}>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -290,7 +283,7 @@ export function QuarantinePanel({
                 </Button>
               ) : null}
             </div>
-          </div>
+          </CollapsibleFilterSection>
 
           {filtered.length > 0 && (
             <div className="flex items-center justify-between text-sm flex-wrap gap-2">

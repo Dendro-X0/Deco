@@ -205,7 +205,7 @@ export function PartitionPicker({
             onClick={() => onSelectedVolumesChange([])}
             disabled={disabled}
           >
-            {t('dashboard.partition.clear')}
+            {t('common.clear')}
           </Button>
         </div>
       </div>

@@ -670,9 +670,12 @@ export default function App() {
                     {recommendQuickUpdate ? <Zap size={16} className="text-primary" /> : null}
                     {t('dashboard.actions.quickUpdate')}
                     {recommendQuickUpdate ? (
-                      <span className="text-[10px] font-bold uppercase tracking-wide opacity-90">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-medium normal-case px-1.5 py-0 h-5"
+                      >
                         {t('dashboard.actions.recommended')}
-                      </span>
+                      </Badge>
                     ) : null}
                   </Button>
                 </>
@@ -717,6 +720,28 @@ export default function App() {
                   storageRefreshToken={storageRefreshToken}
                 />
 
+                {!summary && !scanning ? (
+                  <Card className="border-primary/20 bg-primary/5">
+                    <CardContent className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div>
+                        <p className="font-bold text-lg">{t('dashboard.empty.title')}</p>
+                        <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                          {t('dashboard.empty.description')}
+                        </p>
+                      </div>
+                      <Button
+                        className="gap-2 font-semibold shrink-0"
+                        onClick={() => {
+                          setWizardOpen(true);
+                          setWizardStep('intro');
+                        }}
+                      >
+                        <Sparkles size={16} /> {t('dashboard.empty.cta')}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : null}
+
                 {lastHistoryItem && !scanning ? (
                   <LastScanSummaryCard
                     item={lastHistoryItem}
@@ -741,34 +766,12 @@ export default function App() {
                   <CleanupStatisticsCard summary={lastCleanupSummary} />
                 ) : null}
 
-                {recommendQuickUpdate ? (
+                {recommendQuickUpdate && !summary ? (
                   <QuickUpdateRecommendBanner
                     disabled={!hasScanTargetsReady}
                     onQuickUpdate={() => requestScan({ mode: 'quick' })}
                   />
                 ) : null}
-
-                {!summary && !scanning && (
-                  <Card className="border-primary/20 bg-primary/5">
-                    <CardContent className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                      <div>
-                        <p className="font-bold text-lg">{t('dashboard.empty.title')}</p>
-                        <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-                          {t('dashboard.empty.description')}
-                        </p>
-                      </div>
-                      <Button
-                        className="gap-2 font-semibold shrink-0"
-                        onClick={() => {
-                          setWizardOpen(true);
-                          setWizardStep('intro');
-                        }}
-                      >
-                        <Sparkles size={16} /> {t('dashboard.empty.cta')}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <StatCard

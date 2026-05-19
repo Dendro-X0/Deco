@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { History as HistoryIcon, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { CollapsibleFilterSection } from '@/components/CollapsibleFilterSection';
 import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
 import {
@@ -85,27 +86,21 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
   return (
     <>
       <Card className="border-border/40 bg-card/30">
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>{t('history.title')}</CardTitle>
-            <CardDescription>{t('history.description')}</CardDescription>
+        <CardContent className="space-y-4 pt-6">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1 shrink-0"
+              disabled={items.length === 0 || busy}
+              onClick={() => setPending({ kind: 'clear' })}
+            >
+              <Trash2 size={14} />
+              {t('history.clearAll')}
+            </Button>
           </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="gap-1 shrink-0"
-            disabled={items.length === 0 || busy}
-            onClick={() => setPending({ kind: 'clear' })}
-          >
-            <Trash2 size={14} />
-            {t('history.clearAll')}
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-background/40 p-3">
-            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-              {t('history.filters')}
-            </p>
+
+          <CollapsibleFilterSection label={t('history.filters')} active={filtersActive}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold text-muted-foreground">{t('history.sizeMin')}</label>
@@ -168,7 +163,7 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                 ) : null}
               </div>
             </div>
-          </div>
+          </CollapsibleFilterSection>
 
           {filtered.length > 0 ? (
             <div className="space-y-3">
@@ -186,15 +181,15 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                     <p className="font-bold text-sm tracking-tight">
                       {formatWhen(item.created_at)}
                     </p>
-                    <p className="text-[10px] text-muted-foreground opacity-70 truncate">
+                    <p className="text-xs text-foreground/70 truncate">
                       {t('history.roots', { list: item.roots.join(', ') })}
                     </p>
                     {volumesFromRoots(item.roots).length > 0 ? (
-                      <p className="text-[10px] text-muted-foreground/60">
+                      <p className="text-xs text-foreground/70">
                         {t('history.drives', { list: volumesFromRoots(item.roots).join(', ') })}
                       </p>
                     ) : null}
-                    <p className="text-[10px] text-muted-foreground/60">
+                    <p className="text-xs text-foreground/70">
                       {t('history.meta', {
                         count: item.candidate_count ?? 0,
                         profile: item.profile,

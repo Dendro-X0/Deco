@@ -61,6 +61,7 @@
     "copied": "Copiado",
     "copy": "Copiar",
     "errorPrefix": "Error: {{msg}}",
+    "clear": "Borrar",
     "deletePermanentTitle": "¿Eliminar permanentemente?",
     "deletePermanentConfirm": "Eliminar permanentemente"
   },
