@@ -14,6 +14,7 @@ import {
   WORKSPACE_ROLLUP_TOP_N,
   type WorkspaceRollup,
 } from '@/lib/workspace-rollups';
+import { useI18n } from '@/i18n';
 import type { Candidate } from '@/types';
 
 type Props = {
@@ -28,17 +29,23 @@ function riskPillClass(risk: 'safe' | 'review' | 'blocked'): string {
   return 'text-muted-foreground';
 }
 
-function RollupRiskMini({ rollup }: { rollup: WorkspaceRollup }) {
+function RollupRiskMini({
+  rollup,
+  riskLabel,
+}: {
+  rollup: WorkspaceRollup;
+  riskLabel: (risk: 'safe' | 'review' | 'blocked') => string;
+}) {
   return (
     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] tabular-nums">
       {(['safe', 'review', 'blocked'] as const).map((risk) => {
-        const t = rollup.totalsByRisk[risk];
-        if (t.count === 0) return null;
+        const totals = rollup.totalsByRisk[risk];
+        if (totals.count === 0) return null;
         return (
           <span key={risk} className={riskPillClass(risk)}>
-            <span className="font-semibold">{t.count}</span> {risk}{' '}
+            <span className="font-semibold">{totals.count}</span> {riskLabel(risk)}{' '}
             <span className="text-muted-foreground">
-              {t.hasUnknownSize && t.bytes === 0 ? '…' : formatBytes(t.bytes)}
+              {totals.hasUnknownSize && totals.bytes === 0 ? '…' : formatBytes(totals.bytes)}
             </span>
           </span>
         );
@@ -49,7 +56,9 @@ function RollupRiskMini({ rollup }: { rollup: WorkspaceRollup }) {
 
 
 export function WorkspaceRollupsCard({ candidates, selectedIds, onSetSelectedIds }: Props) {
+  const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
+  const riskLabel = (risk: 'safe' | 'review' | 'blocked') => t(`dashboard.stats.${risk}`);
   const rollups = useMemo(() => buildWorkspaceRollups(candidates), [candidates]);
   const visible = expanded ? rollups : rollups.slice(0, WORKSPACE_ROLLUP_TOP_N);
   const reclaimable = reclaimableBytesFromRollups(rollups);
@@ -64,10 +73,13 @@ export function WorkspaceRollupsCard({ candidates, selectedIds, onSetSelectedIds
             <FolderTree size={18} aria-hidden />
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-base">Workspace summary</CardTitle>
+            <CardTitle className="text-base">{t('dashboard.workspace.title')}</CardTitle>
             <CardDescription>
-              {rollups.length} project{rollups.length === 1 ? '' : 's'} ·{' '}
-              {formatBytes(reclaimable)} reclaimable (safe + review) — each folder counted once
+              {t('dashboard.workspace.description', {
+                count: rollups.length,
+                suffix: rollups.length === 1 ? '' : t('dashboard.workspace.projectSuffix'),
+                reclaimable: formatBytes(reclaimable),
+              })}
             </CardDescription>
           </div>
         </div>
@@ -79,7 +91,7 @@ export function WorkspaceRollupsCard({ candidates, selectedIds, onSetSelectedIds
             onClick={() => setExpanded((e) => !e)}
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            {expanded ? 'Show less' : `All ${rollups.length}`}
+            {expanded ? t('dashboard.workspace.showLess') : t('dashboard.workspace.showAll', { count: rollups.length })}
           </Button>
         ) : null}
       </CardHeader>
@@ -121,7 +133,7 @@ export function WorkspaceRollupsCard({ candidates, selectedIds, onSetSelectedIds
                         </Badge>
                       </div>
                       <p className="text-[10px] text-muted-foreground">{rollup.kindSummary}</p>
-                      <RollupRiskMini rollup={rollup} />
+                      <RollupRiskMini rollup={rollup} riskLabel={riskLabel} />
                     </div>
                   </div>
                 </div>

@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScanTargetsPanel } from '@/components/ScanTargetsPanel';
+import { useI18n } from '@/i18n';
 import type { ScanMode } from '@/components/ScanModeSelector';
 
 type Props = {
@@ -32,8 +33,11 @@ export function ScanTargetsModal({
   onIncludeProjectFoldersChange,
   onCustomScanRootsChange,
   onError,
-  title = 'Choose scan targets',
+  title,
 }: Props) {
+  const { t } = useI18n();
+  const dialogTitle = title ?? t('modal.scanTargets.title');
+
   if (!open) return null;
 
   const canStart =
@@ -55,11 +59,9 @@ export function ScanTargetsModal({
         <header className="flex shrink-0 items-center justify-between border-b px-6 py-4">
           <div>
             <h3 id="scan-targets-title" className="text-lg font-bold">
-              {title}
+              {dialogTitle}
             </h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Pick a scanning mode, then configure partitions or custom folders.
-            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{t('modal.scanTargets.subtitle')}</p>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X size={18} />
@@ -68,7 +70,7 @@ export function ScanTargetsModal({
         <div
           className="min-h-0 overflow-y-auto overflow-x-hidden deco-scrollbar px-6 py-4"
           role="region"
-          aria-label="Scan target options"
+          aria-label={t('modal.scanTargets.regionAria')}
         >
           <ScanTargetsPanel
             mode={mode}
@@ -85,10 +87,10 @@ export function ScanTargetsModal({
         </div>
         <footer className="flex shrink-0 justify-end gap-2 border-t px-6 py-4">
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button disabled={!canStart} className="gap-2 font-semibold" onClick={onConfirm}>
-            Start scan
+            {t('modal.scanTargets.startScan')}
           </Button>
         </footer>
       </div>

@@ -1,4 +1,5 @@
 import { FolderTree, HardDrive } from 'lucide-react';
+import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 
 export type ScanMode = 'partition' | 'custom';
@@ -10,10 +11,11 @@ type Props = {
 };
 
 export function ScanModeSelector({ mode, onModeChange, disabled }: Props) {
+  const { t } = useI18n();
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Scanning mode
+        {t('dashboard.scanModeSelector.label')}
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
         <button
@@ -35,10 +37,9 @@ export function ScanModeSelector({ mode, onModeChange, disabled }: Props) {
               className={cn('shrink-0 mt-0.5', mode === 'partition' ? 'text-primary' : 'text-muted-foreground')}
             />
             <div className="min-w-0 space-y-1">
-              <p className="text-sm font-bold">Partition-based scan</p>
+              <p className="text-sm font-bold">{t('dashboard.scanModeSelector.partitionTitle')}</p>
               <p className="text-xs text-muted-foreground leading-snug">
-                Scan selected drives (volume root + optional dev folders). Best on{' '}
-                <span className="text-primary/90 font-medium">SSD</span>; slower on HDD.
+                {t('dashboard.scanModeSelector.partitionDescription')}
               </p>
             </div>
           </div>
@@ -63,9 +64,9 @@ export function ScanModeSelector({ mode, onModeChange, disabled }: Props) {
               className={cn('shrink-0 mt-0.5', mode === 'custom' ? 'text-primary' : 'text-muted-foreground')}
             />
             <div className="min-w-0 space-y-1">
-              <p className="text-sm font-bold">Custom directories</p>
+              <p className="text-sm font-bold">{t('dashboard.scanModeSelector.customTitle')}</p>
               <p className="text-xs text-muted-foreground leading-snug">
-                Scan only folders you pick — ideal when you know where projects live (e.g. legacy HDD trees).
+                {t('dashboard.scanModeSelector.customDescription')}
               </p>
             </div>
           </div>

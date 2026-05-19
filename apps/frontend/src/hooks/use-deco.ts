@@ -104,7 +104,7 @@ export function useDeco() {
             ? err.message
             : JSON.stringify(err);
       setError(msg);
-      setStatus({ text: `Error: ${msg}`, type: 'error' });
+      setStatus({ text: t('common.errorPrefix', { msg }), type: 'error' });
       throw err;
     }
   };
@@ -173,7 +173,7 @@ export function useDeco() {
     try {
       await invoke('cancel_cleanup', { jobId });
       setCleanupPaused(false);
-      setStatus({ text: 'Stopping cleanup…', type: 'active' });
+      setStatus({ text: t('status.stoppingCleanup'), type: 'active' });
     } catch {
       /* surfaced via tauriInvoke */
     }
@@ -216,7 +216,7 @@ export function useDeco() {
       if (!stoppingAnalysis) {
         setSearchStopped(true);
         setStatus({
-          text: 'Search stopped — classifying and sizing found items…',
+          text: t('status.searchStoppedClassifying'),
           type: 'active',
         });
         toast({
@@ -226,7 +226,7 @@ export function useDeco() {
           variant: 'info',
         });
       } else {
-        setStatus({ text: 'Stopping analysis…', type: 'active' });
+        setStatus({ text: t('status.stoppingAnalysis'), type: 'active' });
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -235,7 +235,7 @@ export function useDeco() {
       }
       setError(msg);
       finishScan();
-      setProgress({ percent: 0, text: 'Scan stopped', phase: null });
+      setProgress({ percent: 0, text: t('status.scanStopped'), phase: null });
     }
   };
 
@@ -260,19 +260,19 @@ export function useDeco() {
     if (useCustom) {
       if (rootsList.length === 0) {
         setError('Add at least one custom folder in Settings.');
-        setStatus({ text: 'No custom folders configured', type: 'error' });
+        setStatus({ text: t('status.noCustomFolders'), type: 'error' });
         return null;
       }
       const fromRoots = volumeMountsFromPaths(rootsList);
       volumes = [...new Set([...volumes, ...fromRoots])].sort();
       if (volumes.length === 0) {
         setError('Could not map custom folders to a drive letter.');
-        setStatus({ text: 'Invalid custom paths', type: 'error' });
+        setStatus({ text: t('status.invalidCustomPaths'), type: 'error' });
         return null;
       }
     } else if (volumes.length === 0) {
       setError('Select at least one partition to scan.');
-      setStatus({ text: 'No partition selected', type: 'error' });
+      setStatus({ text: t('status.noPartitionSelected'), type: 'error' });
       return null;
     }
 
@@ -299,8 +299,8 @@ export function useDeco() {
     activeScanModeRef.current = scanMode;
     setSearchStopped(false);
     scanPhaseRef.current = 'discover';
-    setProgress({ percent: 2, text: 'Starting scan…', phase: 'discover' });
-    setStatus({ text: 'Scan running in background', type: 'active' });
+    setProgress({ percent: 2, text: t('status.startingScan'), phase: 'discover' });
+    setStatus({ text: t('status.scanRunning'), type: 'active' });
 
     try {
       await invoke('save_settings', { settings: activeSettings });
@@ -497,7 +497,7 @@ export function useDeco() {
         cleanupRemovedSnapshotRef.current = [];
       } else {
         setProgress(idle);
-        setStatus({ text: 'Cleanup failed', type: 'error' });
+        setStatus({ text: t('status.cleanupFailed'), type: 'error' });
       }
     },
     [applyCleanupResult],
@@ -535,7 +535,10 @@ export function useDeco() {
         : `Moving ${candidateIds.length} item(s) to quarantine…`,
       phase: 'cleanup',
     });
-    setStatus({ text: deleting ? 'Deleting…' : 'Cleanup in progress…', type: 'active' });
+    setStatus({
+      text: deleting ? t('status.deleting') : t('status.cleanupInProgress'),
+      type: 'active',
+    });
     toast({
       title: deleting ? 'Delete started' : 'Cleanup started',
       description: deleting
@@ -654,17 +657,20 @@ export function useDeco() {
         sized: processedSizes,
         total: totalCandidates,
       });
-      const text = (payload.message as string) || 'Scanning...';
+      const text = (payload.message as string) || t('status.scanningFallback');
 
       if (progressPhase === 'discover') {
         const found = Number(payload.discovered_targets ?? 0);
         if (!payload.message) {
           setProgress({
             percent,
-            text: `Scanning directories… ${scannedDirs} scanned, ${found} found`,
+            text: t('status.scanningDirsDetail', {
+              scanned: scannedDirs,
+              found,
+            }),
             phase: 'discover',
           });
-          setStatus({ text: `Scanning… ${scannedDirs} dirs`, type: 'active' });
+          setStatus({ text: t('status.scanningDirs', { dirs: scannedDirs }), type: 'active' });
           return;
         }
       } else if (progressPhase === 'done') {
@@ -688,14 +694,18 @@ export function useDeco() {
           }));
           const fmt = (ms: number) =>
             ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms)}ms`;
-          const timingSuffix = ` · discover ${fmt(dMs)}, classify ${fmt(cMs)}, size ${fmt(sMs)}`;
+          const timingText = t('status.scanCompleteTiming', {
+            discover: fmt(dMs),
+            classify: fmt(cMs),
+            size: fmt(sMs),
+          });
           if (!payload.message) {
             setProgress({
               percent: 100,
-              text: `Scan complete${timingSuffix}`,
+              text: timingText,
               phase: 'done',
             });
-            setStatus({ text: `Scan complete${timingSuffix}`, type: 'done' });
+            setStatus({ text: timingText, type: 'done' });
             scanPhaseRef.current = progressPhase;
             return;
           }
@@ -755,18 +765,30 @@ export function useDeco() {
             scanMode: activeScanModeRef.current,
           });
         }
-        setProgress({ percent: 100, text: 'Scan complete', phase: 'done' });
+        setProgress({ percent: 100, text: t('status.scanComplete'), phase: 'done' });
         const canceled = (report.warnings ?? []).some((w) => w.toLowerCase().includes('cancel'));
         const unsized = list.filter((c) => c.size_bytes === undefined).length;
         const bytes = report.total_bytes ?? 0;
-        const sizeHint = bytes > 0 ? ` · ${formatBytes(bytes)} measured` : '';
-        const unsizedHint = unsized > 0 ? ` · ${unsized} not calculated` : '';
+        const sizeHint =
+          bytes > 0 ? t('status.measuredSuffix', { size: formatBytes(bytes) }) : '';
+        const unsizedHint =
+          unsized > 0 ? t('status.unsizedSuffix', { count: unsized }) : '';
         const doneMs = wallMs ?? null;
         const timeHint = doneMs != null ? ` · ${formatDurationMs(doneMs)}` : '';
         setStatus({
           text: canceled
-            ? `Scan canceled: ${list.length} partial items${sizeHint}${unsizedHint}${timeHint}.`
-            : `Scan complete: ${list.length} items${sizeHint}${unsizedHint}${timeHint}.`,
+            ? t('status.scanCanceledSummary', {
+                count: list.length,
+                sizeHint,
+                unsizedHint,
+                timeHint,
+              })
+            : t('status.scanCompleteSummary', {
+                count: list.length,
+                sizeHint,
+                unsizedHint,
+                timeHint,
+              }),
           type: 'done',
         });
         finishScan();
@@ -786,7 +808,7 @@ export function useDeco() {
       if (eventScanId && activeScanIdRef.current && eventScanId !== activeScanIdRef.current) return;
       const msg = payload.message || 'Scan failed';
       setError(msg);
-      setStatus({ text: `Error: ${msg}`, type: 'error' });
+      setStatus({ text: t('common.errorPrefix', { msg }), type: 'error' });
       finishScan();
       setProgress(idle);
     });

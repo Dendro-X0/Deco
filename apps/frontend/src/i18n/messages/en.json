@@ -10,7 +10,35 @@
     "systemReady": "System Ready",
     "ready": "Ready",
     "scanStarted": "Scan started",
-    "quickUpdateStarted": "Quick update started"
+    "quickUpdateStarted": "Quick update started",
+    "stoppingCleanup": "Stopping cleanup…",
+    "searchStoppedClassifying": "Search stopped — classifying and sizing found items…",
+    "stoppingAnalysis": "Stopping analysis…",
+    "scanStopped": "Scan stopped",
+    "noCustomFolders": "No custom folders configured",
+    "invalidCustomPaths": "Invalid custom paths",
+    "noPartitionSelected": "No partition selected",
+    "startingScan": "Starting scan…",
+    "scanRunning": "Scan running in background",
+    "cleanupFailed": "Cleanup failed",
+    "deleting": "Deleting…",
+    "cleanupInProgress": "Cleanup in progress…",
+    "scanningDirs": "Scanning… {{dirs}} dirs",
+    "scanningDirsDetail": "Scanning directories… {{scanned}} scanned, {{found}} found",
+    "scanComplete": "Scan complete",
+    "scanCompleteTiming": "Scan complete · discover {{discover}}, classify {{classify}}, size {{size}}",
+    "scanCompleteSummary": "Scan complete: {{count}} items{{sizeHint}}{{unsizedHint}}{{timeHint}}.",
+    "scanCanceledSummary": "Scan canceled: {{count}} partial items{{sizeHint}}{{unsizedHint}}{{timeHint}}.",
+    "measuredSuffix": " · {{size}} measured",
+    "unsizedSuffix": " · {{count}} not calculated",
+    "scanningFallback": "Scanning…",
+    "phase": {
+      "discover": "Discover",
+      "classify": "Classify",
+      "size": "Size",
+      "done": "Done",
+      "cleanup": "Cleanup"
+    }
   },
   "common": {
     "save": "Save changes",
@@ -24,7 +52,15 @@
     "show": "Show",
     "allDrives": "All drives",
     "anyTime": "Any time",
-    "localDisk": "Local Disk"
+    "localDisk": "Local Disk",
+    "cancel": "Cancel",
+    "clearAll": "Clear all",
+    "remove": "Remove",
+    "close": "Close",
+    "opening": "Opening…",
+    "copied": "Copied",
+    "copy": "Copy",
+    "errorPrefix": "Error: {{msg}}"
   },
   "header": {
     "dashboard": {
@@ -182,6 +218,47 @@
       "depth": "depth {{depth}}",
       "size": "size {{mode}}",
       "quickUpdateOn": "Quick update on"
+    },
+    "customRoots": {
+      "title": "Custom folders",
+      "description": "Add one or more project directories with Browse. Only these paths are scanned.",
+      "browse": "Browse folders…",
+      "clearAll": "Clear all",
+      "empty": "No folders yet — click Browse to add paths from File Explorer.",
+      "showInExplorer": "Show in File Explorer",
+      "foldersReady": "{{count}} folder ready to scan",
+      "foldersReadyPlural": "{{count}} folders ready to scan"
+    },
+    "scanModeSelector": {
+      "label": "Scanning mode",
+      "partitionTitle": "Partition-based scan",
+      "partitionDescription": "Scan selected drives (volume root + optional dev folders). Best on SSD; slower on HDD.",
+      "customTitle": "Custom directories",
+      "customDescription": "Scan only folders you pick — ideal when you know where projects live (e.g. legacy HDD trees)."
+    },
+    "scanStats": {
+      "title": "Scan statistics",
+      "phasesUnavailable": "Phase timings unavailable for this run.",
+      "wallSuffix": " · {{duration}} wall",
+      "copyDiagnostics": "Copy diagnostics",
+      "copied": "Copied",
+      "quickUpdateReuse": "Quick update reuse",
+      "quickUpdateReuseDetail": "{{reused}} of {{total}} candidates ({{percent}}%) reused from inventory",
+      "timeByPhase": "Time by phase",
+      "topKindsBySize": "Top kinds by size",
+      "phases": {
+        "discover": "Discover",
+        "classify": "Classify",
+        "size": "Size"
+      },
+      "phaseTimingLine": "Discover {{discover}} · Classify {{classify}} · Size {{size}}"
+    },
+    "workspace": {
+      "title": "Workspace summary",
+      "description": "{{count}} project{{suffix}} · {{reclaimable}} reclaimable (safe + review) — each folder counted once",
+      "showLess": "Show less",
+      "showAll": "All {{count}}",
+      "projectSuffix": "s"
     }
   },
   "settings": {
@@ -520,5 +597,34 @@
     "purgeDescription": "Permanently remove {{count}} item(s) older than {{days}} days? This cannot be undone.",
     "purgeNoneEligible": "No items are eligible for purge.",
     "purge": "Purge"
+  },
+  "modal": {
+    "scanTargets": {
+      "title": "Choose scan targets",
+      "subtitle": "Pick a scanning mode, then configure partitions or custom folders.",
+      "regionAria": "Scan target options",
+      "startScan": "Start scan"
+    }
+  },
+  "onboarding": {
+    "welcome": "Welcome to Deco",
+    "subtitle": "Developer Compact helps you reclaim disk space from project caches and build output — safely.",
+    "skip": "Skip for now",
+    "getStarted": "Get started",
+    "closeAria": "Close",
+    "steps": {
+      "scan": {
+        "title": "Scan your workspace",
+        "body": "Pick partitions or custom folders, then run a scan. Deco classifies caches and build artifacts by risk."
+      },
+      "review": {
+        "title": "Review before you clean",
+        "body": "Safe items are selected by default. Review-tier paths need your explicit OK — nothing is shredded blindly."
+      },
+      "quarantine": {
+        "title": "Quarantine first",
+        "body": "Cleanup moves files to quarantine so you can restore or purge later. Use the planner to hit a free-space target."
+      }
+    }
   }
 }

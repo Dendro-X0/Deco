@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatBytes, formatDurationMs } from '@/lib/format';
 import {
-  formatPhaseTimingLine,
   formatScanDiagnostics,
   inventoryReusePercent,
   phaseShares,
@@ -12,7 +11,14 @@ import {
   type ScanRunMetrics,
 } from '@/lib/scan-statistics';
 import { APP_VERSION } from '@/lib/app-version';
+import { useI18n } from '@/i18n';
 import type { ScanReport } from '@/types';
+
+const PHASE_I18N: Record<string, 'discover' | 'classify' | 'size'> = {
+  discoverMs: 'discover',
+  classifyMs: 'classify',
+  sizeMs: 'size',
+};
 
 type Props = {
   report: ScanReport;
@@ -20,6 +26,7 @@ type Props = {
 };
 
 export function ScanStatisticsCard({ report, metrics }: Props) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const timings = metrics;
   const shares = timings ? phaseShares(timings) : [];
@@ -48,13 +55,23 @@ export function ScanStatisticsCard({ report, metrics }: Props) {
             <BarChart3 size={18} aria-hidden />
           </div>
           <div>
-            <CardTitle className="text-base">Scan statistics</CardTitle>
+            <CardTitle className="text-base">{t('dashboard.scanStats.title')}</CardTitle>
             <CardDescription>
               {timings
-                ? formatPhaseTimingLine(timings)
-                : 'Phase timings unavailable for this run.'}
+                ? (() => {
+                    const fmt = (ms: number) =>
+                      ms >= 1000 ? formatDurationMs(ms) : `${Math.round(ms)}ms`;
+                    return t('dashboard.scanStats.phaseTimingLine', {
+                      discover: fmt(timings.discoverMs),
+                      classify: fmt(timings.classifyMs),
+                      size: fmt(timings.sizeMs),
+                    });
+                  })()
+                : t('dashboard.scanStats.phasesUnavailable')}
               {metrics?.wallMs != null && metrics.wallMs > 0
-                ? ` · ${formatDurationMs(metrics.wallMs)} wall`
+                ? t('dashboard.scanStats.wallSuffix', {
+                    duration: formatDurationMs(metrics.wallMs),
+                  })
                 : null}
             </CardDescription>
           </div>
@@ -66,18 +83,21 @@ export function ScanStatisticsCard({ report, metrics }: Props) {
           onClick={() => void copyDiagnostics()}
         >
           {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
-          {copied ? 'Copied' : 'Copy diagnostics'}
+          {copied ? t('dashboard.scanStats.copied') : t('dashboard.scanStats.copyDiagnostics')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         {reusePct != null ? (
           <div className="rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Quick update reuse
+              {t('dashboard.scanStats.quickUpdateReuse')}
             </p>
             <p className="text-sm font-semibold mt-1">
-              {metrics?.inventoryReused} of {report.candidates.length} candidates ({reusePct}%)
-              reused from inventory
+              {t('dashboard.scanStats.quickUpdateReuseDetail', {
+                reused: metrics?.inventoryReused ?? 0,
+                total: report.candidates.length,
+                percent: reusePct ?? 0,
+              })}
             </p>
           </div>
         ) : null}
@@ -85,13 +105,17 @@ export function ScanStatisticsCard({ report, metrics }: Props) {
         {shares.length > 0 && shares.some((s) => s.ms > 0) ? (
           <div className="space-y-3">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Time by phase
+              {t('dashboard.scanStats.timeByPhase')}
             </p>
             <div className="space-y-2">
               {shares.map((share) => (
                 <div key={share.phase} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="font-medium">{share.label}</span>
+                    <span className="font-medium">
+                      {t(
+                        `dashboard.scanStats.phases.${PHASE_I18N[share.phase] ?? 'discover'}`,
+                      )}
+                    </span>
                     <span className="text-muted-foreground tabular-nums">
                       {share.percent}% ·{' '}
                       {share.ms >= 1000
@@ -114,7 +138,7 @@ export function ScanStatisticsCard({ report, metrics }: Props) {
         {kinds.length > 0 ? (
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Top kinds by size
+              {t('dashboard.scanStats.topKindsBySize')}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {kinds.map((row) => (

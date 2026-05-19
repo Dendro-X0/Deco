@@ -10,7 +10,35 @@
     "systemReady": "系统就绪",
     "ready": "就绪",
     "scanStarted": "扫描已开始",
-    "quickUpdateStarted": "快速更新已开始"
+    "quickUpdateStarted": "快速更新已开始",
+    "stoppingCleanup": "正在停止清理…",
+    "searchStoppedClassifying": "搜索已停止 — 正在分类和测量已找到的项目…",
+    "stoppingAnalysis": "正在停止分析…",
+    "scanStopped": "扫描已停止",
+    "noCustomFolders": "未配置自定义文件夹",
+    "invalidCustomPaths": "自定义路径无效",
+    "noPartitionSelected": "未选择分区",
+    "startingScan": "正在启动扫描…",
+    "scanRunning": "扫描在后台运行",
+    "cleanupFailed": "清理失败",
+    "deleting": "正在删除…",
+    "cleanupInProgress": "清理进行中…",
+    "scanningDirs": "正在扫描… {{dirs}} 个目录",
+    "scanningDirsDetail": "正在扫描目录… 已扫描 {{scanned}}，找到 {{found}}",
+    "scanComplete": "扫描完成",
+    "scanCompleteTiming": "扫描完成 · 发现 {{discover}}，分类 {{classify}}，测量 {{size}}",
+    "scanCompleteSummary": "扫描完成：{{count}} 个项目{{sizeHint}}{{unsizedHint}}{{timeHint}}。",
+    "scanCanceledSummary": "扫描已取消：{{count}} 个部分项目{{sizeHint}}{{unsizedHint}}{{timeHint}}。",
+    "measuredSuffix": " · 已测量 {{size}}",
+    "unsizedSuffix": " · {{count}} 个未计算",
+    "scanningFallback": "正在扫描…",
+    "phase": {
+      "discover": "发现",
+      "classify": "分类",
+      "size": "测量",
+      "done": "完成",
+      "cleanup": "清理"
+    }
   },
   "common": {
     "save": "保存更改",
@@ -24,7 +52,15 @@
     "show": "显示",
     "allDrives": "所有驱动器",
     "anyTime": "任何时间",
-    "localDisk": "本地磁盘"
+    "localDisk": "本地磁盘",
+    "cancel": "取消",
+    "clearAll": "全部清除",
+    "remove": "移除",
+    "close": "关闭",
+    "opening": "正在打开…",
+    "copied": "已复制",
+    "copy": "复制",
+    "errorPrefix": "错误：{{msg}}"
   },
   "header": {
     "dashboard": {
@@ -182,6 +218,47 @@
       "depth": "深度 {{depth}}",
       "size": "大小 {{mode}}",
       "quickUpdateOn": "快速更新开启"
+    },
+    "customRoots": {
+      "title": "自定义文件夹",
+      "description": "通过浏览添加一个或多个项目目录。仅扫描这些路径。",
+      "browse": "浏览文件夹…",
+      "clearAll": "全部清除",
+      "empty": "尚无文件夹 — 点击浏览从文件资源管理器添加路径。",
+      "showInExplorer": "在文件资源管理器中显示",
+      "foldersReady": "{{count}} 个文件夹已就绪",
+      "foldersReadyPlural": "{{count}} 个文件夹已就绪"
+    },
+    "scanModeSelector": {
+      "label": "扫描模式",
+      "partitionTitle": "基于分区的扫描",
+      "partitionDescription": "扫描所选驱动器（卷根目录 + 可选开发文件夹）。SSD 上效果最佳；HDD 较慢。",
+      "customTitle": "自定义目录",
+      "customDescription": "仅扫描您选择的文件夹 — 适合已知项目位置（如旧 HDD 目录树）。"
+    },
+    "scanStats": {
+      "title": "扫描统计",
+      "phasesUnavailable": "此运行无阶段计时数据。",
+      "wallSuffix": " · 总耗时 {{duration}}",
+      "copyDiagnostics": "复制诊断信息",
+      "copied": "已复制",
+      "quickUpdateReuse": "快速更新复用",
+      "quickUpdateReuseDetail": "{{reused}} / {{total}} 个候选（{{percent}}%）来自清单复用",
+      "timeByPhase": "各阶段耗时",
+      "topKindsBySize": "按大小排序的类型",
+      "phases": {
+        "discover": "发现",
+        "classify": "分类",
+        "size": "测量"
+      },
+      "phaseTimingLine": "发现 {{discover}} · 分类 {{classify}} · 测量 {{size}}"
+    },
+    "workspace": {
+      "title": "工作区摘要",
+      "description": "{{count}} 个项目{{suffix}} · 可回收 {{reclaimable}}（安全 + 审核）— 每个文件夹仅计一次",
+      "showLess": "收起",
+      "showAll": "全部 {{count}}",
+      "projectSuffix": ""
     }
   },
   "settings": {
@@ -520,5 +597,34 @@
     "purgeDescription": "永久删除超过 {{days}} 天的 {{count}} 个项目？此操作无法撤销。",
     "purgeNoneEligible": "没有符合清除条件的项目。",
     "purge": "清除"
+  },
+  "modal": {
+    "scanTargets": {
+      "title": "选择扫描目标",
+      "subtitle": "选择扫描模式，然后配置分区或自定义文件夹。",
+      "regionAria": "扫描目标选项",
+      "startScan": "开始扫描"
+    }
+  },
+  "onboarding": {
+    "welcome": "欢迎使用 Deco",
+    "subtitle": "Developer Compact 帮助您安全地从项目缓存和构建输出中回收磁盘空间。",
+    "skip": "暂时跳过",
+    "getStarted": "开始使用",
+    "closeAria": "关闭",
+    "steps": {
+      "scan": {
+        "title": "扫描工作区",
+        "body": "选择分区或自定义文件夹，然后运行扫描。Deco 按风险对缓存和构建产物进行分类。"
+      },
+      "review": {
+        "title": "清理前先审核",
+        "body": "默认选中安全项。审核级路径需要您明确确认 — 不会盲目删除。"
+      },
+      "quarantine": {
+        "title": "先隔离",
+        "body": "清理将文件移至隔离区，可随时恢复或清除。使用规划器达到目标可用空间。"
+      }
+    }
   }
 }

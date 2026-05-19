@@ -10,7 +10,35 @@
     "systemReady": "Sistema listo",
     "ready": "Listo",
     "scanStarted": "Escaneo iniciado",
-    "quickUpdateStarted": "Actualización rápida iniciada"
+    "quickUpdateStarted": "Actualización rápida iniciada",
+    "stoppingCleanup": "Deteniendo limpieza…",
+    "searchStoppedClassifying": "Búsqueda detenida — clasificando y midiendo elementos encontrados…",
+    "stoppingAnalysis": "Deteniendo análisis…",
+    "scanStopped": "Escaneo detenido",
+    "noCustomFolders": "No hay carpetas personalizadas configuradas",
+    "invalidCustomPaths": "Rutas personalizadas no válidas",
+    "noPartitionSelected": "Ninguna partición seleccionada",
+    "startingScan": "Iniciando escaneo…",
+    "scanRunning": "Escaneo en segundo plano",
+    "cleanupFailed": "Limpieza fallida",
+    "deleting": "Eliminando…",
+    "cleanupInProgress": "Limpieza en curso…",
+    "scanningDirs": "Escaneando… {{dirs}} dirs",
+    "scanningDirsDetail": "Escaneando directorios… {{scanned}} escaneados, {{found}} encontrados",
+    "scanComplete": "Escaneo completo",
+    "scanCompleteTiming": "Escaneo completo · descubrir {{discover}}, clasificar {{classify}}, medir {{size}}",
+    "scanCompleteSummary": "Escaneo completo: {{count}} elementos{{sizeHint}}{{unsizedHint}}{{timeHint}}.",
+    "scanCanceledSummary": "Escaneo cancelado: {{count}} elementos parciales{{sizeHint}}{{unsizedHint}}{{timeHint}}.",
+    "measuredSuffix": " · {{size}} medidos",
+    "unsizedSuffix": " · {{count}} sin calcular",
+    "scanningFallback": "Escaneando…",
+    "phase": {
+      "discover": "Descubrir",
+      "classify": "Clasificar",
+      "size": "Medir",
+      "done": "Hecho",
+      "cleanup": "Limpieza"
+    }
   },
   "common": {
     "save": "Guardar cambios",
@@ -24,7 +52,15 @@
     "show": "Mostrar",
     "allDrives": "Todas las unidades",
     "anyTime": "Cualquier momento",
-    "localDisk": "Disco local"
+    "localDisk": "Disco local",
+    "cancel": "Cancelar",
+    "clearAll": "Borrar todo",
+    "remove": "Quitar",
+    "close": "Cerrar",
+    "opening": "Abriendo…",
+    "copied": "Copiado",
+    "copy": "Copiar",
+    "errorPrefix": "Error: {{msg}}"
   },
   "header": {
     "dashboard": {
@@ -182,6 +218,47 @@
       "depth": "profundidad {{depth}}",
       "size": "tamaño {{mode}}",
       "quickUpdateOn": "actualización rápida activa"
+    },
+    "customRoots": {
+      "title": "Carpetas personalizadas",
+      "description": "Añada uno o más directorios de proyecto con Examinar. Solo se escanean estas rutas.",
+      "browse": "Examinar carpetas…",
+      "clearAll": "Borrar todo",
+      "empty": "Aún no hay carpetas — haga clic en Examinar para añadir rutas desde el Explorador.",
+      "showInExplorer": "Mostrar en el Explorador",
+      "foldersReady": "{{count}} carpeta lista para escanear",
+      "foldersReadyPlural": "{{count}} carpetas listas para escanear"
+    },
+    "scanModeSelector": {
+      "label": "Modo de escaneo",
+      "partitionTitle": "Escaneo por partición",
+      "partitionDescription": "Escanee unidades seleccionadas (raíz del volumen + carpetas de desarrollo opcionales). Mejor en SSD; más lento en HDD.",
+      "customTitle": "Directorios personalizados",
+      "customDescription": "Escanee solo las carpetas que elija — ideal cuando conoce dónde están los proyectos (p. ej. árboles HDD antiguos)."
+    },
+    "scanStats": {
+      "title": "Estadísticas del escaneo",
+      "phasesUnavailable": "Tiempos por fase no disponibles para esta ejecución.",
+      "wallSuffix": " · {{duration}} total",
+      "copyDiagnostics": "Copiar diagnóstico",
+      "copied": "Copiado",
+      "quickUpdateReuse": "Reutilización de actualización rápida",
+      "quickUpdateReuseDetail": "{{reused}} de {{total}} candidatos ({{percent}}%) reutilizados del inventario",
+      "timeByPhase": "Tiempo por fase",
+      "topKindsBySize": "Tipos principales por tamaño",
+      "phases": {
+        "discover": "Descubrir",
+        "classify": "Clasificar",
+        "size": "Medir"
+      },
+      "phaseTimingLine": "Descubrir {{discover}} · Clasificar {{classify}} · Medir {{size}}"
+    },
+    "workspace": {
+      "title": "Resumen del espacio de trabajo",
+      "description": "{{count}} proyecto{{suffix}} · {{reclaimable}} recuperables (seguro + revisión) — cada carpeta cuenta una vez",
+      "showLess": "Mostrar menos",
+      "showAll": "Todos ({{count}})",
+      "projectSuffix": "s"
     }
   },
   "settings": {
@@ -520,5 +597,34 @@
     "purgeDescription": "¿Eliminar permanentemente {{count}} elemento(s) de más de {{days}} días? No se puede deshacer.",
     "purgeNoneEligible": "No hay elementos elegibles para purga.",
     "purge": "Purgar"
+  },
+  "modal": {
+    "scanTargets": {
+      "title": "Elegir objetivos de escaneo",
+      "subtitle": "Elija un modo de escaneo y configure particiones o carpetas personalizadas.",
+      "regionAria": "Opciones de objetivo de escaneo",
+      "startScan": "Iniciar escaneo"
+    }
+  },
+  "onboarding": {
+    "welcome": "Bienvenido a Deco",
+    "subtitle": "Developer Compact le ayuda a recuperar espacio en disco de cachés y artefactos de compilación — con seguridad.",
+    "skip": "Omitir por ahora",
+    "getStarted": "Empezar",
+    "closeAria": "Cerrar",
+    "steps": {
+      "scan": {
+        "title": "Escanee su espacio de trabajo",
+        "body": "Elija particiones o carpetas personalizadas y ejecute un escaneo. Deco clasifica cachés y artefactos por riesgo."
+      },
+      "review": {
+        "title": "Revise antes de limpiar",
+        "body": "Los elementos seguros se seleccionan por defecto. Las rutas de revisión requieren su confirmación explícita."
+      },
+      "quarantine": {
+        "title": "Cuarentena primero",
+        "body": "La limpieza mueve archivos a cuarentena para restaurar o purgar después. Use el planificador para un objetivo de espacio libre."
+      }
+    }
   }
 }

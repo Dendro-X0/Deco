@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FolderOpen, FolderTree, X } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/i18n';
 import { mergeScanRoots, pickScanFolders } from '@/lib/pick-folders';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Props) {
+  const { t } = useI18n();
   const [picking, setPicking] = useState(false);
 
   const addFromDialog = async () => {
@@ -46,9 +48,9 @@ export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Pro
       <div className="flex items-start gap-2">
         <FolderTree size={16} className="text-primary shrink-0 mt-0.5" />
         <div className="min-w-0 space-y-1">
-          <p className="text-sm font-semibold">Custom folders</p>
+          <p className="text-sm font-semibold">{t('dashboard.customRoots.title')}</p>
           <p className="text-xs text-muted-foreground leading-snug">
-            Add one or more project directories with Browse. Only these paths are scanned.
+            {t('dashboard.customRoots.description')}
           </p>
         </div>
       </div>
@@ -63,7 +65,7 @@ export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Pro
           onClick={() => void addFromDialog()}
         >
           <FolderOpen size={14} />
-          {picking ? 'Opening…' : 'Browse folders…'}
+          {picking ? t('common.opening') : t('dashboard.customRoots.browse')}
         </Button>
         {roots.length > 0 ? (
           <Button
@@ -74,14 +76,14 @@ export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Pro
             disabled={disabled}
             onClick={() => onRootsChange([])}
           >
-            Clear all
+            {t('dashboard.customRoots.clearAll')}
           </Button>
         ) : null}
       </div>
 
       {roots.length === 0 ? (
         <p className="text-xs text-muted-foreground italic py-2 text-center border border-dashed border-border/50 rounded-md">
-          No folders yet — click Browse to add paths from File Explorer.
+          {t('dashboard.customRoots.empty')}
         </p>
       ) : (
         <ul className="space-y-1.5 max-h-48 overflow-y-auto pr-1 deco-scrollbar">
@@ -92,7 +94,7 @@ export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Pro
             >
               <button
                 type="button"
-                title="Show in File Explorer"
+                title={t('dashboard.customRoots.showInExplorer')}
                 className="shrink-0 text-muted-foreground hover:text-primary transition-colors"
                 disabled={disabled}
                 onClick={() => void revealPath(path)}
@@ -107,7 +109,7 @@ export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Pro
               </span>
               <button
                 type="button"
-                title="Remove"
+                title={t('common.remove')}
                 className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 disabled={disabled}
                 onClick={() => removeAt(index)}
@@ -121,7 +123,9 @@ export function CustomScanRoots({ roots, onRootsChange, disabled, onError }: Pro
 
       {roots.length > 0 ? (
         <p className="text-[10px] text-primary/90 font-medium">
-          {roots.length} folder{roots.length === 1 ? '' : 's'} ready to scan
+          {roots.length === 1
+            ? t('dashboard.customRoots.foldersReady', { count: roots.length })
+            : t('dashboard.customRoots.foldersReadyPlural', { count: roots.length })}
         </p>
       ) : null}
     </div>
