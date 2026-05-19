@@ -4,6 +4,12 @@
 
 Development line **v0.8.1** — see [v0.8.1-manifest.md](docs/product/v0.8.1-manifest.md).
 
+### Added
+
+- **winget** — `Dendro-X0.Deco` manifest templates under `packaging/winget/`; `node scripts/sync-package-manifests.mjs <tag>`.
+- **Homebrew cask** — `packaging/homebrew/Casks/deco.rb` for Apple Silicon `.dmg` from Releases.
+- **Linux install docs** — AppImage / `.deb` paths in [package-managers.md](docs/distribution/package-managers.md).
+
 ## [0.8.0] - 2026-05-19
 
 See [v0.8.0-manifest.md](docs/product/v0.8.0-manifest.md).

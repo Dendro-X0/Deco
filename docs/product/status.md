@@ -16,7 +16,7 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.0` (tag pushed; con
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.8.1-manifest.md](v0.8.1-manifest.md) — winget + Homebrew |
+| **Active** | [v0.8.1-manifest.md](v0.8.1-manifest.md) — ready to tag after CI |
 | **Queue** | [v0.8.2-manifest.md](v0.8.2-manifest.md) — localization |
 
 ### Version queue (summary)

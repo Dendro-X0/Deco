@@ -1,0 +1,18 @@
+PackageIdentifier: Dendro-X0.Deco
+PackageVersion: 0.7.8
+InstallerType: wix
+Scope: user
+InstallModes:
+- interactive
+- silent
+UpgradeBehavior: install
+ReleaseDate: 2026-05-19
+Installers:
+- Architecture: x64
+  InstallerUrl: https://github.com/Dendro-X0/Deco/releases/download/v0.7.8/Deco_0.7.8_x64_en-US.msi
+  InstallerSha256: A51BF083AC3336234C05F53ABAE5A24A6B1F0518E4E0B838AAD3FF847B7260FC
+  InstallerLocale: en-US
+  Platform:
+  - Windows.Desktop
+ManifestType: installer
+ManifestVersion: 1.6.0

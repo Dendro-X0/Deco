@@ -1,14 +1,18 @@
 # Install
 
-End users install Deco from **GitHub Releases** only. No npm account or registry token is required.
+End users install Deco from **GitHub Releases**, or optionally via **winget** (Windows) / **Homebrew** (macOS). No npm account or registry token is required.
 
-## Where to download
+## Quick install
 
-1. Open the repository **Releases** page on GitHub.
-2. Pick the latest tag (`v*`, e.g. `v0.4.0`).
-3. Download the artifacts below for your platform.
+| OS | Command |
+|----|---------|
+| Windows | `winget install Dendro-X0.Deco` (after [winget-pkgs PR](https://github.com/microsoft/winget-pkgs); see [package managers](../distribution/package-managers.md)) |
+| macOS (Apple Silicon) | `brew install --cask https://raw.githubusercontent.com/Dendro-X0/Deco/main/packaging/homebrew/Casks/deco.rb` |
+| Any | Download from [GitHub Releases](https://github.com/Dendro-X0/Deco/releases) |
 
-Full reference: [GitHub Releases](../distribution/github-releases.md).
+Full reference: [GitHub Releases](../distribution/github-releases.md) · [Package managers](../distribution/package-managers.md).
+
+## Where to download (manual)
 
 ## Desktop
 
@@ -19,6 +23,8 @@ Full reference: [GitHub Releases](../distribution/github-releases.md).
 | macOS | `.dmg` | Open disk image, drag Deco to Applications (CI builds Apple Silicon / aarch64) |
 | Linux | `.AppImage` | `chmod +x` then run, or use your file manager |
 | Linux | `.deb` | `sudo dpkg -i …` or open with software installer |
+
+**Linux note:** There is no single cross-distro package manager like winget. Use `.AppImage` or `.deb` from Releases (see [package managers](../distribution/package-managers.md#linux)).
 
 **Windows requirements:** Windows 10+, [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (usually already present).
 

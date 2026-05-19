@@ -62,13 +62,14 @@ The zip includes a short README; it does **not** bundle Node — users install N
 - Release notes: auto-generated on the Windows build job; supplement manually for breaking changes.
 - Scan contract: check `schema_version` in [contract changelog](../contract/changelog.md) when upgrading automation.
 
-## What we do not ship on Releases (today)
+## Package managers
 
 | Channel | Status |
 |---------|--------|
+| **winget** (`Dendro-X0.Deco`) | Manifest templates in `packaging/winget/` — [package-managers.md](package-managers.md) |
+| **Homebrew cask** | `packaging/homebrew/Casks/deco.rb` (aarch64 dmg) |
 | npm registry (`npm publish`) | Not used for end users |
 | Intel macOS (`x86_64`) desktop | CI uses Apple Silicon runners (aarch64) |
-| Homebrew / winget | Planned `v0.8.1` — [v0.8.x-roadmap](../product/v0.8.x-roadmap.md) |
 
 ## Future distribution options
 

@@ -42,6 +42,7 @@ The **Release** workflow (`.github/workflows/release.yml`):
 
 ## Post-release verification
 
+- [ ] Run `node scripts/sync-package-manifests.mjs vX.Y.Z` and open winget-pkgs PR if Windows/macOS assets changed
 - [ ] Windows: `.msi` on a clean VM → guided cleanup smoke test
 - [ ] macOS: `.dmg` on Apple Silicon (or VM) → drag-to-Applications smoke test
 - [ ] Linux: `.AppImage` or `.deb` on Ubuntu → launch smoke test

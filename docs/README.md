@@ -43,7 +43,8 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 
 | Doc | What it covers |
 |-----|----------------|
-| [GitHub Releases](distribution/github-releases.md) | **Primary install channel** — MSI, NSIS, CLI zip |
+| [GitHub Releases](distribution/github-releases.md) | **Primary install channel** — MSI, NSIS, dmg, deb, AppImage, CLI zips |
+| [Package managers](distribution/package-managers.md) | winget (`Dendro-X0.Deco`) + Homebrew cask |
 | [Release process](distribution/release-process.md) | Tagging, CI artifacts, maintainer checklist |
 | [CI / release platforms](distribution/ci-and-release-platforms.md) | Which OSes get installers (Windows today) |
 
