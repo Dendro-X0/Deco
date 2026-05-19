@@ -60,7 +60,8 @@
     "opening": "正在打开…",
     "copied": "已复制",
     "copy": "复制",
-    "errorPrefix": "错误：{{msg}}"
+    "errorPrefix": "错误：{{msg}}",
+    "deletePermanentTitle": "永久删除？"
   },
   "header": {
     "dashboard": {
@@ -626,5 +627,30 @@
         "body": "清理将文件移至隔离区，可随时恢复或清除。使用规划器达到目标可用空间。"
       }
     }
+  },
+  "wizard": {
+    "title": "释放磁盘空间",
+    "subtitle": "引导式清理 — 默认安全",
+    "steps": {
+      "intro": "欢迎",
+      "scanning": "扫描",
+      "results": "审核",
+      "preview": "清理"
+    },
+    "introBody": "Deco 查找开发 clutter — 旧的 node_modules、构建文件夹和缓存 — 并将其移至隔离区以便稍后撤销。",
+    "introList1": "扫描开发文件夹和本地驱动器以查找可回收 clutter",
+    "introList2": "审核哪些安全、哪些需要谨慎",
+    "introList3": "预览并隔离所选项目",
+    "scanRoots": "{{count}} 个扫描根路径{{suffix}}（{{scope}}）。如需调整，请前往设置。",
+    "configurePaths": "配置路径",
+    "startScan": "开始扫描",
+    "continueBackground": "在后台继续",
+    "safeToClean": "可安全清理",
+    "folders": "{{count}} 个文件夹",
+    "needsReview": "需要审核",
+    "preSelected": "我们已预选 {{count}} 个安全项目。清理前请在仪表盘上调整列表。",
+    "continuePreview": "继续预览",
+    "doneMessage": "清理完成。已恢复的文件位于隔离区。",
+    "done": "完成"
   }
 }

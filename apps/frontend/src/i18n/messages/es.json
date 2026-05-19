@@ -60,7 +60,8 @@
     "opening": "Abriendo…",
     "copied": "Copiado",
     "copy": "Copiar",
-    "errorPrefix": "Error: {{msg}}"
+    "errorPrefix": "Error: {{msg}}",
+    "deletePermanentTitle": "¿Eliminar permanentemente?"
   },
   "header": {
     "dashboard": {
@@ -626,5 +627,30 @@
         "body": "La limpieza mueve archivos a cuarentena para restaurar o purgar después. Use el planificador para un objetivo de espacio libre."
       }
     }
+  },
+  "wizard": {
+    "title": "Liberar espacio",
+    "subtitle": "Limpieza guiada — segura por defecto",
+    "steps": {
+      "intro": "Bienvenida",
+      "scanning": "Escanear",
+      "results": "Revisar",
+      "preview": "Limpiar"
+    },
+    "introBody": "Deco encuentra clutter de desarrollo — node_modules antiguos, carpetas de compilación y cachés — y los mueve a cuarentena para poder deshacer después.",
+    "introList1": "Escanee carpetas de desarrollo y unidades locales en busca de clutter recuperable",
+    "introList2": "Revise qué es seguro y qué requiere precaución",
+    "introList3": "Previsualice y ponga en cuarentena los elementos seleccionados",
+    "scanRoots": "{{count}} raíz de escaneo{{suffix}} ({{scope}}). Ajuste rutas en Configuración si es necesario.",
+    "configurePaths": "Configurar rutas",
+    "startScan": "Iniciar escaneo",
+    "continueBackground": "Continuar en segundo plano",
+    "safeToClean": "Seguro para limpiar",
+    "folders": "{{count}} carpetas",
+    "needsReview": "Requiere revisión",
+    "preSelected": "Preseleccionamos {{count}} elementos seguros. Ajuste la lista en el panel antes de limpiar.",
+    "continuePreview": "Continuar a la vista previa",
+    "doneMessage": "Limpieza terminada. Los archivos restaurados están en Cuarentena.",
+    "done": "Hecho"
   }
 }

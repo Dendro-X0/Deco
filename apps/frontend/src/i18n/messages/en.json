@@ -60,7 +60,8 @@
     "opening": "Opening…",
     "copied": "Copied",
     "copy": "Copy",
-    "errorPrefix": "Error: {{msg}}"
+    "errorPrefix": "Error: {{msg}}",
+    "deletePermanentTitle": "Delete permanently?"
   },
   "header": {
     "dashboard": {
@@ -626,5 +627,30 @@
         "body": "Cleanup moves files to quarantine so you can restore or purge later. Use the planner to hit a free-space target."
       }
     }
+  },
+  "wizard": {
+    "title": "Free up space",
+    "subtitle": "Guided cleanup — safe by default",
+    "steps": {
+      "intro": "Welcome",
+      "scanning": "Scan",
+      "results": "Review",
+      "preview": "Clean"
+    },
+    "introBody": "Deco finds development clutter — old node_modules, build folders, and caches — and moves them to quarantine so you can undo later.",
+    "introList1": "Scan dev folders and local drives for reclaimable clutter",
+    "introList2": "Review what is safe vs needs caution",
+    "introList3": "Preview and quarantine selected items",
+    "scanRoots": "{{count}} scan root{{suffix}} ({{scope}}). Adjust paths in Settings if needed.",
+    "configurePaths": "Configure paths",
+    "startScan": "Start scan",
+    "continueBackground": "Continue in background",
+    "safeToClean": "Safe to clean",
+    "folders": "{{count}} folders",
+    "needsReview": "Needs review",
+    "preSelected": "We pre-selected {{count}} safe items. Adjust the list on the dashboard before cleaning.",
+    "continuePreview": "Continue to preview",
+    "doneMessage": "Cleanup finished. Restored files live in Quarantine.",
+    "done": "Done"
   }
 }

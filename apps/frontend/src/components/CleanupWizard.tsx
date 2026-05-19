@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, HardDrive, Play, Sparkles, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
 import type { ScanProgress } from '@/lib/scan-progress';
 import type { ScanReport, WizardStep } from '@/types';
@@ -23,12 +24,7 @@ type Props = {
   scanScopeLabel: string;
 };
 
-const STEPS: { id: WizardStep; label: string }[] = [
-  { id: 'intro', label: 'Welcome' },
-  { id: 'scanning', label: 'Scan' },
-  { id: 'results', label: 'Review' },
-  { id: 'preview', label: 'Clean' },
-];
+const STEP_IDS: WizardStep[] = ['intro', 'scanning', 'results', 'preview'];
 
 export function CleanupWizard({
   open,
@@ -46,7 +42,9 @@ export function CleanupWizard({
   scanRootCount,
   scanScopeLabel,
 }: Props) {
+  const { t } = useI18n();
   const [started, setStarted] = useState(false);
+  const steps = STEP_IDS.map((id) => ({ id, label: t(`wizard.steps.${id}`) }));
 
   useEffect(() => {
     if (step === 'scanning' && !scanning && summary && started) {
@@ -56,7 +54,7 @@ export function CleanupWizard({
 
   if (!open) return null;
 
-  const stepIndex = STEPS.findIndex((s) => s.id === step);
+  const stepIndex = steps.findIndex((s) => s.id === step);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -66,8 +64,8 @@ export function CleanupWizard({
           <div className="flex items-center gap-2">
             <Sparkles size={20} className="text-primary" />
             <div>
-              <h3 className="text-lg font-bold">Free up space</h3>
-              <p className="text-xs text-muted-foreground">Guided cleanup — safe by default</p>
+              <h3 className="text-lg font-bold">{t('wizard.title')}</h3>
+              <p className="text-xs text-muted-foreground">{t('wizard.subtitle')}</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
@@ -77,7 +75,7 @@ export function CleanupWizard({
 
         <div className="px-6 pt-4">
           <div className="flex gap-1 mb-6">
-            {STEPS.map((s, i) => (
+            {steps.map((s, i) => (
               <div
                 key={s.id}
                 className={`h-1 flex-1 rounded-full transition-colors ${i <= stepIndex ? 'bg-primary' : 'bg-muted'}`}
@@ -87,22 +85,22 @@ export function CleanupWizard({
 
           {step === 'intro' && (
             <div className="space-y-4 pb-6">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Deco finds development clutter — old <code className="text-xs bg-muted px-1 rounded">node_modules</code>
-                , build folders, and caches — and moves them to <strong>quarantine</strong> so you can undo later.
-              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{t('wizard.introBody')}</p>
               <ol className="text-sm space-y-2 list-decimal list-inside text-muted-foreground">
-                <li>Scan dev folders and local drives for reclaimable clutter</li>
-                <li>Review what is safe vs needs caution</li>
-                <li>Preview and quarantine selected items</li>
+                <li>{t('wizard.introList1')}</li>
+                <li>{t('wizard.introList2')}</li>
+                <li>{t('wizard.introList3')}</li>
               </ol>
               <p className="text-xs text-muted-foreground rounded-lg border bg-muted/20 p-3">
-                <strong className="text-foreground">{scanRootCount}</strong> scan root
-                {scanRootCount === 1 ? '' : 's'} ({scanScopeLabel}). Adjust paths in Settings if needed.
+                {t('wizard.scanRoots', {
+                  count: scanRootCount,
+                  suffix: scanRootCount === 1 ? '' : 's',
+                  scope: scanScopeLabel,
+                })}
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={onConfigurePaths}>
-                  Configure paths
+                  {t('wizard.configurePaths')}
                 </Button>
                 <Button
                   className="flex-1 gap-2 font-semibold"
@@ -111,7 +109,7 @@ export function CleanupWizard({
                     onStartScan();
                   }}
                 >
-                  <Play size={16} fill="currentColor" /> Start scan
+                  <Play size={16} fill="currentColor" /> {t('wizard.startScan')}
                 </Button>
               </div>
             </div>
@@ -124,7 +122,7 @@ export function CleanupWizard({
               <p className="text-xs text-center text-muted-foreground">{progress.percent.toFixed(0)}%</p>
               {scanning && (
                 <Button variant="outline" className="w-full" onClick={onClose}>
-                  Continue in background
+                  {t('wizard.continueBackground')}
                 </Button>
               )}
             </div>
@@ -134,24 +132,31 @@ export function CleanupWizard({
             <div className="space-y-4 pb-6">
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg border p-3 bg-primary/5">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Safe to clean</p>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                    {t('wizard.safeToClean')}
+                  </p>
                   <p className="text-xl font-black text-primary">{formatBytes(safeBytes)}</p>
-                  <p className="text-xs text-muted-foreground">{summary.totals_by_risk?.safe?.count ?? 0} folders</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('wizard.folders', { count: summary.totals_by_risk?.safe?.count ?? 0 })}
+                  </p>
                 </div>
                 <div className="rounded-lg border p-3">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Needs review</p>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">
+                    {t('wizard.needsReview')}
+                  </p>
                   <p className="text-xl font-black text-amber-600">
                     {formatBytes(summary.totals_by_risk?.review?.bytes ?? 0)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{summary.totals_by_risk?.review?.count ?? 0} folders</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('wizard.folders', { count: summary.totals_by_risk?.review?.count ?? 0 })}
+                  </p>
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">
-                We pre-selected <strong>{selectedCount}</strong> safe items. Adjust the list on the dashboard before
-                cleaning.
+                {t('wizard.preSelected', { count: selectedCount })}
               </p>
               <Button className="w-full gap-2 font-semibold" onClick={onOpenPreview}>
-                Continue to preview <ChevronRight size={16} />
+                {t('wizard.continuePreview')} <ChevronRight size={16} />
               </Button>
             </div>
           )}
@@ -161,9 +166,9 @@ export function CleanupWizard({
               <div className="inline-flex w-12 h-12 rounded-full bg-primary/10 items-center justify-center mx-auto">
                 <HardDrive className="text-primary" size={24} />
               </div>
-              <p className="text-sm font-medium">Cleanup finished. Restored files live in Quarantine.</p>
+              <p className="text-sm font-medium">{t('wizard.doneMessage')}</p>
               <Button className="w-full" onClick={onClose}>
-                Done
+                {t('wizard.done')}
               </Button>
             </div>
           )}
