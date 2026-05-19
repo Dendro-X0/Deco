@@ -39,6 +39,7 @@ The **Release** workflow (`.github/workflows/release.yml`):
 1. Runs CLI + Rust tests on Ubuntu and macOS.
 2. Build matrix on **Windows**, **macOS**, and **Linux**: desktop bundles + per-OS CLI zip.
 3. Attaches all artifacts to the GitHub Release for that tag.
+4. Each matrix upload uses **`fail_on_unmatched_files: true`** — if a platform’s expected globs match nothing (e.g. missing **`.msi`**, **`.exe`**, **`.dmg`**, **`.deb`**, **`.AppImage`**, or CLI zip), that job **fails** so the release does not silently ship without installers.
 
 ## Post-release verification
 

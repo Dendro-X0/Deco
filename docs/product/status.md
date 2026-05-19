@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.4` · **Main:** v0.8.5 feature set landed (tag `v0.8.5` when cutting installers) · **Focus:** maintenance hiatus — see [version-roadmap.md](version-roadmap.md)
+Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.5` · **Focus:** maintenance hiatus — see [version-roadmap.md](version-roadmap.md)
 
 ---
 

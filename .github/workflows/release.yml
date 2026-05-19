@@ -129,4 +129,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           generate_release_notes: ${{ matrix.primary_release }}
+          fail_on_unmatched_files: true
           files: ${{ matrix.release_files }}
