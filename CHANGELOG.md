@@ -2,11 +2,16 @@
 
 ## [Unreleased]
 
-Development line **v0.8.0** — see [v0.8.0-manifest.md](docs/product/v0.8.0-manifest.md).
+Development line **v0.8.1** — see [v0.8.1-manifest.md](docs/product/v0.8.1-manifest.md).
+
+## [0.8.0] - 2026-05-19
+
+See [v0.8.0-manifest.md](docs/product/v0.8.0-manifest.md).
 
 ### Added
 
-- **Multi-platform releases** — `release.yml` builds Windows (MSI/NSIS), macOS (dmg), and Linux (deb + AppImage); per-OS CLI zips (`deco-cli-win-x64`, `deco-cli-macos-aarch64`, `deco-cli-linux-x64`).
+- **Multi-platform releases** — `release.yml` build matrix ships Windows (MSI/NSIS), macOS (dmg), and Linux (deb + AppImage) on every tag.
+- **Per-OS CLI zips** — `deco-cli-win-x64`, `deco-cli-macos-aarch64`, `deco-cli-linux-x64` with `deco.cmd` / `./deco` launchers.
 
 ## [0.7.8] - 2026-05-18
 
