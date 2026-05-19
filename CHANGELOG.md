@@ -2,15 +2,16 @@
 
 ## [Unreleased]
 
-Development line **v0.7.8** — see [v0.7.8-manifest.md](docs/product/v0.7.8-manifest.md).  
-Will include [0.7.7] changes below (already on `main`, not published to GitHub Releases) plus workspace rollups.
+Development line **v0.8.0** — see [v0.8.0-manifest.md](docs/product/v0.8.0-manifest.md).
 
-## [0.7.7] - 2026-05-18
+## [0.7.8] - 2026-05-18
 
-See [v0.7.7-manifest.md](docs/product/v0.7.7-manifest.md).
+See [v0.7.8-manifest.md](docs/product/v0.7.8-manifest.md).  
+First GitHub Release after `v0.7.6`; bundles unpublished [0.7.7](docs/product/v0.7.7-manifest.md) work from `main`.
 
 ### Added
 
+- **Workspace rollups** — dashboard **Workspace summary** card groups scan results by project root with safe/review/blocked subtotals; per-workspace checkbox selects safe items only.
 - **README demos** — scan, cleanup, and settings GIFs under `docs/assets/demo/`.
 - **Live cleanup progress** — overlay and status show **freed space** and **folders removed** while delete runs (updates as each tree finishes).
 - **Cleanup results card** — dashboard shows post-cleanup analysis (freed bytes, counts, kinds removed) like scan statistics.
@@ -18,6 +19,7 @@ See [v0.7.7-manifest.md](docs/product/v0.7.7-manifest.md).
 ### Fixed
 
 - **Parallel cleanup ordering** — bulk deletes now run **largest trees first** so chunked sessions (80+) do not defer multi-GB `node_modules` to the final chunk (fixes “fast first half, slow second half” wall time on SSD).
+- **CI typecheck** — narrow live cleanup progress types for strict null checks on macOS/Ubuntu CI.
 
 ## [0.7.6] - 2026-05-18
 
