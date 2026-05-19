@@ -232,7 +232,7 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 | `v0.8.2` | Localization phase 1 | Shipped — [v0.8.2-manifest.md](v0.8.2-manifest.md) |
 | `v0.8.3` | Localization phase 2 + UX | Shipped — [v0.8.3-manifest.md](v0.8.3-manifest.md) |
 | `v0.8.4` | README product demos (GIFs) | Shipped — [v0.8.4-manifest.md](v0.8.4-manifest.md) |
-| `v0.8.5` | Windows USN/MFT inventory (experimental) | Planned — [v0.8.5-manifest.md](v0.8.5-manifest.md) |
+| `v0.8.5` | Windows USN/MFT inventory (experimental) | In progress — [v0.8.5-manifest.md](v0.8.5-manifest.md) |
 
 | Item | Version | Notes |
 |------|---------|--------|

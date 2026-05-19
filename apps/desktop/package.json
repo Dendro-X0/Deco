@@ -1,6 +1,6 @@
 {
   "name": "@dendro-x0/deco-desktop",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "private": true,
   "scripts": {
     "tauri": "tauri",
