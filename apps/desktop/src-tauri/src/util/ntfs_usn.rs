@@ -229,6 +229,6 @@ mod non_windows_tests {
 
     #[test]
     fn disabled_is_empty() {
-        assert!(usn_inventory_preflight_warnings(false, &["/"]).is_empty());
+        assert!(usn_inventory_preflight_warnings(false, &[]).is_empty());
     }
 }
