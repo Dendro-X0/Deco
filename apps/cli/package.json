@@ -1,7 +1,7 @@
 {
   "name": "@dendro-x0/deco-cli",
   "private": true,
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Fast, safe, and interactive disk cleanup CLI for developers",
   "type": "module",
   "bin": {
