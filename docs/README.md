@@ -62,6 +62,8 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 |-----|----------------|
 | [Contributing](development/contributing.md) | Repo layout, build, test commands |
 | [CI and testing](development/ci-and-testing.md) | GitHub Actions, release workflow |
+| [Scan performance experiments](experiments/scan-performance.md) | Benchmark protocol, baselines |
+| [Windows NTFS USN inventory (experimental)](experiments/windows-ntfs-usn-inventory.md) | v0.8.5 journal probe; future incremental discover |
 
 ### Milestones (delivery archive)
 

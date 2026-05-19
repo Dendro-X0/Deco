@@ -514,6 +514,12 @@
       "classifyAria": "Mínimo de objetivos antes de clasificar en paralelo",
       "classifyHint": "La clasificación Rayon corre cuando un bloque tiene al menos este número de objetivos (predeterminado 8)."
     },
+    "experimental": {
+      "title": "Experimental",
+      "description": "Sondas del motor opcionales. Desactivadas por defecto.",
+      "ntfsUsn": "Sonda del diario USN de NTFS (Windows)",
+      "ntfsUsnDesc": "Cada escaneo añade advertencias que indican si el diario de cambios NTFS es legible en las unidades con letra de disco usadas por el escaneo. El descubrimiento sigue usando un recorrido completo de directorios. En macOS y Linux esta opción no tiene efecto."
+    },
     "presets": {
       "cleanup": {
         "first_scan": {

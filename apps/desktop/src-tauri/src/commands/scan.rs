@@ -18,6 +18,7 @@ use crate::scan_cancel::{
     discovery_canceled, request_cancel, sizing_canceled, ScanCancelHandles, ScanRunPhase,
 };
 use crate::state::AppState;
+use crate::util::ntfs_usn::usn_inventory_preflight_warnings;
 use crate::util::scan_roots::{custom_scan_roots, effective_scan_roots};
 use rusqlite::params;
 use serde::Serialize;
@@ -282,7 +283,11 @@ pub(crate) fn run_scan(
         Some(progress),
     );
 
-    let mut warnings = discovery.warnings;
+    let mut warnings = usn_inventory_preflight_warnings(
+        settings_snapshot.experimental_windows_ntfs_usn_inventory,
+        &roots,
+    );
+    warnings.extend(discovery.warnings);
     let discovery_stopped = discovery.canceled || discovery_canceled(&cancel_handles);
     let mut sizing_stopped = false;
 

@@ -44,6 +44,10 @@ cargo run --release --bin deco-bench --manifest-path apps/desktop/src-tauri/Carg
 - **Baseline:** `benchmarks/baseline.synthetic.json` — per-phase caps and `regression_ratio_max` on total.  
 - **Tune limits** only when a change intentionally improves the engine (document in PR).
 
+## Windows USN (v0.8.5+)
+
+Optional NTFS USN **journal probe** (Settings → Experimental) adds scan warnings only; it does not shorten the discover walk yet. See [windows-ntfs-usn-inventory.md](windows-ntfs-usn-inventory.md).
+
 ## Promotion criteria (manifest C2)
 
 On a reference tree with ≥500 classified candidates, classify phase should show measurable improvement vs v0.5.7 sequential classify (same machine, same tree). No increase in blocked-path or false-safe incidents.

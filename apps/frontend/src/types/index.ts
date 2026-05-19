@@ -139,6 +139,8 @@ export interface Settings {
   exclude_abs_path_contains?: string[];
   extra_protected_path_contains?: string[];
   allow_path_contains?: string[];
+  /** Windows: probe NTFS USN journal at scan start (v0.8.5 experimental). */
+  experimental_windows_ntfs_usn_inventory?: boolean;
 }
 
 export interface ExecutePreviewResponse {

@@ -40,6 +40,7 @@ const DRAFT_KEYS: (keyof Settings)[] = [
   'check_git_dormancy',
   'advanced_mode',
   'default_target_gb',
+  'experimental_windows_ntfs_usn_inventory',
 ];
 
 function pickDraftSlice(s: Settings): Record<string, unknown> {

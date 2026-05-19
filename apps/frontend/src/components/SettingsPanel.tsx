@@ -617,6 +617,26 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
           ) : null}
         </SettingsSection>
 
+        <SettingsSection
+          title={t('settings.experimental.title')}
+          description={t('settings.experimental.description')}
+        >
+          <div className="flex items-start gap-3 rounded-lg border border-border/60 p-4">
+            <Checkbox
+              id="ntfs-usn-probe"
+              checked={draft.experimental_windows_ntfs_usn_inventory === true}
+              onCheckedChange={(v) => patch({ experimental_windows_ntfs_usn_inventory: v === true })}
+              disabled={scanning || saving}
+            />
+            <div className="space-y-1">
+              <label htmlFor="ntfs-usn-probe" className="text-sm font-medium leading-none cursor-pointer">
+                {t('settings.experimental.ntfsUsn')}
+              </label>
+              <p className="text-xs text-muted-foreground">{t('settings.experimental.ntfsUsnDesc')}</p>
+            </div>
+          </div>
+        </SettingsSection>
+
         <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-border/40">
           <DisabledActionHint reason={discardReason}>
             <Button variant="ghost" disabled={discardReason !== null} onClick={handleDiscard}>

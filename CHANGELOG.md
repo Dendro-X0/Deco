@@ -2,7 +2,16 @@
 
 ## [Unreleased]
 
-Development line **v0.8.5** — see [v0.8.5-manifest.md](docs/product/v0.8.5-manifest.md).
+Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
+
+## [0.8.5] - 2026-05-19
+
+See [v0.8.5-manifest.md](docs/product/v0.8.5-manifest.md).
+
+### Added
+
+- **Windows NTFS USN journal probe (experimental)** — Settings → Experimental enables per-scan **warnings** that report whether the NTFS update journal is readable on drive-letter volumes used by scan roots. **Discovery still uses a full directory walk** on all platforms; macOS/Linux receive a single informational notice when the option is enabled.
+- **Documentation** — [windows-ntfs-usn-inventory.md](docs/experiments/windows-ntfs-usn-inventory.md) describes scope, safety, and follow-up work for incremental inventory.
 
 ## [0.8.4] - 2026-05-19
 

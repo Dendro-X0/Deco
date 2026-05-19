@@ -514,6 +514,12 @@
       "classifyAria": "Minimum targets before parallel classify",
       "classifyHint": "Rayon classify runs when a chunk has at least this many targets (default 8)."
     },
+    "experimental": {
+      "title": "Experimental",
+      "description": "Opt-in engine probes. Disabled by default.",
+      "ntfsUsn": "NTFS USN journal probe (Windows)",
+      "ntfsUsnDesc": "Each scan adds warnings that report whether the NTFS update journal is readable on drive-letter volumes used by the scan. Discovery still uses a full directory walk. On macOS and Linux this option has no effect."
+    },
     "presets": {
       "cleanup": {
         "first_scan": {

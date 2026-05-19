@@ -42,6 +42,7 @@ Current implementation progress and handoff details: [status.md](status.md).
 - Tauri commands bridge native logic to desktop UI.
 - SQLite persistence for scans, candidates, quarantine, and settings.
 - Discovery: project markers (Node, Python, JVM, .NET, Go, C++/CMake/Meson/Bazel outputs, Xmake/Premake/Qt, Android **`.cxx`** under Gradle); opt-in **global** caches (npm through **Bazel disk cache** via `BAZEL_DISK_CACHE` + layout); scan contract versioned in `docs/contract/changelog.md`.
+- **Experimental (v0.8.5, Windows):** optional NTFS **USN journal probe** (Settings → Experimental) adds scan warnings; discovery remains a full directory walk — see [windows-ntfs-usn-inventory.md](../experiments/windows-ntfs-usn-inventory.md).
 - Added command APIs:
   - `preview_execute`
   - `cancel_scan`

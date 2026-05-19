@@ -51,6 +51,7 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 | Check global Go / JVM / IDE caches | Adds review-tier global targets |
 | Include Python venv | High-risk; review tier |
 | Advanced Mode | Required for hard-delete (if exposed in your build) |
+| NTFS USN journal probe (Experimental, Windows) | Off by default. When on, scans prepend warnings about USN journal visibility on drive-letter volumes; discovery is still a full walk |
 
 ### Policy pack gallery (Settings)
 

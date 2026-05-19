@@ -4,6 +4,8 @@ Deco is a **desktop-first** cleanup app for developer machines, with a **CLI** f
 
 Goals: **safe defaults** (scan → review → quarantine-first cleanup → restore/purge), **low learning curve**, and **broad dev-artifact** coverage—not a general-purpose “every file” browser.
 
+**v0.8.5 (Windows):** Optional **NTFS USN journal probe** in Settings → Experimental adds informational scan warnings on drive-letter volumes; candidate discovery remains a full directory walk ([details](docs/experiments/windows-ntfs-usn-inventory.md)).
+
 ## Demo
 
 | Scan | Cleanup | Settings |

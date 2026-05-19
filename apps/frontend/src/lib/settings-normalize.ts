@@ -117,6 +117,11 @@ export function normalizeSettings(raw: unknown): Settings {
     exclude_abs_path_contains: strList('exclude_abs_path_contains', 'excludeAbsPathContains'),
     extra_protected_path_contains: strList('extra_protected_path_contains', 'extraProtectedPathContains'),
     allow_path_contains: strList('allow_path_contains', 'allowPathContains'),
+    experimental_windows_ntfs_usn_inventory: bool(
+      'experimental_windows_ntfs_usn_inventory',
+      'experimentalWindowsNtfsUsnInventory',
+      false,
+    ),
   };
 
   return {

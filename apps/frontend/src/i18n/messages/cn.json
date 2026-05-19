@@ -514,6 +514,12 @@
       "classifyAria": "并行分类前的最小目标数",
       "classifyHint": "当块至少有这么多目标时运行 Rayon 分类（默认 8）。"
     },
+    "experimental": {
+      "title": "实验性",
+      "description": "可选引擎探测，默认关闭。",
+      "ntfsUsn": "NTFS USN 日志探测（Windows）",
+      "ntfsUsnDesc": "每次扫描会添加警告，说明扫描涉及的盘符卷上 NTFS 更新日志是否可读。发现阶段仍使用完整目录遍历。在 macOS 和 Linux 上此选项无效。"
+    },
     "presets": {
       "cleanup": {
         "first_scan": {

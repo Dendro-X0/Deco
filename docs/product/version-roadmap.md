@@ -232,7 +232,7 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 | `v0.8.2` | Localization phase 1 | Shipped — [v0.8.2-manifest.md](v0.8.2-manifest.md) |
 | `v0.8.3` | Localization phase 2 + UX | Shipped — [v0.8.3-manifest.md](v0.8.3-manifest.md) |
 | `v0.8.4` | README product demos (GIFs) | Shipped — [v0.8.4-manifest.md](v0.8.4-manifest.md) |
-| `v0.8.5` | Windows USN/MFT inventory (experimental) | In progress — [v0.8.5-manifest.md](v0.8.5-manifest.md) |
+| `v0.8.5` | Windows USN/MFT inventory (experimental) | Shipped — [v0.8.5-manifest.md](v0.8.5-manifest.md) |
 
 | Item | Version | Notes |
 |------|---------|--------|
@@ -261,10 +261,9 @@ Spikes live in `docs/experiments/` (create per spike). Promote into a version on
 | Two-phase discover → size | C (`v0.6.0`) | Stable UI on 10k+ candidate trees |
 | Adaptive concurrency | C (`v0.6.0`) | No regression on HDD reference run |
 | Incremental inventory | C (`v0.6.1`) | Rescan &lt;30% wall time on unchanged tree |
-| Windows USN/MFT inventory | C/E | Correctness on NTFS only; clear fallback |
+| Windows USN/MFT inventory | C/E (`v0.8.5` probe shipped) | NTFS-only; clear fallback; walk unchanged until narrow discover |
 | Dormancy ranking | D (`v0.7.1`) | Shipped |
 | Workspace rollups | D (`v0.7.8`) | Monorepo summary without double-count |
-| Windows USN/MFT inventory | E (`v0.8.5`) | NTFS-only; clear fallback |
 | GPU content hashing | — | **Deprioritized** — poor fit for I/O-bound cleanup |
 
 ---

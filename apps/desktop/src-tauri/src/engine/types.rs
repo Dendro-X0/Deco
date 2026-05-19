@@ -663,6 +663,9 @@ pub struct Settings {
     pub exclude_abs_path_contains: Vec<String>,
     pub extra_protected_path_contains: Vec<String>,
     pub allow_path_contains: Vec<String>,
+    /// When true, probe NTFS USN journal on drive-letter volumes at scan start (Windows only; experimental v0.8.5). Discovery still uses the legacy walk.
+    #[serde(default)]
+    pub experimental_windows_ntfs_usn_inventory: bool,
 }
 
 impl Default for Settings {
@@ -719,6 +722,7 @@ impl Default for Settings {
             exclude_abs_path_contains: vec![],
             extra_protected_path_contains: vec![],
             allow_path_contains: vec![],
+            experimental_windows_ntfs_usn_inventory: false,
         }
     }
 }

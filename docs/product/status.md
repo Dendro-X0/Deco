@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.4` · **Development:** `v0.8.5` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.4` · **Main:** v0.8.5 feature set landed (tag `v0.8.5` when cutting installers) · **Focus:** maintenance hiatus — see [version-roadmap.md](version-roadmap.md)
 
 ---
 
@@ -16,8 +16,8 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.4` · **Development
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.8.5-manifest.md](v0.8.5-manifest.md) — Windows USN inventory (experimental) |
-| **Queue** | Post-USN polish (see [v0.8.x-roadmap](v0.8.x-roadmap.md)) |
+| **Active** | Maintenance / hiatus — [v0.8.5-manifest.md](v0.8.5-manifest.md) shipped (USN probe); next work TBD on [version-roadmap.md](version-roadmap.md) |
+| **Queue** | USN-assisted discover (narrow walk) — research; no manifest yet |
 
 ### Version queue (summary)
 
