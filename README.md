@@ -10,6 +10,8 @@ Goals: **safe defaults** (scan → review → quarantine-first cleanup → resto
 |------|---------|----------|
 | ![Scan demo](docs/assets/demo/scan.gif) | ![Cleanup demo](docs/assets/demo/cleaning.gif) | ![Settings demo](docs/assets/demo/settings.gif) |
 
+Full walkthrough: [user guide](docs/desktop/user-guide.md). To refresh recordings (flows, window size, compression): [readme-demos.md](docs/development/readme-demos.md).
+
 Recorded on Windows (SSD). Cleanup throughput depends on disk, tree size, and how many `node_modules` / build folders are selected—see [batch delete](docs/experiments/batch-delete.md).
 
 ## Privacy & security

@@ -2,7 +2,19 @@
 
 ## [Unreleased]
 
-Development line **v0.8.4** — see [v0.8.4-manifest.md](docs/product/v0.8.4-manifest.md).
+Development line **v0.8.5** — see [v0.8.5-manifest.md](docs/product/v0.8.5-manifest.md).
+
+## [0.8.4] - 2026-05-19
+
+See [v0.8.4-manifest.md](docs/product/v0.8.4-manifest.md).
+
+### Added
+
+- **README demo documentation** — [readme-demos.md](docs/development/readme-demos.md) with recording flows, compression guidance, and hygiene notes; README **Demo** links to the [user guide](docs/desktop/user-guide.md).
+
+### Changed
+
+- **Desktop title bar** — Frameless window chrome is drag-only (no second logo in the title bar); **Deco** branding stays in the sidebar to avoid stacked branding.
 
 ## [0.8.3] - 2026-05-19
 

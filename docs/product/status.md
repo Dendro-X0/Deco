@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.3` · **Development:** `v0.8.4` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.4` · **Development:** `v0.8.5` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
 
 ---
 
@@ -16,8 +16,8 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.3` · **Development
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.8.4-manifest.md](v0.8.4-manifest.md) — README product demos |
-| **Queue** | [v0.8.5-manifest.md](v0.8.5-manifest.md) — Windows USN experiment |
+| **Active** | [v0.8.5-manifest.md](v0.8.5-manifest.md) — Windows USN inventory (experimental) |
+| **Queue** | Post-USN polish (see [v0.8.x-roadmap](v0.8.x-roadmap.md)) |
 
 ### Version queue (summary)
 
@@ -26,6 +26,7 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.3` · **Development
 | `v0.8.2` | Localization phase 1 (`en`/`cn`/`es`, Dashboard + Settings) |
 | `v0.8.3` | Localization phase 2 + UX (History, Quarantine, pickers, modals) |
 | `v0.8.4` | README product demos |
+| `v0.8.5` | Windows USN / MFT inventory (experimental) |
 
 ## Quick commands
 

@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Minus, Square, X } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { DecoLogo } from '@/components/DecoLogo';
 import { isTauriRuntime } from '@/lib/tauri';
 import { cn } from '@/lib/utils';
 
@@ -63,13 +62,13 @@ export function TitleBar() {
   const win = getCurrentWindow();
 
   return (
-    <header className="flex h-9 shrink-0 items-stretch border-b border-border/80 bg-card/95 backdrop-blur-md select-none">
-      <div className="flex flex-1 items-center gap-3 px-3 min-w-0" data-tauri-drag-region>
-        <DecoLogo size="sm" />
-        <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/80 hidden sm:inline">
-          Developer cleanup
-        </span>
-      </div>
+    <header
+      aria-label="Deco"
+      className="flex h-9 shrink-0 items-stretch border-b border-border/80 bg-card/95 backdrop-blur-md select-none"
+    >
+      {/* Drag regions align with sidebar (w-64) + main panel */}
+      <div className="w-64 shrink-0 border-r border-border/80" data-tauri-drag-region aria-hidden />
+      <div className="min-w-0 flex-1" data-tauri-drag-region aria-hidden />
 
       <div className="flex items-stretch" onDoubleClick={() => void win.toggleMaximize()}>
         <WindowControl
