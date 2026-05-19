@@ -26,6 +26,8 @@ Current implementation progress and handoff details: [status.md](status.md).
   - final step requires typing `DELETE REVIEW`.
 - Scan history panel with quick rerun using prior roots/profile/stale-days.
 - Free-space planner (`Free X GB`) with safe-first selection and optional review inclusion.
+- **Workspace summary** card on the dashboard (monorepos with 2+ projects) — reclaim totals per detected project root with safe/review/blocked subtotals; checkbox per workspace selects that project’s safe-tier rows only (no double-counting).
+- Results table **Group by project** — collapsible project sections (same grouping as workspace rollups).
 
 ## Safety
 

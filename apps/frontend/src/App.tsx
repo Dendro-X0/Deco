@@ -31,6 +31,8 @@ import {
 import { ConfirmDialog } from './components/ConfirmDialog';
 import { CleanupBusyOverlay } from './components/CleanupBusyOverlay';
 import { CleanupStatisticsCard } from './components/CleanupStatisticsCard';
+import { WorkspaceRollupsCard } from './components/WorkspaceRollupsCard';
+import { shouldShowWorkspaceRollups } from './lib/workspace-rollups';
 import { CandidateListBanner } from './components/CandidateListBanner';
 import { CandidateProjectGroupTable } from './components/CandidateProjectGroupTable';
 import { CandidateSortHeading } from './components/CandidateSortHeading';
@@ -715,6 +717,14 @@ export default function App() {
 
                 {summary && !scanning ? (
                   <ScanStatisticsCard report={summary} metrics={scanMetrics} />
+                ) : null}
+
+                {summary && !scanning && shouldShowWorkspaceRollups(candidates) ? (
+                  <WorkspaceRollupsCard
+                    candidates={candidates}
+                    selectedIds={selectedIds}
+                    onSetSelectedIds={setSelectedIds}
+                  />
                 ) : null}
 
                 {lastCleanupSummary && !scanning && !busy ? (

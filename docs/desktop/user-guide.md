@@ -18,6 +18,15 @@
 5. For review-tier rows: enable **Include review-tier** and type `DELETE REVIEW`.
 6. **Quarantine selected** — files move to quarantine (not permanent delete).
 
+## Workspace summary (monorepos)
+
+After a scan, when Deco finds **two or more projects** and enough candidates, a **Workspace summary** card appears above the results list.
+
+- Each row is one **project root** (from markers / lockfiles), sorted by total reclaimable size.
+- **Safe**, **review**, and **blocked** counts and bytes are shown per workspace; totals count each artifact once (no parent/child double-count).
+- Use the row checkbox to **select all safe-tier items** for that workspace only; combine with the global **Select only safe** or manual tweaks as needed.
+- **Show all** expands past the top 12 workspaces. For row-by-row browsing, enable **Group by project** on the results table.
+
 ## Free-space planner
 
 1. Run a scan first.
