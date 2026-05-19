@@ -2,13 +2,26 @@
 
 Maintainers cut releases via **git tags**; CI builds and uploads artifacts.
 
+## Shipping policy
+
+Every **tagged version** must ship a **manifest feature set** (user-visible extension or improvement). Do **not** cut a release tag only to fix CI, typecheck, or docs.
+
+| Situation | What to do |
+|-----------|------------|
+| CI / typecheck fails on `main` | Fix on `main`, merge, wait for **CI green** — **no new tag** |
+| Feature work + CI fix in same period | Land fixes on `main`; **one tag** when the manifest scope is done |
+| Tag pushed but Release workflow failed | Fix on `main`, complete the **next feature version** — do not re-tag for CI alone |
+
+**Pre-tag gate:** `pnpm check` (typecheck + lint + `test:all`) locally, and **CI passing on `main`** after the last commit you intend to ship.
+
 ## Prerequisites
 
-- `pnpm test:all` green locally
+- Manifest for the version marked complete ([`docs/product/`](../product/))
+- `pnpm check` green locally (same as CI: typecheck, lint, CLI + Rust tests)
 - Version bumps if needed:
   - `apps/desktop/src-tauri/tauri.conf.json`
   - Root / package versions as you track them
-- [CHANGELOG.md](../../CHANGELOG.md) updated
+- [CHANGELOG.md](../../CHANGELOG.md) updated — **Added** / **Changed** for user-facing work; CI-only fixes belong in the same version only if shipped with that version’s features (not as a standalone release)
 
 ## Cut a release
 

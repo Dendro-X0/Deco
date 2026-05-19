@@ -2,7 +2,8 @@
 
 ## [Unreleased]
 
-Development line **v0.7.8** — see [v0.7.8-manifest.md](docs/product/v0.7.8-manifest.md).
+Development line **v0.7.8** — see [v0.7.8-manifest.md](docs/product/v0.7.8-manifest.md).  
+Will include [0.7.7] changes below (already on `main`, not published to GitHub Releases) plus workspace rollups.
 
 ## [0.7.7] - 2026-05-18
 

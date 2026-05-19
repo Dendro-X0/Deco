@@ -10,8 +10,10 @@
 
 ```bash
 pnpm install
-pnpm test:all
+pnpm check    # typecheck + lint + test:all — run before opening a PR
 ```
+
+CI failures are fixed on `main` without a release tag. See [release process](../distribution/release-process.md#shipping-policy).
 
 ## Repo layout
 
