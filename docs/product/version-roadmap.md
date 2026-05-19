@@ -227,7 +227,7 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 
 | Version | Scope | Status |
 |---------|--------|--------|
-| `v0.8.0` | **Multi-platform installers** — Windows, macOS, Linux + per-OS CLI zips | Planned — [v0.8.0-manifest.md](v0.8.0-manifest.md) |
+| `v0.8.0` | **Multi-platform installers** — Windows, macOS, Linux + per-OS CLI zips | In progress — on `main`; tag to publish — [v0.8.0-manifest.md](v0.8.0-manifest.md) |
 | `v0.8.1` | winget + Homebrew | Planned — [v0.8.1-manifest.md](v0.8.1-manifest.md) |
 | `v0.8.2` | Localization | Planned — [v0.8.2-manifest.md](v0.8.2-manifest.md) |
 | `v0.8.3` | README product demos (GIFs) | Planned — [v0.8.3-manifest.md](v0.8.3-manifest.md) |

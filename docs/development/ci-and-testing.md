@@ -15,8 +15,10 @@ Triggered on PRs and pushes to `main` / `master`.
 
 [`.github/workflows/release.yml`](../../.github/workflows/release.yml):
 
-- Same tests on Ubuntu
-- Windows job: MSI/NSIS + `deco-cli-win-x64.zip` → GitHub Release assets
+- Tests on Ubuntu + macOS
+- Build matrix on **Windows**, **macOS**, and **Linux**: desktop bundles + per-OS CLI zip → GitHub Release assets
+
+See [ci-and-release-platforms.md](../distribution/ci-and-release-platforms.md).
 
 Details: [Distribution — GitHub Releases](../distribution/github-releases.md), [Milestone 6](../milestones/milestone-6.md).
 
