@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Ruler } from 'lucide-react';
+import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 import {
   SIZE_FILTER_PRESETS,
@@ -24,6 +25,7 @@ export function SizeRangeFilter({
   onMaxChange,
   disabled,
 }: Props) {
+  const { t } = useI18n();
   const minBytes = useMemo(() => parseSizeInput(minInput), [minInput]);
   const maxBytes = useMemo(() => parseSizeInput(maxInput), [maxInput]);
   const activePreset = matchSizeFilterPreset(minBytes, maxBytes);
@@ -53,7 +55,7 @@ export function SizeRangeFilter({
         <div
           className="flex max-w-full flex-wrap gap-1 rounded-lg border border-border/50 bg-muted/15 p-1"
           role="group"
-          aria-label="Size presets"
+          aria-label={t('dashboard.sizeFilter.presetsAria')}
         >
           {SIZE_FILTER_PRESETS.map((preset) => {
             const active = activePreset === preset.id;
@@ -77,7 +79,7 @@ export function SizeRangeFilter({
           })}
           {activePreset === 'custom' ? (
             <span className="rounded-md bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold text-amber-500 ring-1 ring-amber-500/30">
-              Custom
+              {t('common.custom')}
             </span>
           ) : null}
         </div>
@@ -98,7 +100,7 @@ export function SizeRangeFilter({
           <input
             id="size-filter-min"
             disabled={disabled}
-            placeholder="Min (e.g. 100MB)"
+            placeholder={t('dashboard.sizeFilter.minPlaceholder')}
             autoComplete="off"
             spellCheck={false}
             className="deco-number-input-field w-[6.25rem] min-w-0 bg-transparent px-2.5 text-center text-xs font-mono tabular-nums placeholder:text-muted-foreground/50 focus-visible:outline-none"
@@ -117,7 +119,7 @@ export function SizeRangeFilter({
           <input
             id="size-filter-max"
             disabled={disabled}
-            placeholder="Max (optional)"
+            placeholder={t('dashboard.sizeFilter.maxPlaceholder')}
             autoComplete="off"
             spellCheck={false}
             className="deco-number-input-field w-[6.25rem] min-w-0 bg-transparent px-2.5 text-center text-xs font-mono tabular-nums placeholder:text-muted-foreground/50 focus-visible:outline-none"

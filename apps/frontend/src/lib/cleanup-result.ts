@@ -1,14 +1,18 @@
+import type { TranslateFn } from '@/i18n/preset-labels';
 import type { ExecuteResponse } from '@/types';
 import type { ToastVariant } from '@/lib/toast';
 import { formatDurationMs } from '@/lib/format';
 
 export function formatCleanupResultSummary(
+  t: TranslateFn,
   result: ExecuteResponse,
   selectedCount: number,
   durationMs?: number,
 ): { title: string; description: string; variant: ToastVariant } {
   const timeSuffix =
-    durationMs != null && durationMs > 0 ? ` Took ${formatDurationMs(durationMs)}.` : '';
+    durationMs != null && durationMs > 0
+      ? t('cleanupResult.took', { duration: formatDurationMs(durationMs) })
+      : '';
   const quarantined = result.quarantined_count ?? 0;
   const deleted = result.deleted_count ?? 0;
   const moved = quarantined + deleted;
@@ -19,27 +23,26 @@ export function formatCleanupResultSummary(
   const errorCount = result.errors?.length ?? 0;
 
   if (moved > 0) {
-    const parts = [
+    const main =
       deleted > 0 && quarantined === 0
-        ? `${deleted} deleted (freed space immediately)`
+        ? t('cleanupResult.deletedOnly', { count: deleted })
         : quarantined > 0 && deleted === 0
-          ? `${quarantined} moved to quarantine`
-          : `${quarantined} quarantined, ${deleted} deleted in place`,
-    ].filter(Boolean);
+          ? t('cleanupResult.quarantinedOnly', { count: quarantined })
+          : t('cleanupResult.mixed', { quarantined, deleted });
     const skippedParts = [
-      skippedReview > 0 ? `${skippedReview} review-tier skipped (enable in preview)` : null,
-      skippedMissing > 0 ? `${skippedMissing} already missing` : null,
-      skippedOptIn > 0 ? `${skippedOptIn} need opt-in in Settings` : null,
+      skippedReview > 0 ? t('cleanupResult.skippedReview', { count: skippedReview }) : null,
+      skippedMissing > 0 ? t('cleanupResult.skippedMissing', { count: skippedMissing }) : null,
+      skippedOptIn > 0 ? t('cleanupResult.skippedOptIn', { count: skippedOptIn }) : null,
     ].filter(Boolean);
     const body = [
-      parts.join(', '),
+      main,
       skippedParts.length > 0 ? skippedParts.join('. ') : null,
-      errorCount > 0 ? `${errorCount} error(s) — see status bar` : null,
+      errorCount > 0 ? t('cleanupResult.errorsInStatus', { count: errorCount }) : null,
     ]
       .filter(Boolean)
       .join('. ');
     return {
-      title: 'Cleanup complete',
+      title: t('cleanupResult.complete'),
       description: body ? `${body}${timeSuffix}` : timeSuffix.trim() || body,
       variant: skippedParts.length > 0 || errorCount > 0 ? 'info' : 'default',
     };
@@ -47,32 +50,32 @@ export function formatCleanupResultSummary(
 
   if (selectedCount === 0) {
     return {
-      title: 'Nothing selected',
-      description: 'Select candidates in the results table, then use Clean selected.',
+      title: t('cleanupResult.nothingSelected'),
+      description: t('cleanupResult.nothingSelectedHint'),
       variant: 'info',
     };
   }
 
   if (skippedReview > 0) {
     return {
-      title: 'No items quarantined',
-      description: `${skippedReview} review-tier item(s) were skipped. In the preview dialog, check “Include review-tier items” and type DELETE REVIEW to confirm.`,
+      title: t('cleanupResult.notQuarantined'),
+      description: t('cleanupResult.reviewSkippedHint', { count: skippedReview }),
       variant: 'destructive',
     };
   }
 
   if (skippedOptIn > 0) {
     return {
-      title: 'No items quarantined',
-      description: `${skippedOptIn} global-cache item(s) need matching toggles under Settings → Discovery, then re-scan.`,
+      title: t('cleanupResult.notQuarantined'),
+      description: t('cleanupResult.optInSkippedHint', { count: skippedOptIn }),
       variant: 'destructive',
     };
   }
 
   if (skippedBlocked > 0) {
     return {
-      title: 'No items quarantined',
-      description: `${skippedBlocked} blocked item(s) cannot be removed. Deselect them and try again.`,
+      title: t('cleanupResult.notQuarantined'),
+      description: t('cleanupResult.blockedSkippedHint', { count: skippedBlocked }),
       variant: 'destructive',
     };
   }
@@ -80,18 +83,18 @@ export function formatCleanupResultSummary(
   if (errorCount > 0) {
     const first = result.errors?.[0] ?? 'Unknown error';
     return {
-      title: 'Cleanup failed',
+      title: t('cleanupResult.failed'),
       description: first,
       variant: 'destructive',
     };
   }
 
   return {
-    title: 'No items quarantined',
+    title: t('cleanupResult.notQuarantined'),
     description:
       skippedMissing > 0
-        ? `${skippedMissing} path(s) no longer exist on disk.`
-        : 'Nothing was moved. Re-run the scan if paths changed.',
+        ? t('cleanupResult.missingPaths', { count: skippedMissing })
+        : t('cleanupResult.nothingMoved'),
     variant: 'info',
   };
 }

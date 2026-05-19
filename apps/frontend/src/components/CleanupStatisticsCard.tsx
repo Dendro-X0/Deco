@@ -3,9 +3,10 @@ import { Check, ClipboardCopy, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatBytes } from '@/lib/format';
+import { useI18n } from '@/i18n';
 import {
   formatCleanupDiagnostics,
-  formatCleanupRunHeadline,
+  formatCleanupRunHeadlineLocalized,
   type CleanupRunSummary,
 } from '@/lib/cleanup-statistics';
 
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export function CleanupStatisticsCard({ summary }: Props) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const { result, removedKinds } = summary;
   const deleted = result.deleted_count ?? 0;
@@ -43,9 +45,9 @@ export function CleanupStatisticsCard({ summary }: Props) {
             <Trash2 size={18} aria-hidden />
           </div>
           <div className="min-w-0">
-            <CardTitle className="text-base">Cleanup results</CardTitle>
+            <CardTitle className="text-base">{t('dashboard.cleanupStats.title')}</CardTitle>
             <CardDescription className="break-words">
-              {formatCleanupRunHeadline(summary)}
+              {formatCleanupRunHeadlineLocalized(t, summary)}
             </CardDescription>
           </div>
         </div>
@@ -56,21 +58,25 @@ export function CleanupStatisticsCard({ summary }: Props) {
           onClick={() => void copyDiagnostics()}
         >
           {copied ? <Check size={14} /> : <ClipboardCopy size={14} />}
-          {copied ? 'Copied' : 'Copy diagnostics'}
+          {copied ? t('dashboard.cleanupStats.copied') : t('dashboard.cleanupStats.copyDiagnostics')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-3 sm:grid-cols-3">
-          <ResultStat label="Space freed" value={formatBytes(freed)} highlight />
           <ResultStat
-            label="Folders removed"
-            value={String(deleted)}
-            sub={deleted > 0 ? 'Deleted in place' : undefined}
+            label={t('dashboard.cleanupStats.spaceFreed')}
+            value={formatBytes(freed)}
+            highlight
           />
           <ResultStat
-            label="Quarantined"
+            label={t('dashboard.cleanupStats.foldersRemoved')}
+            value={String(deleted)}
+            sub={deleted > 0 ? t('dashboard.cleanupStats.deletedInPlace') : undefined}
+          />
+          <ResultStat
+            label={t('dashboard.cleanupStats.quarantined')}
             value={String(quarantined)}
-            sub={quarantined > 0 ? 'Restore from Quarantine tab' : undefined}
+            sub={quarantined > 0 ? t('dashboard.cleanupStats.restoreHint') : undefined}
           />
         </div>
 
@@ -81,19 +87,27 @@ export function CleanupStatisticsCard({ summary }: Props) {
           errorCount > 0) && (
           <div className="rounded-lg border border-border/50 bg-card/40 px-4 py-3 space-y-1 text-sm">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Skipped / issues
+              {t('dashboard.cleanupStats.skippedIssues')}
             </p>
             {skippedReview > 0 ? (
-              <p className="text-muted-foreground">{skippedReview} review-tier (not included)</p>
+              <p className="text-muted-foreground">
+                {t('dashboard.cleanupStats.reviewSkipped', { count: skippedReview })}
+              </p>
             ) : null}
             {skippedMissing > 0 ? (
-              <p className="text-muted-foreground">{skippedMissing} already missing on disk</p>
+              <p className="text-muted-foreground">
+                {t('dashboard.cleanupStats.missingSkipped', { count: skippedMissing })}
+              </p>
             ) : null}
             {skippedOptIn > 0 ? (
-              <p className="text-muted-foreground">{skippedOptIn} need opt-in in Settings</p>
+              <p className="text-muted-foreground">
+                {t('dashboard.cleanupStats.optInSkipped', { count: skippedOptIn })}
+              </p>
             ) : null}
             {skippedBlocked > 0 ? (
-              <p className="text-muted-foreground">{skippedBlocked} blocked by policy</p>
+              <p className="text-muted-foreground">
+                {t('dashboard.cleanupStats.blockedSkipped', { count: skippedBlocked })}
+              </p>
             ) : null}
             {errorCount > 0 ? (
               <p className="text-destructive text-xs">{result.errors?.slice(0, 2).join(' · ')}</p>
@@ -104,7 +118,7 @@ export function CleanupStatisticsCard({ summary }: Props) {
         {removedKinds.length > 0 ? (
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Removed by kind
+              {t('dashboard.cleanupStats.removedByKind')}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               {removedKinds.map((row) => (

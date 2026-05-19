@@ -61,7 +61,8 @@
     "copied": "Copiado",
     "copy": "Copiar",
     "errorPrefix": "Error: {{msg}}",
-    "deletePermanentTitle": "¿Eliminar permanentemente?"
+    "deletePermanentTitle": "¿Eliminar permanentemente?",
+    "deletePermanentConfirm": "Eliminar permanentemente"
   },
   "header": {
     "dashboard": {
@@ -260,6 +261,30 @@
       "showLess": "Mostrar menos",
       "showAll": "Todos ({{count}})",
       "projectSuffix": "s"
+    },
+    "cleanupStats": {
+      "title": "Resultados de limpieza",
+      "copyDiagnostics": "Copiar diagnóstico",
+      "copied": "Copiado",
+      "spaceFreed": "Espacio liberado",
+      "foldersRemoved": "Carpetas eliminadas",
+      "deletedInPlace": "Eliminado in situ",
+      "quarantined": "En cuarentena",
+      "restoreHint": "Restaurar desde la pestaña Cuarentena",
+      "skippedIssues": "Omitidos / problemas",
+      "reviewSkipped": "{{count}} de revisión (no incluidos)",
+      "missingSkipped": "{{count}} ya no existen en el disco",
+      "optInSkipped": "{{count}} requieren opt-in en Configuración",
+      "blockedSkipped": "{{count}} bloqueados por política",
+      "removedByKind": "Eliminados por tipo",
+      "headlineFreed": "Liberados {{size}} · {{count}} carpeta(s){{time}}",
+      "headlineProcessed": "{{count}} carpeta(s) procesadas{{time}}",
+      "headlineFinished": "Limpieza terminada{{time}}"
+    },
+    "sizeFilter": {
+      "presetsAria": "Presets de tamaño",
+      "minPlaceholder": "Mín. (p. ej. 100MB)",
+      "maxPlaceholder": "Máx. (opcional)"
     }
   },
   "settings": {
@@ -652,5 +677,36 @@
     "continuePreview": "Continuar a la vista previa",
     "doneMessage": "Limpieza terminada. Los archivos restaurados están en Cuarentena.",
     "done": "Hecho"
+  },
+  "directDelete": {
+    "noSafeSelected": "No hay elementos de nivel seguro seleccionados. La eliminación permanente solo aplica a carpetas seguras. Use “Mover a cuarentena…” para elementos de revisión o cambie la selección.",
+    "confirmIntro": "¿Eliminar permanentemente {{count}} carpeta(s) ({{size}})?",
+    "confirmWarning": "Los archivos se eliminan del disco de inmediato — no se mueven a cuarentena — y no se pueden restaurar desde Deco.",
+    "reviewSkipped": "Se omitirán {{count}} elemento(s) de revisión en su selección.",
+    "blockedSkipped": "{{count}} elemento(s) bloqueados no se pueden eliminar."
+  },
+  "cleanupResult": {
+    "complete": "Limpieza completa",
+    "nothingSelected": "Nada seleccionado",
+    "nothingSelectedHint": "Seleccione candidatos en la tabla de resultados y use Limpiar selección.",
+    "notQuarantined": "No se pusieron elementos en cuarentena",
+    "reviewSkippedHint": "Se omitieron {{count}} elemento(s) de revisión. En el diálogo de vista previa, marque “Incluir elementos de revisión” y escriba DELETE REVIEW para confirmar.",
+    "optInSkippedHint": "{{count}} elemento(s) de caché global necesitan opciones en Configuración → Descubrimiento; vuelva a escanear.",
+    "blockedSkippedHint": "{{count}} elemento(s) bloqueados no se pueden eliminar. Deselecciónelos e intente de nuevo.",
+    "failed": "Limpieza fallida",
+    "missingPaths": "{{count}} ruta(s) ya no existen en el disco.",
+    "nothingMoved": "No se movió nada. Vuelva a escanear si las rutas cambiaron.",
+    "deletedOnly": "{{count}} eliminados (espacio liberado de inmediato)",
+    "quarantinedOnly": "{{count}} movidos a cuarentena",
+    "mixed": "{{quarantined}} en cuarentena, {{deleted}} eliminados in situ",
+    "skippedReview": "{{count}} de revisión omitidos (habilitar en vista previa)",
+    "skippedMissing": "{{count}} ya no existen",
+    "skippedOptIn": "{{count}} requieren opt-in en Configuración",
+    "errorsInStatus": "{{count}} error(es) — ver barra de estado",
+    "took": " Tardó {{duration}}."
+  },
+  "statusFooter": {
+    "elapsedTime": "Tiempo transcurrido",
+    "decoVersion": "Versión de Deco"
   }
 }

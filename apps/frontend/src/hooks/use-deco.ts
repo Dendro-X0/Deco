@@ -435,7 +435,7 @@ export function useDeco() {
       await refreshQuarantine();
       await refreshHistory();
       bumpStorageRefresh();
-      const summaryMsg = formatCleanupResultSummary(result, candidateIds.length, durationMs);
+      const summaryMsg = formatCleanupResultSummary(t, result, candidateIds.length, durationMs);
       toast({
         title: summaryMsg.title,
         description: summaryMsg.description,
@@ -468,7 +468,7 @@ export function useDeco() {
         type: moved > 0 ? 'done' : 'error',
       });
     },
-    [refreshQuarantine, refreshHistory, bumpStorageRefresh],
+    [refreshQuarantine, refreshHistory, bumpStorageRefresh, t],
   );
 
   const finishCleanupJob = useCallback(

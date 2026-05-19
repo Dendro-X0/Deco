@@ -1308,9 +1308,9 @@ export default function App() {
 
       <ConfirmDialog
         open={deleteDirectOpen}
-        title="Delete permanently?"
-        description={directDeleteConfirmDescription(directDeleteStats)}
-        confirmLabel="Delete permanently"
+        title={t('common.deletePermanentTitle')}
+        description={directDeleteConfirmDescription(t, directDeleteStats)}
+        confirmLabel={t('common.deletePermanentConfirm')}
         destructive
         busy={busy}
         confirmDisabled={!canConfirmDirectDelete(directDeleteStats)}

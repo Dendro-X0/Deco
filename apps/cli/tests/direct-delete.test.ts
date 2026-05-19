@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { translate } from '../../frontend/src/i18n/catalog';
 import {
   canConfirmDirectDelete,
   directDeleteConfirmDescription,
   directDeleteSelectionStats,
 } from '../../frontend/src/lib/direct-delete';
+
+const t = (key: string, vars?: Record<string, string | number>) => translate('en', key, vars);
 import type { Candidate } from '../../frontend/src/types';
 
 function candidate(id: string, risk: Candidate['risk'], bytes = 0): Candidate {
@@ -34,13 +37,13 @@ describe('direct-delete', () => {
     expect(stats.safeBytes).toBe(1_000);
     expect(stats.reviewCount).toBe(1);
     expect(canConfirmDirectDelete(stats)).toBe(true);
-    expect(directDeleteConfirmDescription(stats)).toContain('review-tier');
-    expect(directDeleteConfirmDescription(stats)).toContain('cannot be restored');
+    expect(directDeleteConfirmDescription(t, stats)).toContain('review-tier');
+    expect(directDeleteConfirmDescription(t, stats)).toContain('cannot be restored');
   });
 
   it('blocks confirm when only review selected', () => {
     const stats = directDeleteSelectionStats([candidate('a', 'review')], new Set(['a']));
     expect(canConfirmDirectDelete(stats)).toBe(false);
-    expect(directDeleteConfirmDescription(stats)).toContain('No safe-tier');
+    expect(directDeleteConfirmDescription(t, stats)).toContain('No safe-tier');
   });
 });

@@ -1,16 +1,11 @@
+import { useMemo } from 'react';
 import { Loader2, Play } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { APP_VERSION } from '@/lib/app-version';
 import { formatDurationMs } from '@/lib/format';
-import {
-  type ScanProgress,
-  scanProgressPhaseLabel,
-} from '@/lib/scan-progress';
-import {
-  formatPhaseTimingLine,
-  phaseTimingTotalMs,
-  type ScanPhaseTimings,
-} from '@/lib/scan-statistics';
+import { useI18n } from '@/i18n';
+import type { ScanProgress } from '@/lib/scan-progress';
+import { phaseTimingTotalMs, type ScanPhaseTimings } from '@/lib/scan-statistics';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -22,11 +17,23 @@ type Props = {
 };
 
 export function StatusFooter({ progress, scanning, busy, elapsedMs, phaseTimings }: Props) {
+  const { t } = useI18n();
   const active = scanning || busy;
-  const phaseLabel = scanProgressPhaseLabel(progress.phase);
+  const phaseLabel = progress.phase ? t(`status.phase.${progress.phase}`) : null;
   const showElapsed = active && elapsedMs > 0;
   const showPhaseTimings =
     !active && phaseTimings != null && phaseTimingTotalMs(phaseTimings) > 0;
+
+  const phaseTimingLine = useMemo(() => {
+    if (!phaseTimings) return null;
+    const fmt = (ms: number) =>
+      ms >= 1000 ? formatDurationMs(ms) : `${Math.round(ms)}ms`;
+    return t('dashboard.scanStats.phaseTimingLine', {
+      discover: fmt(phaseTimings.discoverMs),
+      classify: fmt(phaseTimings.classifyMs),
+      size: fmt(phaseTimings.sizeMs),
+    });
+  }, [phaseTimings, t]);
 
   return (
     <footer className="flex h-14 shrink-0 items-center gap-4 border-t bg-background/80 px-6 backdrop-blur-md">
@@ -54,12 +61,12 @@ export function StatusFooter({ progress, scanning, busy, elapsedMs, phaseTimings
             {progress.detail}
           </span>
         ) : null}
-        {showPhaseTimings && phaseTimings ? (
+        {showPhaseTimings && phaseTimingLine ? (
           <span
             className="truncate text-[9px] leading-snug text-muted-foreground/90"
-            title={formatPhaseTimingLine(phaseTimings)}
+            title={phaseTimingLine}
           >
-            {formatPhaseTimingLine(phaseTimings)}
+            {phaseTimingLine}
           </span>
         ) : null}
       </div>
@@ -85,7 +92,7 @@ export function StatusFooter({ progress, scanning, busy, elapsedMs, phaseTimings
         </span>
         <span
           className="hidden text-[10px] font-mono text-muted-foreground/60 sm:inline"
-          title="Deco version"
+          title={t('statusFooter.decoVersion')}
         >
           v{APP_VERSION}
         </span>

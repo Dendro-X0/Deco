@@ -61,7 +61,8 @@
     "copied": "已复制",
     "copy": "复制",
     "errorPrefix": "错误：{{msg}}",
-    "deletePermanentTitle": "永久删除？"
+    "deletePermanentTitle": "永久删除？",
+    "deletePermanentConfirm": "永久删除"
   },
   "header": {
     "dashboard": {
@@ -260,6 +261,30 @@
       "showLess": "收起",
       "showAll": "全部 {{count}}",
       "projectSuffix": ""
+    },
+    "cleanupStats": {
+      "title": "清理结果",
+      "copyDiagnostics": "复制诊断信息",
+      "copied": "已复制",
+      "spaceFreed": "释放空间",
+      "foldersRemoved": "已移除文件夹",
+      "deletedInPlace": "就地删除",
+      "quarantined": "已隔离",
+      "restoreHint": "从隔离区标签页恢复",
+      "skippedIssues": "跳过 / 问题",
+      "reviewSkipped": "{{count}} 个审核级（未包含）",
+      "missingSkipped": "{{count}} 个在磁盘上已不存在",
+      "optInSkipped": "{{count}} 个需要在设置中启用",
+      "blockedSkipped": "{{count}} 个被策略阻止",
+      "removedByKind": "按类型移除",
+      "headlineFreed": "释放 {{size}} · {{count}} 个文件夹{{time}}",
+      "headlineProcessed": "已处理 {{count}} 个文件夹{{time}}",
+      "headlineFinished": "清理完成{{time}}"
+    },
+    "sizeFilter": {
+      "presetsAria": "大小预设",
+      "minPlaceholder": "最小（如 100MB）",
+      "maxPlaceholder": "最大（可选）"
     }
   },
   "settings": {
@@ -652,5 +677,36 @@
     "continuePreview": "继续预览",
     "doneMessage": "清理完成。已恢复的文件位于隔离区。",
     "done": "完成"
+  },
+  "directDelete": {
+    "noSafeSelected": "未选择安全级项目。永久删除仅适用于安全级文件夹。请对审核级项目使用“移至隔离区…”，或更改选择。",
+    "confirmIntro": "永久删除 {{count}} 个文件夹（{{size}}）？",
+    "confirmWarning": "文件将立即从磁盘删除 — 不会移至隔离区 — 且无法从 Deco 恢复。",
+    "reviewSkipped": "选择中的 {{count}} 个审核级项目将被跳过。",
+    "blockedSkipped": "{{count}} 个被阻止的项目无法删除。"
+  },
+  "cleanupResult": {
+    "complete": "清理完成",
+    "nothingSelected": "未选择任何项目",
+    "nothingSelectedHint": "在结果表中选择候选项目，然后使用“清理所选”。",
+    "notQuarantined": "无项目被隔离",
+    "reviewSkippedHint": "跳过了 {{count}} 个审核级项目。在预览对话框中勾选“包含审核级项目”并输入 DELETE REVIEW 确认。",
+    "optInSkippedHint": "{{count}} 个全局缓存项目需要在设置 → 发现中启用相应选项，然后重新扫描。",
+    "blockedSkippedHint": "{{count}} 个被阻止的项目无法删除。请取消选择后重试。",
+    "failed": "清理失败",
+    "missingPaths": "{{count}} 个路径在磁盘上已不存在。",
+    "nothingMoved": "未移动任何内容。如果路径已更改，请重新扫描。",
+    "deletedOnly": "已删除 {{count}} 个（立即释放空间）",
+    "quarantinedOnly": "{{count}} 个已移至隔离区",
+    "mixed": "{{quarantined}} 个已隔离，{{deleted}} 个已就地删除",
+    "skippedReview": "跳过 {{count}} 个审核级（在预览中启用）",
+    "skippedMissing": "{{count}} 个已不存在",
+    "skippedOptIn": "{{count}} 个需要在设置中启用",
+    "errorsInStatus": "{{count}} 个错误 — 见状态栏",
+    "took": " 耗时 {{duration}}。"
+  },
+  "statusFooter": {
+    "elapsedTime": "已用时间",
+    "decoVersion": "Deco 版本"
   }
 }

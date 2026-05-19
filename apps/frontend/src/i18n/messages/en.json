@@ -61,7 +61,8 @@
     "copied": "Copied",
     "copy": "Copy",
     "errorPrefix": "Error: {{msg}}",
-    "deletePermanentTitle": "Delete permanently?"
+    "deletePermanentTitle": "Delete permanently?",
+    "deletePermanentConfirm": "Delete permanently"
   },
   "header": {
     "dashboard": {
@@ -260,6 +261,30 @@
       "showLess": "Show less",
       "showAll": "All {{count}}",
       "projectSuffix": "s"
+    },
+    "cleanupStats": {
+      "title": "Cleanup results",
+      "copyDiagnostics": "Copy diagnostics",
+      "copied": "Copied",
+      "spaceFreed": "Space freed",
+      "foldersRemoved": "Folders removed",
+      "deletedInPlace": "Deleted in place",
+      "quarantined": "Quarantined",
+      "restoreHint": "Restore from Quarantine tab",
+      "skippedIssues": "Skipped / issues",
+      "reviewSkipped": "{{count}} review-tier (not included)",
+      "missingSkipped": "{{count}} already missing on disk",
+      "optInSkipped": "{{count}} need opt-in in Settings",
+      "blockedSkipped": "{{count}} blocked by policy",
+      "removedByKind": "Removed by kind",
+      "headlineFreed": "Freed {{size}} · {{count}} folder(s){{time}}",
+      "headlineProcessed": "{{count}} folder(s) processed{{time}}",
+      "headlineFinished": "Cleanup finished{{time}}"
+    },
+    "sizeFilter": {
+      "presetsAria": "Size presets",
+      "minPlaceholder": "Min (e.g. 100MB)",
+      "maxPlaceholder": "Max (optional)"
     }
   },
   "settings": {
@@ -652,5 +677,36 @@
     "continuePreview": "Continue to preview",
     "doneMessage": "Cleanup finished. Restored files live in Quarantine.",
     "done": "Done"
+  },
+  "directDelete": {
+    "noSafeSelected": "No safe-tier items are selected. Permanent delete only applies to safe-tier folders. Use “Move to quarantine…” for review-tier items, or change your selection.",
+    "confirmIntro": "Permanently delete {{count}} folder(s) ({{size}})?",
+    "confirmWarning": "Files are removed from disk immediately — not moved to quarantine — and cannot be restored from Deco.",
+    "reviewSkipped": "{{count}} review-tier item(s) in your selection will be skipped.",
+    "blockedSkipped": "{{count}} blocked item(s) cannot be deleted."
+  },
+  "cleanupResult": {
+    "complete": "Cleanup complete",
+    "nothingSelected": "Nothing selected",
+    "nothingSelectedHint": "Select candidates in the results table, then use Clean selected.",
+    "notQuarantined": "No items quarantined",
+    "reviewSkippedHint": "{{count}} review-tier item(s) were skipped. In the preview dialog, check “Include review-tier items” and type DELETE REVIEW to confirm.",
+    "optInSkippedHint": "{{count}} global-cache item(s) need matching toggles under Settings → Discovery, then re-scan.",
+    "blockedSkippedHint": "{{count}} blocked item(s) cannot be removed. Deselect them and try again.",
+    "failed": "Cleanup failed",
+    "missingPaths": "{{count}} path(s) no longer exist on disk.",
+    "nothingMoved": "Nothing was moved. Re-run the scan if paths changed.",
+    "deletedOnly": "{{count}} deleted (freed space immediately)",
+    "quarantinedOnly": "{{count}} moved to quarantine",
+    "mixed": "{{quarantined}} quarantined, {{deleted}} deleted in place",
+    "skippedReview": "{{count}} review-tier skipped (enable in preview)",
+    "skippedMissing": "{{count}} already missing",
+    "skippedOptIn": "{{count}} need opt-in in Settings",
+    "errorsInStatus": "{{count}} error(s) — see status bar",
+    "took": " Took {{duration}}."
+  },
+  "statusFooter": {
+    "elapsedTime": "Elapsed time",
+    "decoVersion": "Deco version"
   }
 }

@@ -1,8 +1,9 @@
-# Localization backlog & UX polish (post–v0.8.2)
+# Localization backlog & UX polish
 
-Living inventory of **remaining English strings**, **mixed-locale surfaces**, and **UI/UX improvements** observed in Spanish (`es`) smoke tests. Target: **`v0.8.3`** — see [v0.8.3-manifest.md](../product/v0.8.3-manifest.md).
+Living inventory of **remaining English strings**, **mixed-locale surfaces**, and **UI/UX improvements**. Most v0.8.3 panel work is **shipped** — see [localization.md](localization.md) and [v0.8.3-manifest.md](../product/v0.8.3-manifest.md).
 
-**Shipped in v0.8.2:** shell nav, tab headers, dashboard chrome (stats, candidate list/detail, planner, last scan), full Settings (including discovery + updates + policy pack), `messages/{en,cn,es}.json` templates.
+**Shipped in v0.8.2:** shell nav, Settings, dashboard candidate list/detail, planner.  
+**Shipped in v0.8.3:** History, Quarantine, scan targets, wizard/onboarding, runtime status, confirm dialogs, cleanup toasts, cleanup statistics card.
 
 ---
 

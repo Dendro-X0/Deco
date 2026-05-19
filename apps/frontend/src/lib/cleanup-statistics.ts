@@ -72,6 +72,28 @@ export function formatCleanupRunHeadline(summary: CleanupRunSummary): string {
   return `Cleanup finished${time}`;
 }
 
+/** Localized headline for CleanupStatisticsCard. */
+export function formatCleanupRunHeadlineLocalized(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  summary: CleanupRunSummary,
+): string {
+  const { result, durationMs } = summary;
+  const freed = result.freed_bytes ?? 0;
+  const moved = (result.deleted_count ?? 0) + (result.quarantined_count ?? 0);
+  const time = durationMs > 0 ? ` · ${formatDurationMs(durationMs)}` : '';
+  if (freed > 0 && moved > 0) {
+    return t('dashboard.cleanupStats.headlineFreed', {
+      size: formatBytes(freed),
+      count: moved,
+      time,
+    });
+  }
+  if (moved > 0) {
+    return t('dashboard.cleanupStats.headlineProcessed', { count: moved, time });
+  }
+  return t('dashboard.cleanupStats.headlineFinished', { time });
+}
+
 export function formatCleanupDiagnostics(summary: CleanupRunSummary): string {
   const { result, durationMs, requestedCount, removedKinds } = summary;
   const lines = [

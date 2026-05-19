@@ -1,3 +1,4 @@
+import type { TranslateFn } from '@/i18n/preset-labels';
 import { formatBytes } from './format';
 import type { Candidate } from '../types';
 
@@ -37,25 +38,27 @@ export function directDeleteSelectionStats(
   };
 }
 
-export function directDeleteConfirmDescription(stats: DirectDeleteSelectionStats): string {
+export function directDeleteConfirmDescription(
+  t: TranslateFn,
+  stats: DirectDeleteSelectionStats,
+): string {
   if (stats.safeCount === 0) {
-    return 'No safe-tier items are selected. Permanent delete only applies to safe-tier folders. Use “Move to quarantine…” for review-tier items, or change your selection.';
+    return t('directDelete.noSafeSelected');
   }
 
   const parts: string[] = [
-    `Permanently delete ${stats.safeCount} folder${stats.safeCount === 1 ? '' : 's'} (${formatBytes(stats.safeBytes)})?`,
-    'Files are removed from disk immediately — not moved to quarantine — and cannot be restored from Deco.',
+    t('directDelete.confirmIntro', {
+      count: stats.safeCount,
+      size: formatBytes(stats.safeBytes),
+    }),
+    t('directDelete.confirmWarning'),
   ];
 
   if (stats.reviewCount > 0) {
-    parts.push(
-      `${stats.reviewCount} review-tier item${stats.reviewCount === 1 ? '' : 's'} in your selection will be skipped.`,
-    );
+    parts.push(t('directDelete.reviewSkipped', { count: stats.reviewCount }));
   }
   if (stats.blockedCount > 0) {
-    parts.push(
-      `${stats.blockedCount} blocked item${stats.blockedCount === 1 ? '' : 's'} cannot be deleted.`,
-    );
+    parts.push(t('directDelete.blockedSkipped', { count: stats.blockedCount }));
   }
 
   return parts.join(' ');
