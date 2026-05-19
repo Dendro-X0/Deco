@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.2` · **Development:** `v0.8.3` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.3` · **Development:** `v0.8.4` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
 
 ---
 
@@ -16,8 +16,8 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.2` · **Development
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.8.3-manifest.md](v0.8.3-manifest.md) — localization phase 2 + UX · [localization-backlog.md](../development/localization-backlog.md) |
-| **Queue** | [v0.8.4-manifest.md](v0.8.4-manifest.md) — README demos |
+| **Active** | [v0.8.4-manifest.md](v0.8.4-manifest.md) — README product demos |
+| **Queue** | [v0.8.5-manifest.md](v0.8.5-manifest.md) — Windows USN experiment |
 
 ### Version queue (summary)
 

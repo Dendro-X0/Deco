@@ -2,7 +2,20 @@
 
 ## [Unreleased]
 
-Development line **v0.8.3** — see [v0.8.3-manifest.md](docs/product/v0.8.3-manifest.md).
+Development line **v0.8.4** — see [v0.8.4-manifest.md](docs/product/v0.8.4-manifest.md).
+
+## [0.8.3] - 2026-05-19
+
+See [v0.8.3-manifest.md](docs/product/v0.8.3-manifest.md).
+
+### Added
+
+- **UI localization (phase 2)** — History and Quarantine tabs, partition/custom-root pickers, scan targets modal, onboarding and guided cleanup wizard, scan statistics, workspace summary, cleanup toasts, and direct-delete confirm dialogs wired to `en`/`cn`/`es`.
+- **Runtime i18n** — Core scan/cleanup status strings, locale-aware dates (`Intl`), and localized profile/strategy summary chips on the dashboard.
+
+### Changed
+
+- **UX polish** — Removed duplicate tab/panel titles; collapsible History/Quarantine filters on narrow widths; quick-update banner hidden when scan results exist; softer “Recommended” pill; unified Clear label; improved history metadata contrast; taller scan-targets modal.
 
 ## [0.8.2] - 2026-05-19
 
