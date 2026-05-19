@@ -47,6 +47,8 @@ import {
 import type { Settings } from '@/types';
 import { CheckForUpdatesSection } from '@/components/CheckForUpdatesSection';
 import { PolicyPackSection } from '@/components/PolicyPackSection';
+import { UiLocaleSection } from '@/components/UiLocaleSection';
+import { useI18n } from '@/i18n';
 
 type Props = {
   settings: Settings | null;
@@ -112,6 +114,7 @@ function ToggleRow({
 }
 
 export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }: Props) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [pickingQuarantine, setPickingQuarantine] = useState(false);
@@ -204,6 +207,9 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         ) : null}
       </CardHeader>
       <CardContent className="space-y-8">
+        <UiLocaleSection />
+        <Separator className="opacity-50" />
+
         <SettingsSection
           title="Updates"
           description="Desktop builds are distributed via GitHub Releases (Windows MSI / NSIS)."
@@ -626,7 +632,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-border/40">
           <DisabledActionHint reason={discardReason}>
             <Button variant="ghost" disabled={discardReason !== null} onClick={handleDiscard}>
-              Discard changes
+              {t('common.discard')}
             </Button>
           </DisabledActionHint>
           <DisabledActionHint reason={saveReason}>
@@ -635,7 +641,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
               disabled={saveReason !== null}
               onClick={() => void handleSave()}
             >
-              {saving ? 'Saving…' : 'Save changes'}
+              {saving ? t('common.saving') : t('common.save')}
             </Button>
           </DisabledActionHint>
         </div>

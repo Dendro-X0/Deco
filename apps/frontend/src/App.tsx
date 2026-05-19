@@ -124,8 +124,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { useI18n } from './i18n';
 
 export default function App() {
+  const { t } = useI18n();
   const { 
     scan, 
     candidates, 
@@ -569,26 +571,26 @@ export default function App() {
               value="dashboard" 
               className="justify-start gap-3 h-11 px-3 data-[state=active]:bg-secondary transition-all"
             >
-              <LayoutDashboard size={18} /> Dashboard
+              <LayoutDashboard size={18} /> {t('nav.dashboard')}
             </TabsTrigger>
             <TabsTrigger 
               value="quarantine" 
               className="justify-start gap-3 h-11 px-3 data-[state=active]:bg-secondary transition-all"
             >
-              <ShieldAlert size={18} /> Quarantine
+              <ShieldAlert size={18} /> {t('nav.quarantine')}
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
               className="justify-start gap-3 h-11 px-3 data-[state=active]:bg-secondary transition-all"
             >
-              <HistoryIcon size={18} /> History
+              <HistoryIcon size={18} /> {t('nav.history')}
             </TabsTrigger>
             <Separator className="my-4" />
             <TabsTrigger 
               value="settings" 
               className="justify-start gap-3 h-11 px-3 data-[state=active]:bg-secondary transition-all"
             >
-              <Settings2 size={18} /> Settings
+              <Settings2 size={18} /> {t('nav.settings')}
             </TabsTrigger>
           </TabsList>
 
@@ -598,7 +600,7 @@ export default function App() {
                 status.type === 'active' ? 'bg-primary animate-pulse' : 
                 status.type === 'error' ? 'bg-destructive' : 'bg-muted-foreground'
               }`} />
-              <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Status</span>
+              <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">{t('status.label')}</span>
             </div>
             <p
               className="text-xs font-medium min-w-0 break-words leading-snug"
@@ -613,7 +615,11 @@ export default function App() {
         <div className="flex-1 flex flex-col bg-dot-pattern min-w-0">
           <header className="h-20 border-b flex items-center justify-between px-8 bg-background/80 backdrop-blur-md z-10">
             <div className="flex flex-col">
-              <h2 className="text-2xl font-bold tracking-tight capitalize">{activeTab}</h2>
+              <h2 className="text-2xl font-bold tracking-tight">
+                {activeTab === 'dashboard' || activeTab === 'quarantine' || activeTab === 'history' || activeTab === 'settings'
+                  ? t(`nav.${activeTab}`)
+                  : activeTab}
+              </h2>
               <p className="text-sm text-muted-foreground">
                 {activeTab === 'dashboard' &&
                   (searchStopped && scanning

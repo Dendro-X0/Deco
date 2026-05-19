@@ -4,6 +4,10 @@
 
 Development line **v0.8.2** — see [v0.8.2-manifest.md](docs/product/v0.8.2-manifest.md).
 
+### Added
+
+- **UI localization foundation** — JSON message catalogs (`en`, `es`), `I18nProvider` / `useI18n()`, Settings language selector.
+
 ## [0.8.1] - 2026-05-19
 
 See [v0.8.1-manifest.md](docs/product/v0.8.1-manifest.md).

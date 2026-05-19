@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "dashboard": "Panel",
+    "quarantine": "Cuarentena",
+    "history": "Historial",
+    "settings": "Ajustes"
+  },
+  "status": {
+    "label": "Estado"
+  },
+  "settings": {
+    "language": {
+      "title": "Idioma",
+      "description": "Idioma de la interfaz. Se guarda en este equipo.",
+      "field": "Idioma de visualización",
+      "en": "English",
+      "es": "Español"
+    }
+  },
+  "common": {
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "discard": "Descartar cambios"
+  }
+}

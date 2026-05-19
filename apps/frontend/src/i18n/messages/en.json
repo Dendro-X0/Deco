@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "quarantine": "Quarantine",
+    "history": "History",
+    "settings": "Settings"
+  },
+  "status": {
+    "label": "Status"
+  },
+  "settings": {
+    "language": {
+      "title": "Language",
+      "description": "UI language for labels and navigation. Stored on this device.",
+      "field": "Display language",
+      "en": "English",
+      "es": "Español"
+    }
+  },
+  "common": {
+    "save": "Save changes",
+    "saving": "Saving…",
+    "discard": "Discard changes"
+  }
+}
