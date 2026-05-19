@@ -2,11 +2,15 @@
 
 ## [Unreleased]
 
-Development line **v0.8.2** — see [v0.8.2-manifest.md](docs/product/v0.8.2-manifest.md).
+Development line **v0.8.3** — see [v0.8.3-manifest.md](docs/product/v0.8.3-manifest.md).
+
+## [0.8.2] - 2026-05-19
+
+See [v0.8.2-manifest.md](docs/product/v0.8.2-manifest.md).
 
 ### Added
 
-- **UI localization foundation** — JSON message catalogs (`en`, `es`), `I18nProvider` / `useI18n()`, Settings language selector.
+- **UI localization (phase 1)** — `messages/{en,cn,es}.json` community templates (~430 keys), `I18nProvider` / `useI18n()`, Settings language selector; Dashboard and Settings fully wired; parity test for locale key structure.
 
 ## [0.8.1] - 2026-05-19
 

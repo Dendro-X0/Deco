@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.1` · **Development:** `v0.8.2` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.2` · **Development:** `v0.8.3` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
 
 ---
 
@@ -16,15 +16,16 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.1` · **Development
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.8.2-manifest.md](v0.8.2-manifest.md) — localization |
-| **Queue** | [v0.8.3-manifest.md](v0.8.3-manifest.md) — README demos |
+| **Active** | [v0.8.3-manifest.md](v0.8.3-manifest.md) — localization phase 2 + UX · [localization-backlog.md](../development/localization-backlog.md) |
+| **Queue** | [v0.8.4-manifest.md](v0.8.4-manifest.md) — README demos |
 
 ### Version queue (summary)
 
 | Version | Feature set |
 |---------|-------------|
-| `v0.8.2` | Localization (i18n catalog + language selector) |
-| `v0.8.3` | README product demos |
+| `v0.8.2` | Localization phase 1 (`en`/`cn`/`es`, Dashboard + Settings) |
+| `v0.8.3` | Localization phase 2 + UX (History, Quarantine, pickers, modals) |
+| `v0.8.4` | README product demos |
 
 ## Quick commands
 
