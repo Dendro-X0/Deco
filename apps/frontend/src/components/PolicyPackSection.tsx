@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useI18n } from '@/i18n';
 import {
   applyPolicyPack,
   listPolicyPackExamples,
@@ -21,6 +22,7 @@ type Props = {
 const CUSTOM_SOURCE = '__custom__';
 
 export function PolicyPackSection({ disabled, onError }: Props) {
+  const { t } = useI18n();
   const [examples, setExamples] = useState<PolicyPackExample[]>([]);
   const [loadingExamples, setLoadingExamples] = useState(true);
   const [sourceChoice, setSourceChoice] = useState<string>('');
@@ -115,7 +117,7 @@ export function PolicyPackSection({ disabled, onError }: Props) {
 
   const handleApply = async () => {
     if (!resolvedSource || !targetRoot) {
-      onError?.('Choose a policy pack and a target project folder.');
+      onError?.(t('settings.policyPack.chooseFolder'));
       return;
     }
     if (preview && !preview.ok) {
@@ -136,18 +138,17 @@ export function PolicyPackSection({ disabled, onError }: Props) {
   const controlsDisabled = Boolean(disabled) || busy;
   const selectedTitle =
     sourceChoice === CUSTOM_SOURCE
-      ? (customLabel ?? 'Custom pack')
-      : (examples.find((e) => e.id === sourceChoice)?.label ?? 'Policy pack');
+      ? (customLabel ?? t('settings.policyPack.customPack'))
+      : (examples.find((e) => e.id === sourceChoice)?.label ?? t('settings.policyPack.defaultTitle'));
 
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Shipped examples from the repo gallery. Select one to preview JSON, then apply to a
-          project folder.
+          {t('settings.policyPack.intro')}
         </p>
         {loadingExamples ? (
-          <p className="text-sm text-muted-foreground">Loading gallery…</p>
+          <p className="text-sm text-muted-foreground">{t('settings.policyPack.loading')}</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {examples.map((ex) => {
@@ -194,7 +195,7 @@ export function PolicyPackSection({ disabled, onError }: Props) {
               })();
             }}
           >
-            {pickingSource ? 'Opening…' : 'Browse custom pack…'}
+            {pickingSource ? t('settings.policyPack.opening') : t('settings.policyPack.browseCustom')}
           </Button>
         </div>
         {customSource ? (
@@ -205,7 +206,7 @@ export function PolicyPackSection({ disabled, onError }: Props) {
       {jsonPreview ? (
         <div className="space-y-2">
           <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-            Preview — {selectedTitle}
+            {t('settings.policyPack.previewTitle', { title: selectedTitle })}
           </p>
           <ScrollArea className="h-48 rounded-lg border border-border/40 bg-muted/10">
             <pre className="p-3 text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-all">
@@ -218,14 +219,14 @@ export function PolicyPackSection({ disabled, onError }: Props) {
       <div className="grid gap-4 md:grid-cols-2 border-t border-border/40 pt-6">
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-            Apply to project
+            {t('settings.policyPack.applyToProject')}
           </label>
           {targetRoot ? (
             <p className="text-xs font-mono text-muted-foreground break-all rounded-lg border border-border/40 bg-muted/10 p-3">
               {targetRoot}
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground">No folder selected.</p>
+            <p className="text-xs text-muted-foreground">{t('settings.policyPack.noFolder')}</p>
           )}
           <Button
             type="button"
@@ -247,7 +248,7 @@ export function PolicyPackSection({ disabled, onError }: Props) {
               })();
             }}
           >
-            {pickingTarget ? 'Opening…' : 'Choose project folder…'}
+            {pickingTarget ? t('settings.policyPack.opening') : t('settings.policyPack.chooseFolder')}
           </Button>
         </div>
       </div>
@@ -260,28 +261,32 @@ export function PolicyPackSection({ disabled, onError }: Props) {
         >
           {preview.ok ? (
             <>
-              <p className="font-medium text-sm">Validation OK</p>
+              <p className="font-medium text-sm">{t('settings.policyPack.validationOk')}</p>
               <p className="text-muted-foreground font-mono break-all">{preview.configPath}</p>
-              <p>Incoming: {preview.summary}</p>
+              <p>
+                {t('settings.policyPack.incoming')}: {preview.summary}
+              </p>
               {preview.existingSummary ? (
-                <p>Current: {preview.existingSummary}</p>
+                <p>
+                  {t('settings.policyPack.current')}: {preview.existingSummary}
+                </p>
               ) : null}
               {preview.targetExisting && preview.diffLines.length > 0 ? (
                 <div className="pt-2 space-y-1">
-                  <p className="font-medium text-amber-600/90">Replace preview (top-level)</p>
+                  <p className="font-medium text-amber-600/90">{t('settings.policyPack.replacePreview')}</p>
                   <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground">
                     {preview.diffLines.map((line) => (
                       <li key={line}>{line}</li>
                     ))}
                   </ul>
                   <p className="text-amber-600/90 pt-1">
-                    The entire file will be replaced; merge fields manually if needed.
+                    {t('settings.policyPack.replaceWarning')}
                   </p>
                 </div>
               ) : null}
             </>
           ) : (
-            <p className="text-destructive">{preview.error ?? 'Validation failed.'}</p>
+            <p className="text-destructive">{preview.error ?? t('settings.policyPack.validationFailed')}</p>
           )}
         </div>
       ) : null}
@@ -289,7 +294,8 @@ export function PolicyPackSection({ disabled, onError }: Props) {
       {appliedPath ? (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-xs text-emerald-600/90">
-            Applied — wrote <span className="font-mono break-all">{appliedPath}</span>
+            {t('settings.policyPack.applied')}{' '}
+            <span className="font-mono break-all">{appliedPath}</span>
           </p>
           <Button
             type="button"
@@ -298,7 +304,7 @@ export function PolicyPackSection({ disabled, onError }: Props) {
             disabled={controlsDisabled}
             onClick={() => void revealPathInExplorer(appliedPath)}
           >
-            Reveal in Explorer
+            {t('settings.policyPack.revealExplorer')}
           </Button>
         </div>
       ) : null}
@@ -312,7 +318,7 @@ export function PolicyPackSection({ disabled, onError }: Props) {
           }
           onClick={() => void handleApply()}
         >
-          {busy ? 'Applying…' : 'Apply policy pack'}
+          {busy ? t('settings.policyPack.applying') : t('settings.policyPack.apply')}
         </Button>
       </div>
     </div>

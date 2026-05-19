@@ -8,18 +8,424 @@
   "status": {
     "label": "Estado"
   },
+  "common": {
+    "save": "Guardar cambios",
+    "saving": "Guardando…",
+    "discard": "Descartar cambios",
+    "custom": "Personalizado",
+    "sizing": "Calculando tamaño…",
+    "notApplicable": "N/D"
+  },
+  "header": {
+    "dashboard": {
+      "default": "Escanear, revisar candidatos y recuperar espacio en disco.",
+      "searchStopped": "Búsqueda de directorios detenida. Calculando tamaños — haga clic en Detener análisis para omitir el resto."
+    },
+    "quarantine": "Restaurar o purgar permanentemente las carpetas retenidas.",
+    "history": "Revisar escaneos anteriores y reutilizar configuraciones.",
+    "settings": "Configurar objetivos de escaneo, seguridad y opciones de descubrimiento."
+  },
+  "dashboard": {
+    "actions": {
+      "freeUpSpace": "Liberar espacio",
+      "scanNow": "Escanear ahora",
+      "quickUpdate": "Actualización rápida",
+      "recommended": "Recomendado",
+      "quickUpdateTitleRecommended": "Recomendado para escaneos repetidos — reutiliza inventario; mucho más rápido en HDD si las rutas no cambian.",
+      "quickUpdateTitleDefault": "Reutiliza clasificación/tamaño en rutas sin cambios. Ejecute un escaneo completo tras cambiar el perfil u opciones de descubrimiento.",
+      "cleanSelected": "Limpiar selección…"
+    },
+    "empty": {
+      "title": "¿Necesita más espacio en disco?",
+      "description": "Ejecute el flujo guiado para escanear proyectos, revisar objetivos seguros y poner en cuarentena — nada se elimina permanentemente hasta purgar la cuarentena.",
+      "cta": "Iniciar limpieza guiada"
+    },
+    "stats": {
+      "safe": "Seguro",
+      "review": "Revisar",
+      "blocked": "Bloqueado",
+      "totalReclaimable": "Total recuperable",
+      "noScanYet": "Sin escaneo aún",
+      "itemsDiscovered": "{{count}} elementos descubiertos"
+    },
+    "scanTargets": {
+      "title": "Objetivos de escaneo",
+      "ready": "Elija unidades o carpetas, luego Escanear ahora.",
+      "notReady": "Seleccione al menos una unidad o carpeta personalizada antes de escanear.",
+      "profile": "Perfil",
+      "strategy": "Estrategia",
+      "notReadyBadge": "No listo",
+      "profiles": {
+        "safe": "Seguro (conservador)",
+        "balanced": "Equilibrado",
+        "aggressive": "Agresivo"
+      }
+    },
+    "scanMode": {
+      "partition": "Particiones de disco",
+      "custom": "Directorios personalizados"
+    },
+    "candidates": {
+      "searchPlaceholder": "Buscar ruta o tipo…",
+      "selected": "{{count}} seleccionados",
+      "showingFiltered": "Mostrando {{filtered}} de {{total}}",
+      "candidateCount": "{{count}} candidatos",
+      "projectCount": "{{count}} proyectos",
+      "clickHeadersToSort": "Clic en encabezados para ordenar",
+      "groupedByProject": "Agrupado por proyecto",
+      "flatList": "Lista plana",
+      "groupHint": "Recomendado para escaneos grandes — expanda un proyecto para ver cada artefacto.",
+      "searchStoppedBanner": "La búsqueda de directorios se detuvo. Aún se calculan tamaños — use Detener análisis en el encabezado.",
+      "stopAnalysis": "Detener análisis",
+      "noCandidates": "No se encontraron candidatos.",
+      "table": {
+        "risk": "Riesgo",
+        "kind": "Tipo",
+        "path": "Ruta",
+        "stale": "Antigüedad",
+        "size": "Tamaño"
+      },
+      "units": {
+        "projects": "proyectos",
+        "items": "elementos"
+      }
+    },
+    "filters": {
+      "title": "Filtros",
+      "clearAll": "Borrar todo",
+      "risk": "Riesgo",
+      "allRisks": "Todos los riesgos",
+      "allKinds": "Todos los tipos"
+    },
+    "detail": {
+      "title": "Detalle del candidato",
+      "path": "Ruta",
+      "showInExplorer": "Mostrar en el Explorador de archivos",
+      "reason": "Motivo",
+      "project": "Proyecto",
+      "dormancy": "Inactividad",
+      "regenerate": "Regenerar",
+      "size": "Tamaño",
+      "reasonCodes": "Códigos de motivo",
+      "selectPrompt": "Seleccione un elemento para ver sus metadatos.",
+      "gitLoading": "Cargando pista de último commit git…",
+      "gitNone": "Sin historial git para esta ruta (o git no disponible)."
+    },
+    "planner": {
+      "title": "Planificador de espacio libre",
+      "noScan": "Ejecute un escaneo para ver espacio recuperable, luego establezca un objetivo y seleccione candidatos automáticamente.",
+      "reclaimable": "Recuperable del escaneo",
+      "safeLegend": "Seguro",
+      "reviewLegend": "Revisar",
+      "targetGb": "Objetivo: {{gb}} GB",
+      "targetLabel": "Objetivo a liberar (GB)",
+      "targetAria": "Objetivo a liberar en gigabytes",
+      "sliderAria": "Control deslizante de gigabytes objetivo",
+      "planSafe": "Plan seguro",
+      "planReview": "Incl. revisar",
+      "previewCleanup": "Vista previa de limpieza",
+      "runScanFirst": "Ejecute un escaneo primero.",
+      "selectedSummary": "Seleccionados {{count}} carpetas (~{{achievable}}). Objetivo era {{target}}.",
+      "targetNotReached": "No se alcanzó ese objetivo con los resultados actuales. Pruebe un objetivo menor o incluya elementos de revisión."
+    },
+    "lastScan": {
+      "title": "Último escaneo",
+      "history": "Historial",
+      "reclaimable": "Recuperable",
+      "candidates": "Candidatos",
+      "profile": "Perfil",
+      "mode": "Modo",
+      "reuse": "Reutilizar escaneo",
+      "modes": {
+        "partition": "Particiones",
+        "custom": "Carpetas personalizadas"
+      }
+    },
+    "scanScope": {
+      "projects": "carpetas de proyecto",
+      "drives": "unidades locales",
+      "all": "proyectos + unidades"
+    }
+  },
   "settings": {
+    "loading": "Cargando ajustes…",
+    "title": "Configuración global",
+    "description": "Perfil de seguridad, opciones de descubrimiento y comportamiento avanzado de escaneo. Configure unidades y carpetas en el Panel.",
+    "unsaved": "Cambios sin guardar",
     "language": {
       "title": "Idioma",
       "description": "Idioma de la interfaz. Se guarda en este equipo.",
       "field": "Idioma de visualización",
       "en": "English",
-      "es": "Español"
+      "es": "Español",
+      "cn": "中文"
+    },
+    "updates": {
+      "title": "Actualizaciones",
+      "description": "Las versiones de escritorio se distribuyen vía GitHub Releases (Windows MSI / NSIS).",
+      "checkTitle": "Buscar actualizaciones",
+      "checkDescription": "Compara esta instalación con la última versión en GitHub Releases · detectado {{platform}}.",
+      "githubReleases": "GitHub Releases",
+      "checkAgain": "Comprobar de nuevo",
+      "checking": "Comprobando…",
+      "installed": "Instalado",
+      "contacting": "Contactando GitHub…",
+      "latest": "Tiene la última versión ({{tag}}).",
+      "checkedAt": "· comprobado {{time}}",
+      "updateAvailable": "Actualización disponible: {{tag}} (tiene v{{version}})",
+      "savedTo": "Guardado en",
+      "installFinish": " — siga el instalador y reinicie Deco.",
+      "extractManual": " — extraiga o instale manualmente y reinicie Deco.",
+      "releaseNotes": "Notas de la versión",
+      "downloadInstall": "Descargar e instalar",
+      "downloading": "Descargando…",
+      "install": "Instalar",
+      "browser": "Navegador"
+    },
+    "scanBehavior": {
+      "title": "Comportamiento de escaneo",
+      "descriptionPartition": "Elija un perfil de limpieza, luego ajuste estrategia y umbrales. El alcance aplica al sugerir raíces en unidades vacías.",
+      "descriptionCustom": "Elija un perfil de limpieza, luego ajuste estrategia y umbrales. El modo de carpetas personalizadas ignora el diseño de particiones.",
+      "cleanupProfile": "Perfil de limpieza",
+      "scanStrategy": "Estrategia de escaneo",
+      "customMismatchProfile": "El perfil de seguridad, indicadores o alcance ya no coinciden con un preset — ajuste abajo o elija un perfil.",
+      "customMismatchStrategy": "Profundidad, paralelismo o actualización rápida ya no coinciden — ajuste abajo o elija un preset.",
+      "profileBundleHint": "Agrupa alcance, perfil de seguridad, descubrimiento y estrategia.",
+      "strategyBundleHint": "Mapea a profundidad de búsqueda, paralelismo de tamaño y actualización rápida.",
+      "scanScope": "Alcance de escaneo",
+      "safetyProfile": "Perfil de seguridad",
+      "staleThreshold": "Umbral de antigüedad (días)",
+      "staleAria": "Umbral de antigüedad en días",
+      "performance": {
+        "title": "Ajuste de rendimiento",
+        "hint": "Ajustar esto puede cambiar la estrategia a Personalizado.",
+        "maxDepth": "Profundidad máxima de búsqueda",
+        "maxDepthAria": "Profundidad máxima de búsqueda",
+        "workers": "Workers paralelos (descubrir / tamaño / eliminar)",
+        "gitDormancy": "Pista de inactividad git (detalle)",
+        "gitDormancyDesc": "Al seleccionar un candidato, ejecuta git log del último commit. Opcional; no afecta la velocidad del escaneo.",
+        "quickUpdate": "Inventario incremental (actualización rápida)",
+        "quickUpdateDesc": "Reutiliza clasificación y tamaño en rutas sin cambios. Ejecute escaneo completo tras cambiar perfil u opciones.",
+        "fastSize": "Estimación rápida de tamaño en árboles de dependencias",
+        "fastSizeDesc": "Muestrea paquetes de primer nivel en node_modules, target, etc., en lugar de recorrer cada archivo."
+      }
+    },
+    "discovery": {
+      "title": "Descubrimiento",
+      "description": "Objetivos de artefactos opcionales durante escaneos.",
+      "shiftHint": "Mayús+clic para alternar un rango entre dos filas.",
+      "enabledCount": "{{enabled}}/{{total}} activos",
+      "selectAll": "Seleccionar todo",
+      "clearAll": "Borrar todo",
+      "categories": {
+        "general": {
+          "label": "General",
+          "description": "Rendimiento de escaneo y objetivos de proyecto de alto riesgo."
+        },
+        "package_managers": {
+          "label": "Gestores de paquetes",
+          "description": "Cachés globales de Node, Python, Conda, bun, NuGet y Composer (nivel revisar)."
+        },
+        "language_runtimes": {
+          "label": "Runtimes de lenguaje",
+          "description": "Cachés de compilador y runtime fuera de proyectos individuales."
+        },
+        "ide_tooling": {
+          "label": "IDE y herramientas",
+          "description": "Cachés globales de editor y SDK."
+        }
+      },
+      "options": {
+        "include_size": {
+          "label": "Calcular tamaños",
+          "description": "Desactivar para escaneo más rápido (CLI: --no-size)."
+        },
+        "include_python_venv": {
+          "label": "Incluir venv de Python",
+          "description": "venv / .venv cuando se detecta proyecto Python (alto riesgo)."
+        },
+        "check_npm_cache": {
+          "label": "caché npm",
+          "description": "Directorio de caché npm con _cacache."
+        },
+        "check_pnpm_store": {
+          "label": "almacén pnpm",
+          "description": "Almacén global y carpetas `.pnpm-store`."
+        },
+        "check_yarn_cache": {
+          "label": "caché Yarn",
+          "description": "Caché global Yarn Classic o Berry."
+        },
+        "check_pip_cache": {
+          "label": "caché pip",
+          "description": "Caché de descarga pip."
+        },
+        "check_uv_cache": {
+          "label": "caché uv",
+          "description": "Caché de paquetes uv."
+        },
+        "check_conda_pkgs_cache": {
+          "label": "caché Conda pkgs",
+          "description": "Caché de paquetes Conda/Miniconda."
+        },
+        "check_bun_cache": {
+          "label": "caché bun",
+          "description": "Caché global de instalación bun."
+        },
+        "check_nuget_cache": {
+          "label": "paquetes globales NuGet",
+          "description": "Almacén de paquetes NuGet."
+        },
+        "check_composer_cache": {
+          "label": "caché Composer",
+          "description": "Caché PHP Composer."
+        },
+        "check_go_cache": {
+          "label": "caché global Go",
+          "description": "Escaneo opcional de GOCACHE y GOMODCACHE."
+        },
+        "check_cargo_registry": {
+          "label": "caché del registro Cargo",
+          "description": "CARGO_HOME/registry con crates descargados."
+        },
+        "check_vcpkg_cache": {
+          "label": "árbol instalado vcpkg",
+          "description": "Puertos VCPKG_ROOT/installed."
+        },
+        "check_conan_cache": {
+          "label": "caché de paquetes Conan",
+          "description": "Caché global Conan 2."
+        },
+        "check_ccache": {
+          "label": "ccache",
+          "description": "Caché de objetos del compilador."
+        },
+        "check_sccache": {
+          "label": "sccache",
+          "description": "Caché compartida del compilador."
+        },
+        "check_bazel_disk_cache": {
+          "label": "caché en disco Bazel",
+          "description": "Cuando BAZEL_DISK_CACHE apunta a un directorio cas/ac."
+        },
+        "check_jvm_global_cache": {
+          "label": "cachés JVM globales",
+          "description": "~/.m2/repository y ~/.gradle/caches."
+        },
+        "check_ide_global_cache": {
+          "label": "cachés globales IDE",
+          "description": "Xcode DerivedData y cachés JetBrains/Android Studio."
+        },
+        "smart_discovery_enabled": {
+          "label": "Descubrimiento inteligente",
+          "description": "Coincide patrones de ruta declarativos con tipos registrados."
+        }
+      }
+    },
+    "policyPack": {
+      "title": "Galería de paquetes de políticas",
+      "description": "Explore ejemplos incluidos, previsualice JSON, vea diff de reemplazo y aplique .deco/disk-cleanup.json a un proyecto.",
+      "intro": "Ejemplos incluidos de la galería del repositorio. Seleccione uno para previsualizar JSON y aplicar a una carpeta de proyecto.",
+      "loading": "Cargando galería…",
+      "browseCustom": "Examinar paquete personalizado…",
+      "opening": "Abriendo…",
+      "previewTitle": "Vista previa — {{title}}",
+      "applyToProject": "Aplicar al proyecto",
+      "noFolder": "Ninguna carpeta seleccionada.",
+      "chooseFolder": "Elegir carpeta de proyecto…",
+      "validationOk": "Validación correcta",
+      "incoming": "Entrante",
+      "current": "Actual",
+      "replacePreview": "Vista previa de reemplazo (nivel superior)",
+      "replaceWarning": "Se reemplazará el archivo completo; fusione campos manualmente si es necesario.",
+      "validationFailed": "Validación fallida.",
+      "applied": "Aplicado — escrito",
+      "revealExplorer": "Mostrar en el Explorador",
+      "applying": "Aplicando…",
+      "apply": "Aplicar paquete de políticas",
+      "customPack": "Paquete personalizado",
+      "defaultTitle": "Paquete de políticas"
+    },
+    "safety": {
+      "title": "Seguridad",
+      "description": "Cómo la limpieza libera espacio. Use Eliminar cuando la unidad esté casi llena.",
+      "deleteMode": "Modo de eliminación",
+      "deleteInPlace": "Eliminar in situ (recomendado) — libera espacio de inmediato",
+      "quarantineSameDrive": "Cuarentena en la misma unidad — mueve a .deco-quarantine, restaurable",
+      "deleteHint": "Eliminar in situ no guarda copias. Úselo al limpiar C: o cuando el disco esté casi lleno.",
+      "cleanupDiskMode": "Modo de disco de limpieza",
+      "diskAuto": "Auto — conservador en lotes grandes",
+      "diskHdd": "HDD / secuencial — una carpeta a la vez",
+      "diskStandard": "Estándar — sigue workers de escaneo",
+      "diskHint": "Modo HDD elimina un árbol a la vez. Pausa/reanudación disponible durante la limpieza.",
+      "fastDelete": "Eliminación rápida de árboles de dependencias (experimental)",
+      "fastDeleteDesc": "Al eliminar in situ, quita node_modules, target y carpetas de compilación vía comandos del sistema.",
+      "quarantineStorage": "Almacenamiento en cuarentena",
+      "quarantineEnableHint": "Active eligiendo “Cuarentena en la misma unidad” arriba.",
+      "quarantinePerDrive": "En cada unidad de origen — {drive}\\.deco-quarantine (recomendado)",
+      "quarantineCustom": "Carpeta personalizada — usted elige la ruta",
+      "quarantinePlaceholder": "p. ej. E:\\DecoQuarantine",
+      "browse": "Examinar…",
+      "systemDriveWarning": "Esta carpeta está en la unidad del sistema (C:) — la cuarentena usará espacio en C:.",
+      "advancedMode": "Modo avanzado",
+      "advancedDesc": "Habilita eliminación forzada y clasificadores experimentales.",
+      "classifyThreshold": "Umbral paralelo de clasificación",
+      "classifyAria": "Mínimo de objetivos antes de clasificar en paralelo",
+      "classifyHint": "La clasificación Rayon corre cuando un bloque tiene al menos este número de objetivos (predeterminado 8)."
+    },
+    "presets": {
+      "cleanup": {
+        "first_scan": {
+          "label": "Primer escaneo",
+          "description": "Seguridad conservadora, recorrido exhaustivo, alcance total — audite antes de habilitar cachés globales."
+        },
+        "monorepo_maintainer": {
+          "label": "Mantenedor de monorepo",
+          "description": "Valores equilibrados con cachés de gestores y registros más patrones IDE inteligentes."
+        },
+        "ci_agent": {
+          "label": "Agente CI",
+          "description": "Paso rápido superficial, raíces de unidad, cachés de compilador."
+        }
+      },
+      "scanStrategy": {
+        "thorough": {
+          "label": "Exhaustivo",
+          "description": "Búsqueda más profunda, paralelismo equilibrado — ideal para primer escaneo o auditoría."
+        },
+        "balanced": {
+          "label": "Equilibrado",
+          "description": "Compromiso predeterminado para la mayoría de máquinas y escaneos repetidos."
+        },
+        "fast": {
+          "label": "Rápido",
+          "description": "Recorrido más superficial, 8 workers — amigable con SSD/NVMe."
+        },
+        "background": {
+          "label": "En segundo plano",
+          "description": "Uso suave del disco — 2 workers, recorrido superficial (HDD)."
+        }
+      },
+      "scanScope": {
+        "all": "Todo — carpetas de desarrollo + unidades (recomendado)",
+        "projects": "Proyectos — solo carpetas de perfil",
+        "drives": "Unidades — solo raíces de partición"
+      },
+      "safetyProfile": {
+        "safe": "Seguro (conservador)",
+        "balanced": "Equilibrado",
+        "aggressive": "Agresivo (máximo espacio)"
+      },
+      "concurrency": {
+        "auto": "Auto — 6 workers paralelos (recomendado)",
+        "low": "Bajo — 2 workers (HDD / segundo plano)",
+        "high": "Alto — 8 workers (SSD rápido)"
+      },
+      "cleanupDiskMode": {
+        "auto": "Auto — conservador en lotes grandes",
+        "hdd": "HDD / secuencial — una carpeta a la vez",
+        "standard": "Estándar — sigue workers de escaneo"
+      }
     }
-  },
-  "common": {
-    "save": "Guardar cambios",
-    "saving": "Guardando…",
-    "discard": "Descartar cambios"
   }
 }

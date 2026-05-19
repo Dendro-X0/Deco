@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { SizeRangeFilter } from '@/components/SizeRangeFilter';
+import { useI18n } from '@/i18n';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -41,6 +42,8 @@ export function CandidateFilterBar({
   sizeFilterDisabled,
   className,
 }: Props) {
+  const { t } = useI18n();
+
   return (
     <div
       className={cn(
@@ -51,7 +54,7 @@ export function CandidateFilterBar({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           <Filter className="h-3 w-3 text-primary/80" aria-hidden />
-          Filters
+          {t('dashboard.filters.title')}
         </span>
         {filtersActive ? (
           <Button
@@ -61,20 +64,20 @@ export function CandidateFilterBar({
             className="h-7 px-2 text-[10px] font-semibold uppercase tracking-wide"
             onClick={onClearFilters}
           >
-            Clear all
+            {t('dashboard.filters.clearAll')}
           </Button>
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Select value={riskFilter} onValueChange={onRiskFilterChange}>
           <SelectTrigger className="h-9 w-[130px] bg-background/50 text-xs">
-            <SelectValue placeholder="Risk" />
+            <SelectValue placeholder={t('dashboard.filters.risk')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All risks</SelectItem>
-            <SelectItem value="safe">Safe</SelectItem>
-            <SelectItem value="review">Review</SelectItem>
-            <SelectItem value="blocked">Blocked</SelectItem>
+            <SelectItem value="all">{t('dashboard.filters.allRisks')}</SelectItem>
+            <SelectItem value="safe">{t('dashboard.stats.safe')}</SelectItem>
+            <SelectItem value="review">{t('dashboard.stats.review')}</SelectItem>
+            <SelectItem value="blocked">{t('dashboard.stats.blocked')}</SelectItem>
           </SelectContent>
         </Select>
         <Select
@@ -83,10 +86,10 @@ export function CandidateFilterBar({
           disabled={availableKinds.length === 0}
         >
           <SelectTrigger className="h-9 w-[11rem] bg-background/50 text-xs">
-            <SelectValue placeholder="All kinds" />
+            <SelectValue placeholder={t('dashboard.filters.allKinds')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All kinds</SelectItem>
+            <SelectItem value="all">{t('dashboard.filters.allKinds')}</SelectItem>
             {availableKinds.map((k) => (
               <SelectItem key={k} value={k} className="font-mono text-xs uppercase">
                 {k}

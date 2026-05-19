@@ -5,6 +5,7 @@ const STORAGE_KEY = 'deco_ui_locale_v1';
 export function detectSystemUiLocale(): UiLocaleId {
   if (typeof navigator === 'undefined') return DEFAULT_UI_LOCALE;
   const lang = navigator.language.toLowerCase();
+  if (lang.startsWith('zh') || lang === 'cn') return 'cn';
   if (lang.startsWith('es')) return 'es';
   return DEFAULT_UI_LOCALE;
 }

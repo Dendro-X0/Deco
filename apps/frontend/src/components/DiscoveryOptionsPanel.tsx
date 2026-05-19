@@ -14,6 +14,7 @@ import {
   type DiscoveryRowId,
 } from '@/lib/discovery-options';
 import { shiftRangeSelection } from '@/lib/shift-range-selection';
+import { useI18n } from '@/i18n';
 import type { Settings } from '@/types';
 
 type Props = {
@@ -38,17 +39,16 @@ function CategoryToolbar({
   disabled?: boolean;
   onPatch: (patch: Partial<Settings>) => void;
 }) {
+  const { t } = useI18n();
   const { enabled, total } = countEnabledInCategory(settings, catId);
   const allOn = total > 0 && enabled === total;
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-      <p className="text-[10px] text-muted-foreground/80">
-        Shift+click to toggle a range between two rows.
-      </p>
+      <p className="text-[10px] text-muted-foreground/80">{t('settings.discovery.shiftHint')}</p>
       <div className="flex items-center gap-2 shrink-0">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground tabular-nums">
-          {enabled}/{total} on
+          {t('settings.discovery.enabledCount', { enabled, total })}
         </span>
         <Button
           type="button"
@@ -58,7 +58,7 @@ function CategoryToolbar({
           disabled={disabled || total === 0}
           onClick={() => onPatch(patchCategorySelection(catId, !allOn))}
         >
-          {allOn ? 'Clear all' : 'Select all'}
+          {allOn ? t('settings.discovery.clearAll') : t('settings.discovery.selectAll')}
         </Button>
       </div>
     </div>
@@ -66,6 +66,7 @@ function CategoryToolbar({
 }
 
 export function DiscoveryOptionsPanel({ settings, disabled, onPatch }: Props) {
+  const { t } = useI18n();
   const [activeCategory, setActiveCategory] = useState<DiscoveryCategoryId>('general');
   const anchorRef = useRef<DiscoveryRowId | null>(null);
 
@@ -127,7 +128,7 @@ export function DiscoveryOptionsPanel({ settings, disabled, onPatch }: Props) {
                   disabled={disabled}
                   className="shrink-0 text-xs sm:text-sm px-3 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:ring-1 data-[state=active]:ring-primary/40"
                 >
-                  {cat.label}
+                  {t(`settings.discovery.categories.${cat.id}.label`)}
                   {counts.total > 0 ? (
                     <span className="ml-1.5 tabular-nums text-[10px] text-muted-foreground">
                       {counts.enabled}/{counts.total}
@@ -141,7 +142,9 @@ export function DiscoveryOptionsPanel({ settings, disabled, onPatch }: Props) {
 
         {DISCOVERY_CATEGORIES.map((cat) => (
           <TabsContent key={cat.id} value={cat.id} className="mt-3 space-y-3 focus-visible:outline-none">
-            <p className="text-xs text-muted-foreground leading-relaxed">{cat.description}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {t(`settings.discovery.categories.${cat.id}.description`)}
+            </p>
             <CategoryToolbar catId={cat.id} settings={settings} disabled={disabled} onPatch={onPatch} />
 
             <div className="space-y-2" role="list">
@@ -177,14 +180,22 @@ export function DiscoveryOptionsPanel({ settings, disabled, onPatch }: Props) {
                   >
                     <div className="space-y-0.5 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-bold">{row.label}</p>
+                        <p className="text-sm font-bold">
+                          {row.type === 'option'
+                            ? t(`settings.discovery.options.${row.key as DiscoveryOptionKey}.label`)
+                            : row.label}
+                        </p>
                         {isPlaceholder ? (
                           <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-semibold">
                             Soon
                           </Badge>
                         ) : null}
                       </div>
-                      <p className="text-xs text-muted-foreground">{row.description}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {row.type === 'option'
+                          ? t(`settings.discovery.options.${row.key as DiscoveryOptionKey}.description`)
+                          : row.description}
+                      </p>
                     </div>
                     <Checkbox
                       checked={checked}

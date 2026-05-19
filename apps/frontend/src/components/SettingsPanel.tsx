@@ -49,6 +49,12 @@ import { CheckForUpdatesSection } from '@/components/CheckForUpdatesSection';
 import { PolicyPackSection } from '@/components/PolicyPackSection';
 import { UiLocaleSection } from '@/components/UiLocaleSection';
 import { useI18n } from '@/i18n';
+import {
+  cleanupProfileDescription,
+  cleanupProfileLabel,
+  scanStrategyDescription,
+  scanStrategyLabel,
+} from '@/i18n/preset-labels';
 
 type Props = {
   settings: Settings | null;
@@ -175,7 +181,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
     return (
       <Card className="border-border/40 bg-card/30">
         <CardContent className="py-16 text-center text-muted-foreground text-sm">
-          Loading settings…
+          {t('settings.loading')}
         </CardContent>
       </Card>
     );
@@ -194,15 +200,12 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
     <Card className="border-border/40 bg-card/30">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
-          <CardTitle>Global Configuration</CardTitle>
-          <CardDescription>
-            Safety profile, discovery options, and advanced scan behavior. Configure drives and folders on the
-            Dashboard. Changes apply after you save.
-          </CardDescription>
+          <CardTitle>{t('settings.title')}</CardTitle>
+          <CardDescription>{t('settings.description')}</CardDescription>
         </div>
         {dirty ? (
           <span className="text-[10px] font-bold uppercase tracking-widest text-amber-500/90 shrink-0">
-            Unsaved changes
+            {t('settings.unsaved')}
           </span>
         ) : null}
       </CardHeader>
@@ -210,27 +213,24 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <UiLocaleSection />
         <Separator className="opacity-50" />
 
-        <SettingsSection
-          title="Updates"
-          description="Desktop builds are distributed via GitHub Releases (Windows MSI / NSIS)."
-        >
+        <SettingsSection title={t('settings.updates.title')} description={t('settings.updates.description')}>
           <CheckForUpdatesSection disabled={scanning || saving} />
         </SettingsSection>
 
         <Separator className="opacity-50" />
 
         <SettingsSection
-          title="Scan behavior"
+          title={t('settings.scanBehavior.title')}
           description={
             scanMode === 'partition'
-              ? 'Pick a cleanup profile for your role, then tune scan strategy and thresholds. Scan scope applies when suggesting roots on empty drives.'
-              : 'Pick a cleanup profile for your role, then tune scan strategy and thresholds. Custom-folder mode ignores partition layout.'
+              ? t('settings.scanBehavior.descriptionPartition')
+              : t('settings.scanBehavior.descriptionCustom')
           }
         >
           <div className="space-y-4 max-w-2xl">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                Cleanup profile
+                {t('settings.scanBehavior.cleanupProfile')}
               </label>
               <Select
                 value={activeProfile === 'custom' ? 'custom' : activeProfile}
@@ -246,24 +246,25 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 <SelectContent>
                   {CLEANUP_PROFILE_PRESETS.map((preset) => (
                     <SelectItem key={preset.id} value={preset.id}>
-                      {preset.label}
+                      {cleanupProfileLabel(t, preset.id)}
                     </SelectItem>
                   ))}
                   {activeProfile === 'custom' ? (
-                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectItem value="custom">{t('common.custom')}</SelectItem>
                   ) : null}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {activeProfile === 'custom'
-                  ? 'Safety profile, discovery flags, or scope no longer match a preset — adjust below or pick a profile.'
-                  : (activeProfileMeta?.description ??
-                    'Bundles scope, safety profile, discovery flags, and scan strategy.')}
+                  ? t('settings.scanBehavior.customMismatchProfile')
+                  : activeProfileMeta
+                    ? cleanupProfileDescription(t, activeProfileMeta.id)
+                    : t('settings.scanBehavior.profileBundleHint')}
               </p>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                Scan strategy
+                {t('settings.scanBehavior.scanStrategy')}
               </label>
               <Select
                 value={activeStrategy === 'custom' ? 'custom' : activeStrategy}
@@ -279,19 +280,20 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 <SelectContent>
                   {SCAN_STRATEGY_PRESETS.map((preset) => (
                     <SelectItem key={preset.id} value={preset.id}>
-                      {preset.label}
+                      {scanStrategyLabel(t, preset.id)}
                     </SelectItem>
                   ))}
                   {activeStrategy === 'custom' ? (
-                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectItem value="custom">{t('common.custom')}</SelectItem>
                   ) : null}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
                 {activeStrategy === 'custom'
-                  ? 'Depth, size parallelism, or Quick update no longer match a preset — adjust below or pick a preset.'
-                  : (activeStrategyMeta?.description ??
-                    'Maps to search depth, size parallelism, and Quick update.')}
+                  ? t('settings.scanBehavior.customMismatchStrategy')
+                  : activeStrategyMeta
+                    ? scanStrategyDescription(t, activeStrategyMeta.id)
+                    : t('settings.scanBehavior.strategyBundleHint')}
               </p>
             </div>
           </div>
@@ -300,7 +302,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
             {scanMode === 'partition' ? (
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  Scan scope
+                  {t('settings.scanBehavior.scanScope')}
                 </label>
                 <Select
                   value={draft.scan_scope ?? 'all'}
@@ -311,16 +313,16 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All — dev folders + drives (recommended)</SelectItem>
-                    <SelectItem value="projects">Projects — profile folders only</SelectItem>
-                    <SelectItem value="drives">Drives — partition roots only</SelectItem>
+                    <SelectItem value="all">{t('settings.presets.scanScope.all')}</SelectItem>
+                    <SelectItem value="projects">{t('settings.presets.scanScope.projects')}</SelectItem>
+                    <SelectItem value="drives">{t('settings.presets.scanScope.drives')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             ) : null}
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                Safety profile
+                {t('settings.scanBehavior.safetyProfile')}
               </label>
               <Select
                 value={draft.profile}
@@ -331,15 +333,15 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="safe">Safe (Conservative)</SelectItem>
-                  <SelectItem value="balanced">Balanced</SelectItem>
-                  <SelectItem value="aggressive">Aggressive (Maximum Space)</SelectItem>
+                  <SelectItem value="safe">{t('settings.presets.safetyProfile.safe')}</SelectItem>
+                  <SelectItem value="balanced">{t('settings.presets.safetyProfile.balanced')}</SelectItem>
+                  <SelectItem value="aggressive">{t('settings.presets.safetyProfile.aggressive')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                Stale threshold (days)
+                {t('settings.scanBehavior.staleThreshold')}
               </label>
               <NumberInput
                 min={1}
@@ -348,22 +350,24 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 value={draft.stale_days}
                 disabled={scanning || saving}
                 onValueChange={(v) => patch({ stale_days: clampStaleDays(v) })}
-                aria-label="Stale threshold in days"
+                aria-label={t('settings.scanBehavior.staleAria')}
               />
             </div>
           </div>
 
           <div className="space-y-4 rounded-lg border border-border/40 bg-muted/10 p-4">
             <div>
-              <h4 className="text-xs font-bold tracking-tight">Performance tuning</h4>
+              <h4 className="text-xs font-bold tracking-tight">
+                {t('settings.scanBehavior.performance.title')}
+              </h4>
               <p className="text-xs text-muted-foreground mt-1">
-                Adjusting these may switch the strategy to Custom.
+                {t('settings.scanBehavior.performance.hint')}
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  Max search depth
+                  {t('settings.scanBehavior.performance.maxDepth')}
                 </label>
                 <NumberInput
                   min={1}
@@ -372,12 +376,12 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                   value={draft.max_depth}
                   disabled={scanning || saving}
                   onValueChange={(v) => patch({ max_depth: clampMaxDepth(v) })}
-                  aria-label="Max search depth"
+                  aria-label={t('settings.scanBehavior.performance.maxDepthAria')}
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  Parallel workers (discover / size / delete)
+                  {t('settings.scanBehavior.performance.workers')}
                 </label>
                 <Select
                   value={
@@ -392,30 +396,30 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="auto">Auto — 6 parallel workers (recommended)</SelectItem>
-                    <SelectItem value="low">Low — 2 workers (HDD / background)</SelectItem>
-                    <SelectItem value="high">High — 8 workers (fast SSD)</SelectItem>
+                    <SelectItem value="auto">{t('settings.presets.concurrency.auto')}</SelectItem>
+                    <SelectItem value="low">{t('settings.presets.concurrency.low')}</SelectItem>
+                    <SelectItem value="high">{t('settings.presets.concurrency.high')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             <ToggleRow
-              label="Git dormancy hint (candidate detail)"
-              description="When a candidate is selected, run git log for last commit touching that path. Opt-in; does not affect scan speed."
+              label={t('settings.scanBehavior.performance.gitDormancy')}
+              description={t('settings.scanBehavior.performance.gitDormancyDesc')}
               checked={draft.check_git_dormancy ?? false}
               onCheckedChange={(v) => patch({ check_git_dormancy: v })}
               disabled={scanning || saving}
             />
             <ToggleRow
-              label="Incremental inventory (Quick update)"
-              description="Reuse classify and size for unchanged paths. Run a full scan after changing profile or discovery options."
+              label={t('settings.scanBehavior.performance.quickUpdate')}
+              description={t('settings.scanBehavior.performance.quickUpdateDesc')}
               checked={draft.incremental_inventory_enabled ?? true}
               onCheckedChange={(v) => patch({ incremental_inventory_enabled: v })}
               disabled={scanning || saving}
             />
             <ToggleRow
-              label="Fast size estimate for dependency trees"
-              description="Sample top-level packages in node_modules, target, and similar folders instead of walking every file (shows ~size). Reduces 30s timeouts on huge trees."
+              label={t('settings.scanBehavior.performance.fastSize')}
+              description={t('settings.scanBehavior.performance.fastSizeDesc')}
               checked={draft.fast_dependency_size_estimate ?? true}
               onCheckedChange={(v) => patch({ fast_dependency_size_estimate: v })}
               disabled={scanning || saving}
@@ -426,8 +430,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <Separator />
 
         <SettingsSection
-          title="Policy pack gallery"
-          description="Browse shipped examples, preview JSON, see replace diff, and apply .deco/disk-cleanup.json to a project."
+          title={t('settings.policyPack.title')}
+          description={t('settings.policyPack.description')}
         >
           <PolicyPackSection
             disabled={scanning || saving}
@@ -438,8 +442,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <Separator />
 
         <SettingsSection
-          title="Discovery"
-          description="Optional artifact targets during scans."
+          title={t('settings.discovery.title')}
+          description={t('settings.discovery.description')}
         >
           <DiscoveryOptionsPanel
             settings={draft}
@@ -451,11 +455,11 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <Separator />
 
         <SettingsSection
-          title="Safety"
-          description="How cleanup frees space. Use Delete when the drive is almost full."
+          title={t('settings.safety.title')}
+          description={t('settings.safety.description')}
         >
           <div className="space-y-2">
-            <label className="text-sm font-medium">Delete mode</label>
+            <label className="text-sm font-medium">{t('settings.safety.deleteMode')}</label>
             <Select
               value={draft.delete_mode === 'quarantine' ? 'quarantine' : 'delete'}
               onValueChange={(v) => patch({ delete_mode: v })}
@@ -465,20 +469,16 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="delete">
-                  Delete in place (recommended) — frees space immediately, no copy
-                </SelectItem>
-                <SelectItem value="quarantine">
-                  Quarantine on same drive — moves to .deco-quarantine, restorable
-                </SelectItem>
+                <SelectItem value="delete">{t('settings.safety.deleteInPlace')}</SelectItem>
+                <SelectItem value="quarantine">{t('settings.safety.quarantineSameDrive')}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Delete in place does not store backups. Use it when cleaning C: or when the disk is almost full.
+              {t('settings.safety.deleteHint')}
             </p>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Cleanup disk mode</label>
+            <label className="text-sm font-medium">{t('settings.safety.cleanupDiskMode')}</label>
             <Select
               value={
                 ['auto', 'hdd', 'standard'].includes(draft.cleanup_disk_mode ?? '')
@@ -492,14 +492,13 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="auto">Auto — conservative on large batches</SelectItem>
-                <SelectItem value="hdd">HDD / sequential — one folder at a time</SelectItem>
-                <SelectItem value="standard">Standard — follow scan worker count</SelectItem>
+                <SelectItem value="auto">{t('settings.presets.cleanupDiskMode.auto')}</SelectItem>
+                <SelectItem value="hdd">{t('settings.presets.cleanupDiskMode.hdd')}</SelectItem>
+                <SelectItem value="standard">{t('settings.presets.cleanupDiskMode.standard')}</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              HDD mode deletes one tree at a time (best for mechanical drives). Pause/resume is available
-              during cleanup.
+              {t('settings.safety.diskHint')}
             </p>
           </div>
           <div className="flex items-start gap-3 rounded-lg border border-border/60 p-4">
@@ -511,29 +510,22 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
             />
             <div className="space-y-1">
               <label htmlFor="fast-tree-delete" className="text-sm font-medium leading-none cursor-pointer">
-                Fast delete for dependency trees (experimental)
+                {t('settings.safety.fastDelete')}
               </label>
-              <p className="text-xs text-muted-foreground">
-                When deleting in place, removes <code className="text-[0.7rem]">node_modules</code>,{' '}
-                <code className="text-[0.7rem]">target</code>, and build folders via system commands (Windows{' '}
-                <code className="text-[0.7rem]">rmdir /s /q</code>, Unix <code className="text-[0.7rem]">rm -rf</code>).
-                Parallelism follows Settings → Cleanup disk mode (HDD = one tree at a time) and Scan behavior →
-                Performance. Not used for quarantine.
-              </p>
+              <p className="text-xs text-muted-foreground">{t('settings.safety.fastDeleteDesc')}</p>
             </div>
           </div>
           <div
             className={`space-y-3 rounded-lg border p-4 ${quarantineEnabled ? 'border-border/60' : 'border-border/30 opacity-60'}`}
           >
             <div>
-              <p className="text-sm font-bold">Quarantine storage</p>
+              <p className="text-sm font-bold">{t('settings.safety.quarantineStorage')}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {quarantineStorageSummary(draft.delete_mode, quarantineLayout, quarantinePath)}
               </p>
               {!quarantineEnabled && (
                 <p className="text-xs text-amber-600/90 mt-1">
-                  Enable by choosing “Quarantine on same drive” above. Payloads are never stored under
-                  AppData unless you pick that folder yourself.
+                  {t('settings.safety.quarantineEnableHint')}
                 </p>
               )}
             </div>
@@ -551,10 +543,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="per_drive">
-                  On each source drive — {'{drive}\\.deco-quarantine'} (recommended)
-                </SelectItem>
-                <SelectItem value="custom">Custom folder — you choose the path</SelectItem>
+                <SelectItem value="per_drive">{t('settings.safety.quarantinePerDrive')}</SelectItem>
+                <SelectItem value="custom">{t('settings.safety.quarantineCustom')}</SelectItem>
               </SelectContent>
             </Select>
             {quarantineLayout === 'custom' && quarantineEnabled && (
@@ -562,7 +552,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 <Input
                   value={quarantinePath}
                   onChange={(e) => patch({ quarantine_custom_path: e.target.value })}
-                  placeholder="e.g. E:\\DecoQuarantine"
+                  placeholder={t('settings.safety.quarantinePlaceholder')}
                   className="font-mono text-sm flex-1"
                   disabled={scanning || saving}
                 />
@@ -584,7 +574,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                     })();
                   }}
                 >
-                  {pickingQuarantine ? 'Opening…' : 'Browse…'}
+                  {pickingQuarantine ? t('settings.policyPack.opening') : t('settings.safety.browse')}
                 </Button>
               </div>
             )}
@@ -593,13 +583,13 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
               quarantinePath.trim() &&
               isWindowsSystemDrivePath(quarantinePath) && (
                 <p className="text-xs text-amber-600/90">
-                  This folder is on the system (C:) drive — quarantine will use space on C:.
+                  {t('settings.safety.systemDriveWarning')}
                 </p>
               )}
           </div>
           <ToggleRow
-            label="Advanced mode"
-            description="Enables hard-delete and experimental classifiers."
+            label={t('settings.safety.advancedMode')}
+            description={t('settings.safety.advancedDesc')}
             checked={draft.advanced_mode}
             onCheckedChange={(v) => patch({ advanced_mode: v })}
             disabled={scanning || saving}
@@ -607,7 +597,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
           {draft.advanced_mode ? (
             <div className="space-y-2 max-w-xs pl-1">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                Classify parallel threshold
+                {t('settings.safety.classifyThreshold')}
               </label>
               <NumberInput
                 min={1}
@@ -620,11 +610,9 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                     classify_parallel_threshold: Math.min(128, Math.max(1, Math.round(v))),
                   })
                 }
-                aria-label="Minimum targets before parallel classify"
+                aria-label={t('settings.safety.classifyAria')}
               />
-              <p className="text-xs text-muted-foreground">
-                Rayon classify runs when a chunk has at least this many targets (default 8).
-              </p>
+              <p className="text-xs text-muted-foreground">{t('settings.safety.classifyHint')}</p>
             </div>
           ) : null}
         </SettingsSection>

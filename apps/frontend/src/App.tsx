@@ -338,10 +338,10 @@ export default function App() {
 
   const scanScopeLabel =
     settings?.scan_scope === 'projects'
-      ? 'project folders'
+      ? t('dashboard.scanScope.projects')
       : settings?.scan_scope === 'drives'
-        ? 'local drives'
-        : 'projects + drives';
+        ? t('dashboard.scanScope.drives')
+        : t('dashboard.scanScope.all');
 
   const availableKinds = useMemo(() => uniqueKinds(candidates), [candidates]);
 
@@ -465,11 +465,11 @@ export default function App() {
       candidates.some((c) => !candidateSizeIsKnown(c.size_bytes)));
 
   const statByteLabel = (bytes: number | undefined) =>
-    anySizingPending ? 'Sizing…' : formatStatBytes(bytes, hasScanResults);
+    anySizingPending ? t('common.sizing') : formatStatBytes(bytes, hasScanResults);
 
   const statCountLabel = (count: number) => {
-    if (!hasScanResults && !scanning) return 'No scan yet';
-    return `${count} items discovered`;
+    if (!hasScanResults && !scanning) return t('dashboard.stats.noScanYet');
+    return t('dashboard.stats.itemsDiscovered', { count });
   };
 
   const countByRisk = (risk: string) =>
@@ -543,7 +543,7 @@ export default function App() {
 
   const applyPlanner = async (includeReview: boolean) => {
     if (!summary?.scan_id) {
-      setPlannerMessage('Run a scan first.');
+      setPlannerMessage(t('dashboard.planner.runScanFirst'));
       return;
     }
     const plan = await planFreeSpace(plannerGb, includeReview);
@@ -551,8 +551,12 @@ export default function App() {
     setSelectedIds(new Set(plan.selected_ids));
     setPlannerMessage(
       plan.selected_count > 0
-        ? `Selected ${plan.selected_count} folders (~${formatBytes(plan.achievable_bytes)}). Target was ${formatBytes(plan.target_bytes)}.`
-        : 'Could not reach that target with current scan results. Try a lower goal or include review-tier items.',
+        ? t('dashboard.planner.selectedSummary', {
+            count: plan.selected_count,
+            achievable: formatBytes(plan.achievable_bytes),
+            target: formatBytes(plan.target_bytes),
+          })
+        : t('dashboard.planner.targetNotReached'),
     );
   };
 
@@ -623,11 +627,11 @@ export default function App() {
               <p className="text-sm text-muted-foreground">
                 {activeTab === 'dashboard' &&
                   (searchStopped && scanning
-                    ? 'Directory search stopped. Sizing found items — click Stop analysis to skip the rest.'
-                    : 'Scan, review candidates, and reclaim disk space.')}
-                {activeTab === 'quarantine' && 'Restore or permanently purge held folders.'}
-                {activeTab === 'history' && 'Review past scans and reuse configurations.'}
-                {activeTab === 'settings' && 'Configure scan targets, safety, and discovery options.'}
+                    ? t('header.dashboard.searchStopped')
+                    : t('header.dashboard.default'))}
+                {activeTab === 'quarantine' && t('header.quarantine')}
+                {activeTab === 'history' && t('header.history')}
+                {activeTab === 'settings' && t('header.settings')}
               </p>
             </div>
 
@@ -640,7 +644,7 @@ export default function App() {
                   setWizardStep('intro');
                 }}
               >
-                <Sparkles size={16} /> Free up space
+                <Sparkles size={16} /> {t('dashboard.actions.freeUpSpace')}
                  </Button>
               {scanning ? (
                 <ScanStopControl stage={scanStopStage} onStop={() => void cancelScan()} />
@@ -651,7 +655,7 @@ export default function App() {
                     className="gap-2 font-semibold px-6"
                     onClick={() => requestScan({ mode: 'full' })}
                   >
-                   <Play size={16} fill="currentColor" /> Scan Now
+                   <Play size={16} fill="currentColor" /> {t('dashboard.actions.scanNow')}
                  </Button>
                   <Button
                     variant="secondary"
@@ -659,15 +663,15 @@ export default function App() {
                     onClick={() => requestScan({ mode: 'quick' })}
                     title={
                       recommendQuickUpdate
-                        ? 'Recommended for repeat scans — reuses inventory; much faster on HDD when paths are unchanged.'
-                        : 'Reuse cached classify/size for unchanged paths. Run a full scan after changing profile or discovery options.'
+                        ? t('dashboard.actions.quickUpdateTitleRecommended')
+                        : t('dashboard.actions.quickUpdateTitleDefault')
                     }
                   >
                     {recommendQuickUpdate ? <Zap size={16} className="text-primary" /> : null}
-                    Quick update
+                    {t('dashboard.actions.quickUpdate')}
                     {recommendQuickUpdate ? (
                       <span className="text-[10px] font-bold uppercase tracking-wide opacity-90">
-                        Recommended
+                        {t('dashboard.actions.recommended')}
                       </span>
                     ) : null}
                   </Button>
@@ -680,7 +684,7 @@ export default function App() {
                   disabled={cleanSelectedReason !== null}
                   onClick={openCleanupPreview}
                 >
-                  <Trash2 size={16} /> Clean selected…
+                  <Trash2 size={16} /> {t('dashboard.actions.cleanSelected')}
                </Button>
               </DisabledActionHint>
             </div>
@@ -748,10 +752,9 @@ export default function App() {
                   <Card className="border-primary/20 bg-primary/5">
                     <CardContent className="py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                       <div>
-                        <p className="font-bold text-lg">Need more disk space?</p>
+                        <p className="font-bold text-lg">{t('dashboard.empty.title')}</p>
                         <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-                          Run the guided flow to scan your projects, review safe targets, and quarantine clutter with one
-                          click — nothing is permanently deleted until you purge quarantine.
+                          {t('dashboard.empty.description')}
                         </p>
                       </div>
                       <Button
@@ -761,7 +764,7 @@ export default function App() {
                           setWizardStep('intro');
                         }}
                       >
-                        <Sparkles size={16} /> Start guided cleanup
+                        <Sparkles size={16} /> {t('dashboard.empty.cta')}
                       </Button>
                     </CardContent>
                   </Card>
@@ -769,7 +772,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <StatCard
-                    label="Safe"
+                    label={t('dashboard.stats.safe')}
                     value={statByteLabel(summary?.totals_by_risk?.safe?.bytes)}
                     countLabel={statCountLabel(
                       scanning
@@ -780,7 +783,7 @@ export default function App() {
                     muted={!hasScanResults && !scanning}
                   />
                   <StatCard
-                    label="Review"
+                    label={t('dashboard.stats.review')}
                     value={statByteLabel(summary?.totals_by_risk?.review?.bytes)}
                     countLabel={statCountLabel(
                       scanning
@@ -791,7 +794,7 @@ export default function App() {
                     muted={!hasScanResults && !scanning}
                   />
                   <StatCard
-                    label="Blocked"
+                    label={t('dashboard.stats.blocked')}
                     value={statByteLabel(summary?.totals_by_risk?.blocked?.bytes)}
                     countLabel={statCountLabel(
                       scanning
@@ -802,7 +805,7 @@ export default function App() {
                     muted={!hasScanResults && !scanning}
                   />
                   <StatCard
-                    label="Total Reclaimable"
+                    label={t('dashboard.stats.totalReclaimable')}
                     value={statByteLabel(summary?.total_bytes)}
                     countLabel={statCountLabel(candidates.length)}
                     color="text-foreground"
@@ -818,9 +821,7 @@ export default function App() {
                           role="status"
                           className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90 leading-snug"
                         >
-                          Directory search has stopped. Sizes are still being calculated — use{' '}
-                          <span className="font-semibold">Stop analysis</span> in the header to skip
-                          the rest. Rows without a size yet show <span className="font-semibold">Sizing…</span>.
+                          {t('dashboard.candidates.searchStoppedBanner')}
                         </div>
                       )}
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -828,7 +829,7 @@ export default function App() {
                           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                           <Input 
                             ref={searchInputRef}
-                            placeholder="Search path or kind…"
+                            placeholder={t('dashboard.candidates.searchPlaceholder')}
                             className="pl-8 bg-background/50" 
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -836,14 +837,20 @@ export default function App() {
                         </div>
                         <div className="flex flex-col items-start sm:items-end gap-0.5 shrink-0">
                         <span className="text-sm font-medium text-primary">
-                        {selectedIds.size} selected
+                        {t('dashboard.candidates.selected', { count: selectedIds.size })}
                         </span>
                         <span className="text-[10px] text-muted-foreground leading-snug">
                           {filtersActive
-                              ? `Showing ${filteredCandidates.length} of ${candidates.length}`
-                              : `${candidates.length} candidates`}
-                          {groupByProject ? ` · ${projectGroups.length} projects` : ''}
-                            {' · '}Click headers to sort
+                              ? t('dashboard.candidates.showingFiltered', {
+                                  filtered: filteredCandidates.length,
+                                  total: candidates.length,
+                                })
+                              : t('dashboard.candidates.candidateCount', { count: candidates.length })}
+                          {groupByProject
+                            ? ` · ${t('dashboard.candidates.projectCount', { count: projectGroups.length })}`
+                            : ''}
+                            {' · '}
+                            {t('dashboard.candidates.clickHeadersToSort')}
                         </span>
                       </div>
                       </div>
@@ -858,11 +865,13 @@ export default function App() {
                             setExpandedGroupKeys(new Set());
                           }}
                         >
-                          {groupByProject ? 'Grouped by project' : 'Flat list'}
+                          {groupByProject
+                            ? t('dashboard.candidates.groupedByProject')
+                            : t('dashboard.candidates.flatList')}
                         </Button>
                         {groupByProject && filteredCandidates.length > GROUP_BY_PROJECT_DEFAULT_THRESHOLD ? (
                           <span className="text-[10px] text-muted-foreground">
-                            Recommended for large scans — expand a project to see each artifact.
+                            {t('dashboard.candidates.groupHint')}
                           </span>
                         ) : null}
                       </div>
@@ -899,7 +908,11 @@ export default function App() {
                           groupByProject ? PROJECT_GROUP_COLLAPSED_LIMIT : undefined
                         }
                         pageSize={groupByProject ? PROJECT_GROUP_PAGE_SIZE : undefined}
-                        unitLabel={groupByProject ? 'projects' : 'items'}
+                        unitLabel={
+                          groupByProject
+                            ? t('dashboard.candidates.units.projects')
+                            : t('dashboard.candidates.units.items')
+                        }
                         onExpand={() => {
                           setCandidateListExpanded(true);
                           setCandidatePage(1);
@@ -947,7 +960,7 @@ export default function App() {
                               onToggleSort={toggleSortHeader}
                               className="px-2 py-2.5 w-[4.5rem]"
                             >
-                              Risk
+                              {t('dashboard.candidates.table.risk')}
                             </CandidateSortHeading>
                             <CandidateSortHeading
                               column="kind"
@@ -955,7 +968,7 @@ export default function App() {
                               onToggleSort={toggleSortHeader}
                               className="px-2 py-2.5 w-[7.5rem]"
                             >
-                              Kind
+                              {t('dashboard.candidates.table.kind')}
                             </CandidateSortHeading>
                             <CandidateSortHeading
                               column="path"
@@ -963,7 +976,7 @@ export default function App() {
                               onToggleSort={toggleSortHeader}
                               className="px-2 py-2.5"
                             >
-                              Path
+                              {t('dashboard.candidates.table.path')}
                             </CandidateSortHeading>
                             <CandidateSortHeading
                               column="stale"
@@ -972,7 +985,7 @@ export default function App() {
                               alignEnd
                               className="text-right whitespace-nowrap px-2 py-2.5 w-[4.5rem]"
                             >
-                              Stale
+                              {t('dashboard.candidates.table.stale')}
                             </CandidateSortHeading>
                             <CandidateSortHeading
                               column="size"
@@ -981,7 +994,7 @@ export default function App() {
                               alignEnd
                               className="text-right whitespace-nowrap px-2 py-2.5 w-[5.5rem]"
                             >
-                              Size
+                              {t('dashboard.candidates.table.size')}
                             </CandidateSortHeading>
                           </TableRow>
                         </TableHeader>
@@ -1046,7 +1059,9 @@ export default function App() {
                           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted/30">
                             <Info size={24} className="text-muted-foreground" />
                           </div>
-                          <p className="text-muted-foreground font-medium">No candidates found.</p>
+                          <p className="text-muted-foreground font-medium">
+                            {t('dashboard.candidates.noCandidates')}
+                          </p>
                         </div>
                       )}
                     </CardContent>
@@ -1056,14 +1071,16 @@ export default function App() {
                     <Card className="border-border/40 bg-card/30">
                       <CardHeader>
                         <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                          <ChevronRight size={14} /> Candidate Detail
+                          <ChevronRight size={14} /> {t('dashboard.detail.title')}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         {selectedCandidate ? (
                           <div className="space-y-4 animate-in fade-in duration-300">
                              <div className="space-y-1">
-                               <p className="text-[10px] uppercase font-bold text-muted-foreground">Path</p>
+                               <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                                 {t('dashboard.detail.path')}
+                               </p>
                                <p className="text-xs font-mono break-all leading-relaxed bg-muted/20 p-2 rounded border">
                                  {selectedCandidate.abs_path}
                                </p>
@@ -1075,12 +1092,14 @@ export default function App() {
                                  onClick={() => void revealInExplorer(selectedCandidate.abs_path)}
                                >
                                  <FolderOpen size={14} />
-                                 Show in File Explorer
+                                 {t('dashboard.detail.showInExplorer')}
                                </Button>
                              </div>
                              <div className="grid grid-cols-2 gap-4">
                                <div className="space-y-1">
-                                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Reason</p>
+                                 <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                                   {t('dashboard.detail.reason')}
+                                 </p>
                                  <p className="text-xs font-semibold">
                                    {reasonSummaryWithoutRegeneration(
                                      selectedCandidate.display_reason_summary,
@@ -1088,8 +1107,12 @@ export default function App() {
                                  </p>
                                </div>
                                <div className="space-y-1">
-                                 <p className="text-[10px] uppercase font-bold text-muted-foreground">Project</p>
-                                 <p className="text-xs font-semibold">{selectedCandidate.project_root || 'N/A'}</p>
+                                 <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                                   {t('dashboard.detail.project')}
+                                 </p>
+                                 <p className="text-xs font-semibold">
+                                   {selectedCandidate.project_root || t('common.notApplicable')}
+                                 </p>
                                </div>
                              </div>
                              {selectedDormancy ? (
@@ -1105,7 +1128,7 @@ export default function App() {
                                  )}
                                >
                                  <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                                   Dormancy
+                                   {t('dashboard.detail.dormancy')}
                                  </p>
                                  <p className="text-xs font-semibold leading-relaxed">
                                    {selectedDormancy.headline}
@@ -1116,10 +1139,10 @@ export default function App() {
                                  {gitDormancyEnabled ? (
                                    <p className="text-[11px] font-mono text-muted-foreground pt-1 border-t border-border/40">
                                      {gitDormancyLoading
-                                       ? 'Loading git last-commit hint…'
+                                       ? t('dashboard.detail.gitLoading')
                                        : gitDormancy
                                          ? formatGitDormancyHint(gitDormancy)
-                                         : 'No git history for this path (or git unavailable).'}
+                                         : t('dashboard.detail.gitNone')}
                                    </p>
                                  ) : null}
                                </div>
@@ -1127,7 +1150,7 @@ export default function App() {
                              {selectedRegenerationHint ? (
                                <div className="space-y-1 rounded-md border border-border/50 bg-muted/15 p-3">
                                  <p className="text-[10px] uppercase font-bold text-muted-foreground">
-                                   Regenerate
+                                   {t('dashboard.detail.regenerate')}
                                  </p>
                                  <p className="text-xs leading-relaxed font-mono">
                                    {selectedRegenerationHint}
@@ -1135,7 +1158,9 @@ export default function App() {
                                </div>
                              ) : null}
                              <div className="space-y-1">
-                               <p className="text-[10px] uppercase font-bold text-muted-foreground">Size</p>
+                               <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                                 {t('dashboard.detail.size')}
+                               </p>
                                <p className="text-xs font-black tabular-nums">
                                  {formatCandidateSize(
                                    selectedCandidate.size_bytes,
@@ -1145,7 +1170,9 @@ export default function App() {
                                </p>
                              </div>
                              <div className="space-y-1">
-                               <p className="text-[10px] uppercase font-bold text-muted-foreground">Reason Codes</p>
+                               <p className="text-[10px] uppercase font-bold text-muted-foreground">
+                                 {t('dashboard.detail.reasonCodes')}
+                               </p>
                                <div className="flex flex-wrap gap-1 pt-1">
                                  {selectedCandidate.reason_codes?.map(code => (
                                    <Badge key={code} variant="secondary" className="text-[9px] font-mono px-1.5 py-0">{code}</Badge>
@@ -1155,7 +1182,9 @@ export default function App() {
                           </div>
                         ) : (
                           <div className="py-12 text-center">
-                            <p className="text-xs text-muted-foreground italic">Select an item to inspect its metadata.</p>
+                            <p className="text-xs text-muted-foreground italic">
+                              {t('dashboard.detail.selectPrompt')}
+                            </p>
                           </div>
                         )}
                       </CardContent>

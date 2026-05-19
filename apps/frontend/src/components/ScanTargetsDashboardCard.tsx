@@ -6,13 +6,8 @@ import { ScanModeTabList } from '@/components/ScanModeTabs';
 import type { ScanMode } from '@/components/ScanModeSelector';
 import { cleanupProfileSummary, resolveCleanupProfile } from '@/lib/cleanup-profiles';
 import { scanStrategySummary, resolveScanStrategy } from '@/lib/scan-strategy';
+import { useI18n } from '@/i18n';
 import type { Settings } from '@/types';
-
-const PROFILE_LABELS: Record<string, string> = {
-  safe: 'Safe (Conservative)',
-  balanced: 'Balanced',
-  aggressive: 'Aggressive',
-};
 
 type Props = {
   mode: ScanMode;
@@ -47,20 +42,25 @@ export function ScanTargetsDashboardCard({
   onError,
   storageRefreshToken,
 }: Props) {
+  const { t } = useI18n();
+  const profileLabels: Record<string, string> = {
+    safe: t('dashboard.scanTargets.profiles.safe'),
+    balanced: t('dashboard.scanTargets.profiles.balanced'),
+    aggressive: t('dashboard.scanTargets.profiles.aggressive'),
+  };
+
   return (
     <Card className="border-border/40 bg-card/30">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Scan targets</CardTitle>
+        <CardTitle className="text-base">{t('dashboard.scanTargets.title')}</CardTitle>
         <CardDescription>
-          {ready
-            ? 'Choose drives or folders, then run Scan Now.'
-            : 'Select at least one drive or custom folder before scanning.'}
+          {ready ? t('dashboard.scanTargets.ready') : t('dashboard.scanTargets.notReady')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-            Profile: {PROFILE_LABELS[profile] ?? profile}
+            {t('dashboard.scanTargets.profile')}: {profileLabels[profile] ?? profile}
           </span>
           {settings ? (
             <>
@@ -68,23 +68,19 @@ export function ScanTargetsDashboardCard({
                 {cleanupProfileSummary(resolveCleanupProfile(settings), settings)}
               </span>
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                Strategy:{' '}
+                {t('dashboard.scanTargets.strategy')}:{' '}
                 {scanStrategySummary(resolveScanStrategy(settings), settings)}
               </span>
             </>
           ) : null}
           {!ready ? (
             <span className="text-[10px] font-bold uppercase tracking-wide text-amber-500">
-              Not ready
+              {t('dashboard.scanTargets.notReadyBadge')}
             </span>
           ) : null}
         </div>
 
-        <Tabs
-          value={mode}
-          onValueChange={(v) => onModeChange(v as ScanMode)}
-          className="w-full"
-        >
+        <Tabs value={mode} onValueChange={(v) => onModeChange(v as ScanMode)} className="w-full">
           <ScanModeTabList disabled={disabled} />
 
           <TabsContent value="partition" className="mt-4 focus-visible:outline-none">

@@ -1,14 +1,15 @@
 import en from './messages/en.json';
+import cn from './messages/cn.json';
 import es from './messages/es.json';
 
-export const UI_LOCALES = ['en', 'es'] as const;
+export const UI_LOCALES = ['en', 'cn', 'es'] as const;
 export type UiLocaleId = (typeof UI_LOCALES)[number];
 
 export const DEFAULT_UI_LOCALE: UiLocaleId = 'en';
 
-type MessageTree = { [key: string]: string | MessageTree };
+export type MessageTree = { [key: string]: string | MessageTree };
 
-const catalogs: Record<UiLocaleId, MessageTree> = { en, es };
+const catalogs: Record<UiLocaleId, MessageTree> = { en, cn, es };
 
 export function isUiLocaleId(value: string): value is UiLocaleId {
   return (UI_LOCALES as readonly string[]).includes(value);

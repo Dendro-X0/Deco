@@ -8,18 +8,424 @@
   "status": {
     "label": "Status"
   },
+  "common": {
+    "save": "Save changes",
+    "saving": "Saving…",
+    "discard": "Discard changes",
+    "custom": "Custom",
+    "sizing": "Sizing…",
+    "notApplicable": "N/A"
+  },
+  "header": {
+    "dashboard": {
+      "default": "Scan, review candidates, and reclaim disk space.",
+      "searchStopped": "Directory search stopped. Sizing found items — click Stop analysis to skip the rest."
+    },
+    "quarantine": "Restore or permanently purge held folders.",
+    "history": "Review past scans and reuse configurations.",
+    "settings": "Configure scan targets, safety, and discovery options."
+  },
+  "dashboard": {
+    "actions": {
+      "freeUpSpace": "Free up space",
+      "scanNow": "Scan Now",
+      "quickUpdate": "Quick update",
+      "recommended": "Recommended",
+      "quickUpdateTitleRecommended": "Recommended for repeat scans — reuses inventory; much faster on HDD when paths are unchanged.",
+      "quickUpdateTitleDefault": "Reuse cached classify/size for unchanged paths. Run a full scan after changing profile or discovery options.",
+      "cleanSelected": "Clean selected…"
+    },
+    "empty": {
+      "title": "Need more disk space?",
+      "description": "Run the guided flow to scan your projects, review safe targets, and quarantine clutter with one click — nothing is permanently deleted until you purge quarantine.",
+      "cta": "Start guided cleanup"
+    },
+    "stats": {
+      "safe": "Safe",
+      "review": "Review",
+      "blocked": "Blocked",
+      "totalReclaimable": "Total Reclaimable",
+      "noScanYet": "No scan yet",
+      "itemsDiscovered": "{{count}} items discovered"
+    },
+    "scanTargets": {
+      "title": "Scan targets",
+      "ready": "Choose drives or folders, then run Scan Now.",
+      "notReady": "Select at least one drive or custom folder before scanning.",
+      "profile": "Profile",
+      "strategy": "Strategy",
+      "notReadyBadge": "Not ready",
+      "profiles": {
+        "safe": "Safe (Conservative)",
+        "balanced": "Balanced",
+        "aggressive": "Aggressive"
+      }
+    },
+    "scanMode": {
+      "partition": "Disk partitions",
+      "custom": "Custom directories"
+    },
+    "candidates": {
+      "searchPlaceholder": "Search path or kind…",
+      "selected": "{{count}} selected",
+      "showingFiltered": "Showing {{filtered}} of {{total}}",
+      "candidateCount": "{{count}} candidates",
+      "projectCount": "{{count}} projects",
+      "clickHeadersToSort": "Click headers to sort",
+      "groupedByProject": "Grouped by project",
+      "flatList": "Flat list",
+      "groupHint": "Recommended for large scans — expand a project to see each artifact.",
+      "searchStoppedBanner": "Directory search has stopped. Sizes are still being calculated — use Stop analysis in the header to skip the rest. Rows without a size yet show Sizing….",
+      "stopAnalysis": "Stop analysis",
+      "noCandidates": "No candidates found.",
+      "table": {
+        "risk": "Risk",
+        "kind": "Kind",
+        "path": "Path",
+        "stale": "Stale",
+        "size": "Size"
+      },
+      "units": {
+        "projects": "projects",
+        "items": "items"
+      }
+    },
+    "filters": {
+      "title": "Filters",
+      "clearAll": "Clear all",
+      "risk": "Risk",
+      "allRisks": "All risks",
+      "allKinds": "All kinds"
+    },
+    "detail": {
+      "title": "Candidate Detail",
+      "path": "Path",
+      "showInExplorer": "Show in File Explorer",
+      "reason": "Reason",
+      "project": "Project",
+      "dormancy": "Dormancy",
+      "regenerate": "Regenerate",
+      "size": "Size",
+      "reasonCodes": "Reason Codes",
+      "selectPrompt": "Select an item to inspect its metadata.",
+      "gitLoading": "Loading git last-commit hint…",
+      "gitNone": "No git history for this path (or git unavailable)."
+    },
+    "planner": {
+      "title": "Free Space Planner",
+      "noScan": "Run a scan to see how much space you can reclaim, then set a target and auto-select candidates.",
+      "reclaimable": "Reclaimable from scan",
+      "safeLegend": "Safe",
+      "reviewLegend": "Review",
+      "targetGb": "Target: {{gb}} GB",
+      "targetLabel": "Target to free (GB)",
+      "targetAria": "Target to free in gigabytes",
+      "sliderAria": "Target gigabytes slider",
+      "planSafe": "Plan safe",
+      "planReview": "Incl. review",
+      "previewCleanup": "Preview cleanup",
+      "runScanFirst": "Run a scan first.",
+      "selectedSummary": "Selected {{count}} folders (~{{achievable}}). Target was {{target}}.",
+      "targetNotReached": "Could not reach that target with current scan results. Try a lower goal or include review-tier items."
+    },
+    "lastScan": {
+      "title": "Last scan",
+      "history": "History",
+      "reclaimable": "Reclaimable",
+      "candidates": "Candidates",
+      "profile": "Profile",
+      "mode": "Mode",
+      "reuse": "Reuse scan",
+      "modes": {
+        "partition": "Partitions",
+        "custom": "Custom folders"
+      }
+    },
+    "scanScope": {
+      "projects": "project folders",
+      "drives": "local drives",
+      "all": "projects + drives"
+    }
+  },
   "settings": {
+    "loading": "Loading settings…",
+    "title": "Global Configuration",
+    "description": "Safety profile, discovery options, and advanced scan behavior. Configure drives and folders on the Dashboard. Changes apply after you save.",
+    "unsaved": "Unsaved changes",
     "language": {
       "title": "Language",
       "description": "UI language for labels and navigation. Stored on this device.",
       "field": "Display language",
       "en": "English",
-      "es": "Español"
+      "es": "Español",
+      "cn": "中文"
+    },
+    "updates": {
+      "title": "Updates",
+      "description": "Desktop builds are distributed via GitHub Releases (Windows MSI / NSIS).",
+      "checkTitle": "Check for updates",
+      "checkDescription": "Compares this install with the latest release on GitHub Releases · detected {{platform}}.",
+      "githubReleases": "GitHub Releases",
+      "checkAgain": "Check again",
+      "checking": "Checking…",
+      "installed": "Installed",
+      "contacting": "Contacting GitHub…",
+      "latest": "You are on the latest release ({{tag}}).",
+      "checkedAt": "· checked {{time}}",
+      "updateAvailable": "Update available: {{tag}} (you have v{{version}})",
+      "savedTo": "Saved to",
+      "installFinish": " — follow the installer to finish, then restart Deco.",
+      "extractManual": " — extract or install manually, then restart Deco.",
+      "releaseNotes": "Release notes",
+      "downloadInstall": "Download & install",
+      "downloading": "Downloading…",
+      "install": "Install",
+      "browser": "Browser"
+    },
+    "scanBehavior": {
+      "title": "Scan behavior",
+      "descriptionPartition": "Pick a cleanup profile for your role, then tune scan strategy and thresholds. Scan scope applies when suggesting roots on empty drives.",
+      "descriptionCustom": "Pick a cleanup profile for your role, then tune scan strategy and thresholds. Custom-folder mode ignores partition layout.",
+      "cleanupProfile": "Cleanup profile",
+      "scanStrategy": "Scan strategy",
+      "customMismatchProfile": "Safety profile, discovery flags, or scope no longer match a preset — adjust below or pick a profile.",
+      "customMismatchStrategy": "Depth, size parallelism, or Quick update no longer match a preset — adjust below or pick a preset.",
+      "profileBundleHint": "Bundles scope, safety profile, discovery flags, and scan strategy.",
+      "strategyBundleHint": "Maps to search depth, size parallelism, and Quick update.",
+      "scanScope": "Scan scope",
+      "safetyProfile": "Safety profile",
+      "staleThreshold": "Stale threshold (days)",
+      "staleAria": "Stale threshold in days",
+      "performance": {
+        "title": "Performance tuning",
+        "hint": "Adjusting these may switch the strategy to Custom.",
+        "maxDepth": "Max search depth",
+        "maxDepthAria": "Max search depth",
+        "workers": "Parallel workers (discover / size / delete)",
+        "gitDormancy": "Git dormancy hint (candidate detail)",
+        "gitDormancyDesc": "When a candidate is selected, run git log for last commit touching that path. Opt-in; does not affect scan speed.",
+        "quickUpdate": "Incremental inventory (Quick update)",
+        "quickUpdateDesc": "Reuse classify and size for unchanged paths. Run a full scan after changing profile or discovery options.",
+        "fastSize": "Fast size estimate for dependency trees",
+        "fastSizeDesc": "Sample top-level packages in node_modules, target, and similar folders instead of walking every file (shows ~size). Reduces 30s timeouts on huge trees."
+      }
+    },
+    "discovery": {
+      "title": "Discovery",
+      "description": "Optional artifact targets during scans.",
+      "shiftHint": "Shift+click to toggle a range between two rows.",
+      "enabledCount": "{{enabled}}/{{total}} on",
+      "selectAll": "Select all",
+      "clearAll": "Clear all",
+      "categories": {
+        "general": {
+          "label": "General",
+          "description": "Scan performance and high-risk project targets."
+        },
+        "package_managers": {
+          "label": "Package managers",
+          "description": "Global caches for Node, Python, Conda, bun, NuGet, and Composer (review tier)."
+        },
+        "language_runtimes": {
+          "label": "Language runtimes",
+          "description": "Compiler and runtime caches outside individual projects."
+        },
+        "ide_tooling": {
+          "label": "IDE & tooling",
+          "description": "Editor and SDK global caches."
+        }
+      },
+      "options": {
+        "include_size": {
+          "label": "Calculate sizes",
+          "description": "Turn off for a faster scan (CLI: --no-size)."
+        },
+        "include_python_venv": {
+          "label": "Include Python venv",
+          "description": "venv / .venv when a Python project is detected (high risk)."
+        },
+        "check_npm_cache": {
+          "label": "npm cache",
+          "description": "npm cache directory with _cacache (regenerate: npm cache clean)."
+        },
+        "check_pnpm_store": {
+          "label": "pnpm store",
+          "description": "Global store and project `.pnpm-store` folders (v3 marker); respects PNPM_STORE_PATH / pnpm store path."
+        },
+        "check_yarn_cache": {
+          "label": "Yarn cache",
+          "description": "Yarn Classic (v6) or Berry global cache; uses yarn cache dir when available."
+        },
+        "check_pip_cache": {
+          "label": "pip cache",
+          "description": "pip download cache (wheels/http); regen with pip cache purge."
+        },
+        "check_uv_cache": {
+          "label": "uv cache",
+          "description": "uv package cache; respects UV_CACHE_DIR / uv cache dir."
+        },
+        "check_conda_pkgs_cache": {
+          "label": "Conda pkgs cache",
+          "description": "Conda/Miniconda package cache (pkgs only; never envs/). Regenerate: conda clean."
+        },
+        "check_bun_cache": {
+          "label": "bun cache",
+          "description": "Global bun install cache; respects BUN_INSTALL_CACHE_DIR."
+        },
+        "check_nuget_cache": {
+          "label": "NuGet global packages",
+          "description": "NuGet package store (NUGET_PACKAGES or ~/.nuget/packages)."
+        },
+        "check_composer_cache": {
+          "label": "Composer cache",
+          "description": "PHP Composer cache (COMPOSER_CACHE_DIR or ~/.composer/cache)."
+        },
+        "check_go_cache": {
+          "label": "Global Go cache",
+          "description": "Opt-in scan for GOCACHE and GOMODCACHE via go env."
+        },
+        "check_cargo_registry": {
+          "label": "Cargo registry cache",
+          "description": "CARGO_HOME/registry with downloaded crates (regenerate: cargo cache -a)."
+        },
+        "check_vcpkg_cache": {
+          "label": "vcpkg installed tree",
+          "description": "VCPKG_ROOT/installed ports (review; reinstall with vcpkg install)."
+        },
+        "check_conan_cache": {
+          "label": "Conan package cache",
+          "description": "Conan 2 global package cache (.conan2/p; review tier)."
+        },
+        "check_ccache": {
+          "label": "ccache",
+          "description": "Compiler object cache (CCACHE_DIR or ~/.cache/ccache; review tier)."
+        },
+        "check_sccache": {
+          "label": "sccache",
+          "description": "Shared compiler cache (SCCACHE_DIR; review tier)."
+        },
+        "check_bazel_disk_cache": {
+          "label": "Bazel disk cache",
+          "description": "When BAZEL_DISK_CACHE points at a directory with Bazel disk-cache layout (cas/ac subdirs; review tier)."
+        },
+        "check_jvm_global_cache": {
+          "label": "Global JVM caches",
+          "description": "~/.m2/repository and ~/.gradle/caches (review tier)."
+        },
+        "check_ide_global_cache": {
+          "label": "IDE global caches",
+          "description": "Xcode DerivedData plus JetBrains/Android Studio caches when smart discovery is on."
+        },
+        "smart_discovery_enabled": {
+          "label": "Smart discovery",
+          "description": "Match declarative path patterns (e.g. Android Studio caches) to registered kinds. Requires the matching opt-in flags."
+        }
+      }
+    },
+    "policyPack": {
+      "title": "Policy pack gallery",
+      "description": "Browse shipped examples, preview JSON, see replace diff, and apply .deco/disk-cleanup.json to a project.",
+      "intro": "Shipped examples from the repo gallery. Select one to preview JSON, then apply to a project folder.",
+      "loading": "Loading gallery…",
+      "browseCustom": "Browse custom pack…",
+      "opening": "Opening…",
+      "previewTitle": "Preview — {{title}}",
+      "applyToProject": "Apply to project",
+      "noFolder": "No folder selected.",
+      "chooseFolder": "Choose project folder…",
+      "validationOk": "Validation OK",
+      "incoming": "Incoming",
+      "current": "Current",
+      "replacePreview": "Replace preview (top-level)",
+      "replaceWarning": "The entire file will be replaced; merge fields manually if needed.",
+      "validationFailed": "Validation failed.",
+      "applied": "Applied — wrote",
+      "revealExplorer": "Reveal in Explorer",
+      "applying": "Applying…",
+      "apply": "Apply policy pack",
+      "customPack": "Custom pack",
+      "defaultTitle": "Policy pack"
+    },
+    "safety": {
+      "title": "Safety",
+      "description": "How cleanup frees space. Use Delete when the drive is almost full.",
+      "deleteMode": "Delete mode",
+      "deleteInPlace": "Delete in place (recommended) — frees space immediately, no copy",
+      "quarantineSameDrive": "Quarantine on same drive — moves to .deco-quarantine, restorable",
+      "deleteHint": "Delete in place does not store backups. Use it when cleaning C: or when the disk is almost full.",
+      "cleanupDiskMode": "Cleanup disk mode",
+      "diskAuto": "Auto — conservative on large batches",
+      "diskHdd": "HDD / sequential — one folder at a time",
+      "diskStandard": "Standard — follow scan worker count",
+      "diskHint": "HDD mode deletes one tree at a time (best for mechanical drives). Pause/resume is available during cleanup.",
+      "fastDelete": "Fast delete for dependency trees (experimental)",
+      "fastDeleteDesc": "When deleting in place, removes node_modules, target, and build folders via system commands (Windows rmdir /s /q, Unix rm -rf). Parallelism follows Settings → Cleanup disk mode (HDD = one tree at a time) and Scan behavior → Performance. Not used for quarantine.",
+      "quarantineStorage": "Quarantine storage",
+      "quarantineEnableHint": "Enable by choosing “Quarantine on same drive” above. Payloads are never stored under AppData unless you pick that folder yourself.",
+      "quarantinePerDrive": "On each source drive — {drive}\\.deco-quarantine (recommended)",
+      "quarantineCustom": "Custom folder — you choose the path",
+      "quarantinePlaceholder": "e.g. E:\\DecoQuarantine",
+      "browse": "Browse…",
+      "systemDriveWarning": "This folder is on the system (C:) drive — quarantine will use space on C:.",
+      "advancedMode": "Advanced mode",
+      "advancedDesc": "Enables hard-delete and experimental classifiers.",
+      "classifyThreshold": "Classify parallel threshold",
+      "classifyAria": "Minimum targets before parallel classify",
+      "classifyHint": "Rayon classify runs when a chunk has at least this many targets (default 8)."
+    },
+    "presets": {
+      "cleanup": {
+        "first_scan": {
+          "label": "First scan",
+          "description": "Conservative safety, thorough walk, all scope — audit before enabling global caches."
+        },
+        "monorepo_maintainer": {
+          "label": "Monorepo maintainer",
+          "description": "Balanced defaults with package-manager and registry caches plus smart IDE patterns."
+        },
+        "ci_agent": {
+          "label": "CI agent",
+          "description": "Fast shallow pass, drive roots, compiler caches — typical build-agent reclaim."
+        }
+      },
+      "scanStrategy": {
+        "thorough": {
+          "label": "Thorough",
+          "description": "Deeper search, balanced parallelism — best for first scan or audit."
+        },
+        "balanced": {
+          "label": "Balanced",
+          "description": "Default trade-off for most machines and repeat scans."
+        },
+        "fast": {
+          "label": "Fast",
+          "description": "Shallower walk, 8 parallel workers — SSD / NVMe friendly."
+        },
+        "background": {
+          "label": "Background",
+          "description": "Gentle disk use — 2 workers, shallow walk (HDD)."
+        }
+      },
+      "scanScope": {
+        "all": "All — dev folders + drives (recommended)",
+        "projects": "Projects — profile folders only",
+        "drives": "Drives — partition roots only"
+      },
+      "safetyProfile": {
+        "safe": "Safe (Conservative)",
+        "balanced": "Balanced",
+        "aggressive": "Aggressive (Maximum Space)"
+      },
+      "concurrency": {
+        "auto": "Auto — 6 parallel workers (recommended)",
+        "low": "Low — 2 workers (HDD / background)",
+        "high": "High — 8 workers (fast SSD)"
+      },
+      "cleanupDiskMode": {
+        "auto": "Auto — conservative on large batches",
+        "hdd": "HDD / sequential — one folder at a time",
+        "standard": "Standard — follow scan worker count"
+      }
     }
-  },
-  "common": {
-    "save": "Save changes",
-    "saving": "Saving…",
-    "discard": "Discard changes"
   }
 }

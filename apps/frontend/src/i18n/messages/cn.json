@@ -1,0 +1,431 @@
+{
+  "nav": {
+    "dashboard": "仪表盘",
+    "quarantine": "隔离区",
+    "history": "历史",
+    "settings": "设置"
+  },
+  "status": {
+    "label": "状态"
+  },
+  "common": {
+    "save": "保存更改",
+    "saving": "保存中…",
+    "discard": "放弃更改",
+    "custom": "自定义",
+    "sizing": "计算大小中…",
+    "notApplicable": "不适用"
+  },
+  "header": {
+    "dashboard": {
+      "default": "扫描、审阅候选项并回收磁盘空间。",
+      "searchStopped": "目录搜索已停止。正在计算已找到项的大小 — 点击标题栏中的“停止分析”以跳过剩余部分。"
+    },
+    "quarantine": "恢复或永久清除已隔离的文件夹。",
+    "history": "查看过往扫描并复用配置。",
+    "settings": "配置扫描目标、安全选项和发现选项。"
+  },
+  "dashboard": {
+    "actions": {
+      "freeUpSpace": "释放空间",
+      "scanNow": "立即扫描",
+      "quickUpdate": "快速更新",
+      "recommended": "推荐",
+      "quickUpdateTitleRecommended": "推荐用于重复扫描 — 复用清单；路径未变时在 HDD 上快得多。",
+      "quickUpdateTitleDefault": "对未更改路径复用缓存的分类/大小。更改配置文件或发现选项后请运行完整扫描。",
+      "cleanSelected": "清理所选…"
+    },
+    "empty": {
+      "title": "需要更多磁盘空间？",
+      "description": "运行引导流程扫描项目、审阅安全目标，并一键隔离杂物 — 在您清除隔离区之前不会永久删除。",
+      "cta": "开始引导清理"
+    },
+    "stats": {
+      "safe": "安全",
+      "review": "审阅",
+      "blocked": "已阻止",
+      "totalReclaimable": "可释放总计",
+      "noScanYet": "尚未扫描",
+      "itemsDiscovered": "发现 {{count}} 项"
+    },
+    "scanTargets": {
+      "title": "扫描目标",
+      "ready": "选择驱动器或文件夹，然后点击“立即扫描”。",
+      "notReady": "扫描前请至少选择一个驱动器或自定义文件夹。",
+      "profile": "配置文件",
+      "strategy": "策略",
+      "notReadyBadge": "未就绪",
+      "profiles": {
+        "safe": "安全（保守）",
+        "balanced": "平衡",
+        "aggressive": "激进"
+      }
+    },
+    "scanMode": {
+      "partition": "磁盘分区",
+      "custom": "自定义目录"
+    },
+    "candidates": {
+      "searchPlaceholder": "搜索路径或类型…",
+      "selected": "已选 {{count}} 项",
+      "showingFiltered": "显示 {{filtered}} / {{total}}",
+      "candidateCount": "{{count}} 个候选",
+      "projectCount": "{{count}} 个项目",
+      "clickHeadersToSort": "点击表头排序",
+      "groupedByProject": "按项目分组",
+      "flatList": "平铺列表",
+      "groupHint": "建议用于大型扫描 — 展开项目以查看每个构件。",
+      "searchStoppedBanner": "目录搜索已停止。仍在计算大小 — 使用标题栏中的“停止分析”跳过剩余部分。尚无大小的行显示“计算大小中…”。",
+      "stopAnalysis": "停止分析",
+      "noCandidates": "未找到候选。",
+      "table": {
+        "risk": "风险",
+        "kind": "类型",
+        "path": "路径",
+        "stale": "陈旧",
+        "size": "大小"
+      },
+      "units": {
+        "projects": "个项目",
+        "items": "项"
+      }
+    },
+    "filters": {
+      "title": "筛选",
+      "clearAll": "全部清除",
+      "risk": "风险",
+      "allRisks": "全部风险",
+      "allKinds": "全部类型"
+    },
+    "detail": {
+      "title": "候选详情",
+      "path": "路径",
+      "showInExplorer": "在文件资源管理器中显示",
+      "reason": "原因",
+      "project": "项目",
+      "dormancy": "休眠",
+      "regenerate": "重新生成",
+      "size": "大小",
+      "reasonCodes": "原因代码",
+      "selectPrompt": "选择一项以查看其元数据。",
+      "gitLoading": "正在加载 git 最后提交提示…",
+      "gitNone": "此路径无 git 历史（或 git 不可用）。"
+    },
+    "planner": {
+      "title": "释放空间规划器",
+      "noScan": "运行扫描以查看可释放空间，然后设置目标并自动选择候选。",
+      "reclaimable": "本次扫描可释放",
+      "safeLegend": "安全",
+      "reviewLegend": "审阅",
+      "targetGb": "目标：{{gb}} GB",
+      "targetLabel": "目标释放量 (GB)",
+      "targetAria": "目标释放千兆字节",
+      "sliderAria": "目标千兆字节滑块",
+      "planSafe": "规划安全项",
+      "planReview": "含审阅项",
+      "previewCleanup": "预览清理",
+      "runScanFirst": "请先运行扫描。",
+      "selectedSummary": "已选 {{count}} 个文件夹（约 {{achievable}}）。目标为 {{target}}。",
+      "targetNotReached": "无法在当前扫描结果中达到该目标。请降低目标或包含审阅级项。"
+    },
+    "lastScan": {
+      "title": "上次扫描",
+      "history": "历史",
+      "reclaimable": "可释放",
+      "candidates": "候选",
+      "profile": "配置文件",
+      "mode": "模式",
+      "reuse": "复用扫描",
+      "modes": {
+        "partition": "分区",
+        "custom": "自定义文件夹"
+      }
+    },
+    "scanScope": {
+      "projects": "项目文件夹",
+      "drives": "本地驱动器",
+      "all": "项目 + 驱动器"
+    }
+  },
+  "settings": {
+    "loading": "正在加载设置…",
+    "title": "全局配置",
+    "description": "安全配置文件、发现选项和高级扫描行为。在仪表盘上配置驱动器和文件夹。保存后生效。",
+    "unsaved": "未保存的更改",
+    "language": {
+      "title": "语言",
+      "description": "界面标签和导航的语言。存储在本设备上。",
+      "field": "显示语言",
+      "en": "English",
+      "es": "Español",
+      "cn": "中文"
+    },
+    "updates": {
+      "title": "更新",
+      "description": "桌面版通过 GitHub Releases 分发（Windows MSI / NSIS）。",
+      "checkTitle": "检查更新",
+      "checkDescription": "将此安装与 GitHub Releases 上的最新版本比较 · 检测到 {{platform}}。",
+      "githubReleases": "GitHub Releases",
+      "checkAgain": "再次检查",
+      "checking": "检查中…",
+      "installed": "已安装",
+      "contacting": "正在联系 GitHub…",
+      "latest": "您已使用最新版本 ({{tag}})。",
+      "checkedAt": "· 检查于 {{time}}",
+      "updateAvailable": "有可用更新：{{tag}}（当前 v{{version}}）",
+      "savedTo": "已保存至",
+      "installFinish": " — 按照安装程序完成，然后重启 Deco。",
+      "extractManual": " — 手动解压或安装，然后重启 Deco。",
+      "releaseNotes": "发行说明",
+      "downloadInstall": "下载并安装",
+      "downloading": "下载中…",
+      "install": "安装",
+      "browser": "浏览器"
+    },
+    "scanBehavior": {
+      "title": "扫描行为",
+      "descriptionPartition": "选择适合您角色的清理配置文件，然后调整扫描策略和阈值。扫描范围在空驱动器上建议根路径时适用。",
+      "descriptionCustom": "选择适合您角色的清理配置文件，然后调整扫描策略和阈值。自定义文件夹模式忽略分区布局。",
+      "cleanupProfile": "清理配置文件",
+      "scanStrategy": "扫描策略",
+      "customMismatchProfile": "安全配置文件、发现标志或范围不再匹配预设 — 请在下方调整或选择配置文件。",
+      "customMismatchStrategy": "深度、大小并行或快速更新不再匹配预设 — 请在下方调整或选择预设。",
+      "profileBundleHint": "捆绑范围、安全配置文件、发现标志和扫描策略。",
+      "strategyBundleHint": "映射到搜索深度、大小并行和快速更新。",
+      "scanScope": "扫描范围",
+      "safetyProfile": "安全配置文件",
+      "staleThreshold": "陈旧阈值（天）",
+      "staleAria": "陈旧阈值（天）",
+      "performance": {
+        "title": "性能调优",
+        "hint": "调整这些可能会将策略切换为自定义。",
+        "maxDepth": "最大搜索深度",
+        "maxDepthAria": "最大搜索深度",
+        "workers": "并行工作线程（发现 / 大小 / 删除）",
+        "gitDormancy": "Git 休眠提示（候选详情）",
+        "gitDormancyDesc": "选中候选时，对此路径运行 git log 获取最后提交。可选；不影响扫描速度。",
+        "quickUpdate": "增量清单（快速更新）",
+        "quickUpdateDesc": "对未更改路径复用分类和大小。更改配置文件或发现选项后请运行完整扫描。",
+        "fastSize": "依赖树快速大小估算",
+        "fastSizeDesc": "对 node_modules、target 等文件夹采样顶层包，而非遍历每个文件（显示约略大小）。"
+      }
+    },
+    "discovery": {
+      "title": "发现",
+      "description": "扫描期间的可选构件目标。",
+      "shiftHint": "Shift+点击 可在两行之间切换范围。",
+      "enabledCount": "{{enabled}}/{{total}} 开启",
+      "selectAll": "全选",
+      "clearAll": "全部清除",
+      "categories": {
+        "general": {
+          "label": "常规",
+          "description": "扫描性能和高风险项目目标。"
+        },
+        "package_managers": {
+          "label": "包管理器",
+          "description": "Node、Python、Conda、bun、NuGet 和 Composer 的全局缓存（审阅级）。"
+        },
+        "language_runtimes": {
+          "label": "语言运行时",
+          "description": "单个项目外的编译器和运行时缓存。"
+        },
+        "ide_tooling": {
+          "label": "IDE 与工具",
+          "description": "编辑器和 SDK 全局缓存。"
+        }
+      },
+      "options": {
+        "include_size": {
+          "label": "计算大小",
+          "description": "关闭以加快扫描 (CLI: --no-size)。"
+        },
+        "include_python_venv": {
+          "label": "包含 Python venv",
+          "description": "检测到 Python 项目时的 venv / .venv（高风险）。"
+        },
+        "check_npm_cache": {
+          "label": "npm 缓存",
+          "description": "带 _cacache 的 npm 缓存目录。"
+        },
+        "check_pnpm_store": {
+          "label": "pnpm 存储",
+          "description": "全局存储和项目 `.pnpm-store` 文件夹。"
+        },
+        "check_yarn_cache": {
+          "label": "Yarn 缓存",
+          "description": "Yarn Classic 或 Berry 全局缓存。"
+        },
+        "check_pip_cache": {
+          "label": "pip 缓存",
+          "description": "pip 下载缓存。"
+        },
+        "check_uv_cache": {
+          "label": "uv 缓存",
+          "description": "uv 包缓存。"
+        },
+        "check_conda_pkgs_cache": {
+          "label": "Conda pkgs 缓存",
+          "description": "Conda/Miniconda 包缓存。"
+        },
+        "check_bun_cache": {
+          "label": "bun 缓存",
+          "description": "全局 bun 安装缓存。"
+        },
+        "check_nuget_cache": {
+          "label": "NuGet 全局包",
+          "description": "NuGet 包存储。"
+        },
+        "check_composer_cache": {
+          "label": "Composer 缓存",
+          "description": "PHP Composer 缓存。"
+        },
+        "check_go_cache": {
+          "label": "全局 Go 缓存",
+          "description": "通过 go env 扫描 GOCACHE 和 GOMODCACHE。"
+        },
+        "check_cargo_registry": {
+          "label": "Cargo 注册表缓存",
+          "description": "CARGO_HOME/registry。"
+        },
+        "check_vcpkg_cache": {
+          "label": "vcpkg 已安装树",
+          "description": "VCPKG_ROOT/installed 端口。"
+        },
+        "check_conan_cache": {
+          "label": "Conan 包缓存",
+          "description": "Conan 2 全局包缓存。"
+        },
+        "check_ccache": {
+          "label": "ccache",
+          "description": "编译器对象缓存。"
+        },
+        "check_sccache": {
+          "label": "sccache",
+          "description": "共享编译器缓存。"
+        },
+        "check_bazel_disk_cache": {
+          "label": "Bazel 磁盘缓存",
+          "description": "BAZEL_DISK_CACHE 目录。"
+        },
+        "check_jvm_global_cache": {
+          "label": "全局 JVM 缓存",
+          "description": "~/.m2/repository 和 ~/.gradle/caches。"
+        },
+        "check_ide_global_cache": {
+          "label": "IDE 全局缓存",
+          "description": "Xcode DerivedData 及 JetBrains/Android Studio 缓存。"
+        },
+        "smart_discovery_enabled": {
+          "label": "智能发现",
+          "description": "将声明性路径模式匹配到已注册类型。"
+        }
+      }
+    },
+    "policyPack": {
+      "title": "策略包图库",
+      "description": "浏览随附示例、预览 JSON、查看替换差异，并将 .deco/disk-cleanup.json 应用到项目。",
+      "intro": "来自仓库图库的随附示例。选择一个预览 JSON，然后应用到项目文件夹。",
+      "loading": "正在加载图库…",
+      "browseCustom": "浏览自定义包…",
+      "opening": "正在打开…",
+      "previewTitle": "预览 — {{title}}",
+      "applyToProject": "应用到项目",
+      "noFolder": "未选择文件夹。",
+      "chooseFolder": "选择项目文件夹…",
+      "validationOk": "验证通过",
+      "incoming": "传入",
+      "current": "当前",
+      "replacePreview": "替换预览（顶层）",
+      "replaceWarning": "整个文件将被替换；如需请手动合并字段。",
+      "validationFailed": "验证失败。",
+      "applied": "已应用 — 写入",
+      "revealExplorer": "在资源管理器中显示",
+      "applying": "应用中…",
+      "apply": "应用策略包",
+      "customPack": "自定义包",
+      "defaultTitle": "策略包"
+    },
+    "safety": {
+      "title": "安全",
+      "description": "清理如何释放空间。磁盘几乎满时使用删除。",
+      "deleteMode": "删除模式",
+      "deleteInPlace": "就地删除（推荐）— 立即释放空间，无副本",
+      "quarantineSameDrive": "同驱动器隔离 — 移至 .deco-quarantine，可恢复",
+      "deleteHint": "就地删除不存储备份。清理 C: 或磁盘几乎满时使用。",
+      "cleanupDiskMode": "清理磁盘模式",
+      "diskAuto": "自动 — 大批次保守",
+      "diskHdd": "HDD / 顺序 — 一次一个文件夹",
+      "diskStandard": "标准 — 遵循扫描工作线程数",
+      "diskHint": "HDD 模式一次删除一棵树。清理期间可暂停/恢复。",
+      "fastDelete": "依赖树快速删除（实验性）",
+      "fastDeleteDesc": "就地删除时，通过系统命令删除 node_modules、target 和构建文件夹。",
+      "quarantineStorage": "隔离存储",
+      "quarantineEnableHint": "通过上方选择“同驱动器隔离”启用。",
+      "quarantinePerDrive": "在每个源驱动器上 — {drive}\\.deco-quarantine（推荐）",
+      "quarantineCustom": "自定义文件夹 — 您选择路径",
+      "quarantinePlaceholder": "例如 E:\\DecoQuarantine",
+      "browse": "浏览…",
+      "systemDriveWarning": "此文件夹在系统 (C:) 驱动器上 — 隔离将占用 C: 空间。",
+      "advancedMode": "高级模式",
+      "advancedDesc": "启用硬删除和实验性分类器。",
+      "classifyThreshold": "分类并行阈值",
+      "classifyAria": "并行分类前的最小目标数",
+      "classifyHint": "当块至少有这么多目标时运行 Rayon 分类（默认 8）。"
+    },
+    "presets": {
+      "cleanup": {
+        "first_scan": {
+          "label": "首次扫描",
+          "description": "保守安全、彻底遍历、全范围 — 在启用全局缓存前审计。"
+        },
+        "monorepo_maintainer": {
+          "label": "Monorepo 维护者",
+          "description": "平衡默认值及包管理器和注册表缓存加智能 IDE 模式。"
+        },
+        "ci_agent": {
+          "label": "CI 代理",
+          "description": "快速浅层遍历、驱动器根、编译器缓存。"
+        }
+      },
+      "scanStrategy": {
+        "thorough": {
+          "label": "彻底",
+          "description": "更深搜索、平衡并行 — 适合首次扫描或审计。"
+        },
+        "balanced": {
+          "label": "平衡",
+          "description": "大多数机器和重复扫描的默认权衡。"
+        },
+        "fast": {
+          "label": "快速",
+          "description": "较浅遍历、8 个并行工作线程 — 适合 SSD/NVMe。"
+        },
+        "background": {
+          "label": "后台",
+          "description": "温和磁盘使用 — 2 个工作线程、浅遍历 (HDD)。"
+        }
+      },
+      "scanScope": {
+        "all": "全部 — 开发文件夹 + 驱动器（推荐）",
+        "projects": "项目 — 仅配置文件文件夹",
+        "drives": "驱动器 — 仅分区根"
+      },
+      "safetyProfile": {
+        "safe": "安全（保守）",
+        "balanced": "平衡",
+        "aggressive": "激进（最大空间）"
+      },
+      "concurrency": {
+        "auto": "自动 — 6 个并行工作线程（推荐）",
+        "low": "低 — 2 个工作线程 (HDD / 后台)",
+        "high": "高 — 8 个工作线程（快速 SSD）"
+      },
+      "cleanupDiskMode": {
+        "auto": "自动 — 大批次保守",
+        "hdd": "HDD / 顺序 — 一次一个文件夹",
+        "standard": "标准 — 遵循扫描工作线程数"
+      }
+    }
+  }
+}

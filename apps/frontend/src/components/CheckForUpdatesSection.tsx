@@ -19,6 +19,7 @@ import {
   type PlatformInstallAsset,
   type UpdateCheckResult,
 } from '@/lib/github-releases';
+import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
 
 async function openExternalUrl(url: string) {
@@ -30,6 +31,7 @@ type Props = {
 };
 
 export function CheckForUpdatesSection({ disabled }: Props) {
+  const { t } = useI18n();
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
   const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
@@ -88,24 +90,19 @@ export function CheckForUpdatesSection({ disabled }: Props) {
     <div className="space-y-4 rounded-lg border border-border/40 bg-muted/10 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h4 className="text-xs font-bold tracking-tight">Check for updates</h4>
+          <h4 className="text-xs font-bold tracking-tight">{t('settings.updates.checkTitle')}</h4>
           <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-            Compares this install with the latest release on{' '}
+            {platform
+              ? t('settings.updates.checkDescription', { platform: platformLabel(platform) })
+              : t('settings.updates.checkDescription', { platform: '…' })}{' '}
             <button
               type="button"
               className="text-primary hover:underline inline-flex items-center gap-0.5"
               onClick={() => void openExternalUrl(RELEASES_PAGE_URL)}
             >
-              GitHub Releases
+              {t('settings.updates.githubReleases')}
               <ExternalLink className="h-3 w-3" />
             </button>
-            {platform ? (
-              <>
-                {' '}
-                · detected <span className="font-medium text-foreground">{platformLabel(platform)}</span>
-              </>
-            ) : null}
-            .
           </p>
         </div>
         <Button
@@ -117,16 +114,16 @@ export function CheckForUpdatesSection({ disabled }: Props) {
           onClick={() => void runCheck()}
         >
           <RefreshCw className={`h-3.5 w-3.5 ${checking ? 'animate-spin' : ''}`} />
-          {checking ? 'Checking…' : 'Check again'}
+          {checking ? t('settings.updates.checking') : t('settings.updates.checkAgain')}
         </Button>
       </div>
 
       <p className="text-sm">
-        Installed: <span className="font-mono font-semibold">v{APP_VERSION}</span>
+        {t('settings.updates.installed')}: <span className="font-mono font-semibold">v{APP_VERSION}</span>
       </p>
 
       {checking && !result ? (
-        <p className="text-xs text-muted-foreground">Contacting GitHub…</p>
+        <p className="text-xs text-muted-foreground">{t('settings.updates.contacting')}</p>
       ) : null}
 
       {result?.status === 'error' ? (
@@ -135,11 +132,11 @@ export function CheckForUpdatesSection({ disabled }: Props) {
 
       {result?.status === 'current' && latest ? (
         <p className="text-xs text-primary font-medium">
-          You are on the latest release ({latest.tag_name}).
+          {t('settings.updates.latest', { tag: latest.tag_name })}
           {lastCheckedAt ? (
             <span className="text-muted-foreground font-normal">
               {' '}
-              · checked {new Date(lastCheckedAt).toLocaleString()}
+              {t('settings.updates.checkedAt', { time: new Date(lastCheckedAt).toLocaleString() })}
             </span>
           ) : null}
         </p>
@@ -148,7 +145,7 @@ export function CheckForUpdatesSection({ disabled }: Props) {
       {result?.status === 'update_available' && latest && platform ? (
         <div className="space-y-3">
           <p className="text-xs text-amber-500 font-medium">
-            Update available: {latest.tag_name} (you have v{APP_VERSION})
+            {t('settings.updates.updateAvailable', { tag: latest.tag_name, version: APP_VERSION })}
           </p>
           {latest.body.trim() ? (
             <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-wrap">{latest.body.trim()}</p>
@@ -158,10 +155,11 @@ export function CheckForUpdatesSection({ disabled }: Props) {
           {installError ? <p className="text-xs text-destructive">{installError}</p> : null}
           {installDonePath ? (
             <p className="text-xs text-primary">
-              Saved to <span className="font-mono break-all">{installDonePath}</span>
+              {t('settings.updates.savedTo')}{' '}
+              <span className="font-mono break-all">{installDonePath}</span>
               {primaryAsset && canDirectInstall(primaryAsset.install_kind)
-                ? ' — follow the installer to finish, then restart Deco.'
-                : ' — extract or install manually, then restart Deco.'}
+                ? t('settings.updates.installFinish')
+                : t('settings.updates.extractManual')}
             </p>
           ) : null}
 
@@ -174,7 +172,7 @@ export function CheckForUpdatesSection({ disabled }: Props) {
               onClick={() => void openExternalUrl(latest.html_url)}
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              Release notes
+              {t('settings.updates.releaseNotes')}
             </Button>
             {primaryAsset && canDirectInstall(primaryAsset.install_kind) ? (
               <Button
@@ -185,7 +183,9 @@ export function CheckForUpdatesSection({ disabled }: Props) {
                 onClick={() => void handleDownloadInstall(primaryAsset)}
               >
                 <Package className="h-3.5 w-3.5" />
-                {installingUrl === primaryAsset.download_url ? 'Downloading…' : 'Download & install'}
+                {installingUrl === primaryAsset.download_url
+                  ? t('settings.updates.downloading')
+                  : t('settings.updates.downloadInstall')}
               </Button>
             ) : null}
           </div>
@@ -212,7 +212,7 @@ export function CheckForUpdatesSection({ disabled }: Props) {
                         onClick={() => void handleDownloadInstall(asset)}
                       >
                         <Package className="h-3.5 w-3.5" />
-                        {installingUrl === asset.download_url ? '…' : 'Install'}
+                        {installingUrl === asset.download_url ? '…' : t('settings.updates.install')}
                       </Button>
                     ) : null}
                     <Button
@@ -223,7 +223,7 @@ export function CheckForUpdatesSection({ disabled }: Props) {
                       onClick={() => void openExternalUrl(asset.download_url)}
                     >
                       <Download className="h-3.5 w-3.5" />
-                      Browser
+                      {t('settings.updates.browser')}
                       {asset.size_bytes > 0 ? (
                         <span className="text-muted-foreground font-normal">
                           ({formatBytes(asset.size_bytes)})

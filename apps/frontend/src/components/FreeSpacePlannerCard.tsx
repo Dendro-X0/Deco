@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { NumberInput } from '@/components/ui/number-input';
 import { DisabledActionHint } from '@/components/DisabledActionHint';
+import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
 import type { ScanReport } from '@/types';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export function FreeSpacePlannerCard({
   onPreview,
   disabled,
 }: Props) {
+  const { t } = useI18n();
   const safeBytes = summary?.totals_by_risk?.safe?.bytes ?? 0;
   const reviewBytes = summary?.totals_by_risk?.review?.bytes ?? 0;
   const totalReclaimBytes = safeBytes + reviewBytes;
@@ -55,20 +57,19 @@ export function FreeSpacePlannerCard({
     <Card className="border-border/40 bg-card/30">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          <HardDrive size={14} /> Free Space Planner
+          <HardDrive size={14} /> {t('dashboard.planner.title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {!hasScan ? (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            Run a scan to see how much space you can reclaim, then set a target and auto-select
-            candidates.
+            {t('dashboard.planner.noScan')}
           </p>
         ) : (
           <>
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                <span>Reclaimable from scan</span>
+                <span>{t('dashboard.planner.reclaimable')}</span>
                 <span className="font-mono tabular-nums text-foreground">
                   {formatBytes(totalReclaimBytes)}
                 </span>
@@ -85,24 +86,24 @@ export function FreeSpacePlannerCard({
                 <div
                   className="absolute inset-y-0 w-0.5 bg-foreground shadow-[0_0_6px_rgba(255,255,255,0.5)]"
                   style={{ left: `calc(${targetPct}% - 1px)` }}
-                  title={`Target: ${plannerGb} GB`}
+                  title={t('dashboard.planner.targetGb', { gb: plannerGb })}
                 />
               </div>
               <div className="flex flex-wrap gap-3 text-[10px] text-muted-foreground">
                 <span className="inline-flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full bg-primary/70" />
-                  Safe {formatBytes(safeBytes)}
+                  {t('dashboard.planner.safeLegend')} {formatBytes(safeBytes)}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full bg-amber-500/70" />
-                  Review {formatBytes(reviewBytes)}
+                  {t('dashboard.planner.reviewLegend')} {formatBytes(reviewBytes)}
                 </span>
               </div>
             </div>
 
             <div className="space-y-3">
               <label className="text-[10px] font-bold uppercase text-muted-foreground">
-                Target to free (GB)
+                {t('dashboard.planner.targetLabel')}
               </label>
               <input
                 type="range"
@@ -113,7 +114,7 @@ export function FreeSpacePlannerCard({
                 value={Math.min(plannerGb, maxGb)}
                 onChange={(e) => onPlannerGbChange(Number(e.target.value))}
                 className={cn('deco-range w-full', disabled && 'pointer-events-none opacity-50')}
-                aria-label="Target gigabytes slider"
+                aria-label={t('dashboard.planner.sliderAria')}
               />
               <NumberInput
                 min={1}
@@ -122,7 +123,7 @@ export function FreeSpacePlannerCard({
                 value={plannerGb}
                 onValueChange={onPlannerGbChange}
                 disabled={disabled}
-                aria-label="Target to free in gigabytes"
+                aria-label={t('dashboard.planner.targetAria')}
               />
             </div>
           </>
@@ -136,7 +137,7 @@ export function FreeSpacePlannerCard({
             disabled={disabled || !hasScan}
             onClick={onPlanSafe}
           >
-            Plan safe
+            {t('dashboard.planner.planSafe')}
           </Button>
           <Button
             variant="secondary"
@@ -145,7 +146,7 @@ export function FreeSpacePlannerCard({
             disabled={disabled || !hasScan}
             onClick={onPlanReview}
           >
-            Incl. review
+            {t('dashboard.planner.planReview')}
           </Button>
         </div>
 
@@ -159,7 +160,7 @@ export function FreeSpacePlannerCard({
             disabled={cleanDisabledReason !== null}
             onClick={onPreview}
           >
-            Preview cleanup
+            {t('dashboard.planner.previewCleanup')}
           </Button>
         </DisabledActionHint>
       </CardContent>
