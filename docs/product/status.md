@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.0` (tag pushed; confirm Release workflow) · **Development:** `v0.8.1` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
+Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.1` · **Development:** `v0.8.2` → [v0.8.x-roadmap](v0.8.x-roadmap.md)
 
 ---
 
@@ -16,15 +16,15 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.0` (tag pushed; con
 
 | Item | Location |
 |------|----------|
-| **Active** | [v0.8.1-manifest.md](v0.8.1-manifest.md) — ready to tag after CI |
-| **Queue** | [v0.8.2-manifest.md](v0.8.2-manifest.md) — localization |
+| **Active** | [v0.8.2-manifest.md](v0.8.2-manifest.md) — localization |
+| **Queue** | [v0.8.3-manifest.md](v0.8.3-manifest.md) — README demos |
 
 ### Version queue (summary)
 
 | Version | Feature set |
 |---------|-------------|
-| `v0.8.1` | winget + Homebrew casks/formulae + install docs |
-| `v0.8.2` | Localization |
+| `v0.8.2` | Localization (i18n catalog + language selector) |
+| `v0.8.3` | README product demos |
 
 ## Quick commands
 

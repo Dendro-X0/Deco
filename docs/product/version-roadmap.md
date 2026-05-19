@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-19 · **Latest shipped:** `v0.8.0` · **Development head:** `v0.8.1` — [v0.8.x-roadmap.md](v0.8.x-roadmap.md)
+**Last updated:** 2026-05-19 · **Latest shipped:** `v0.8.1` · **Development head:** `v0.8.2` — [v0.8.x-roadmap.md](v0.8.x-roadmap.md)
 
 **Release model:** One feature set per version, in roadmap order. Desktop installers target **Windows, macOS, and Linux** from **`v0.8.0`** onward (see [v0.8.0-manifest.md](v0.8.0-manifest.md)).
 
@@ -228,7 +228,7 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 | Version | Scope | Status |
 |---------|--------|--------|
 | `v0.8.0` | **Multi-platform installers** — Windows, macOS, Linux + per-OS CLI zips | Shipped — [v0.8.0-manifest.md](v0.8.0-manifest.md) |
-| `v0.8.1` | winget + Homebrew | In progress — [v0.8.1-manifest.md](v0.8.1-manifest.md) |
+| `v0.8.1` | winget + Homebrew | Shipped — [v0.8.1-manifest.md](v0.8.1-manifest.md) |
 | `v0.8.2` | Localization | Planned — [v0.8.2-manifest.md](v0.8.2-manifest.md) |
 | `v0.8.3` | README product demos (GIFs) | Planned — [v0.8.3-manifest.md](v0.8.3-manifest.md) |
 | `v0.8.4` | Windows USN/MFT inventory (experimental) | Planned — [v0.8.4-manifest.md](v0.8.4-manifest.md) |
