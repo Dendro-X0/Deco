@@ -12,11 +12,16 @@ export type ScanProgress = {
   cleanupLive?: CleanupLiveProgress;
 };
 
-export const IDLE_PROGRESS: ScanProgress = {
-  percent: 0,
-  text: 'Ready',
-  phase: null,
-};
+export function idleProgress(text: string): ScanProgress {
+  return {
+    percent: 0,
+    text,
+    phase: null,
+  };
+}
+
+/** @deprecated Use idleProgress(t('status.ready')) in React code. */
+export const IDLE_PROGRESS: ScanProgress = idleProgress('Ready');
 
 const PHASE_LABELS: Record<Exclude<ScanProgressPhase, null>, string> = {
   discover: 'Discover',

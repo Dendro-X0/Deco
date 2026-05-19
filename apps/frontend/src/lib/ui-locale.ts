@@ -31,3 +31,15 @@ export function writeUiLocale(locale: UiLocaleId): void {
     /* ignore */
   }
 }
+
+/** BCP 47 tag for `Intl` formatters from UI locale id. */
+export function localeToIntlTag(locale: UiLocaleId): string {
+  switch (locale) {
+    case 'cn':
+      return 'zh-CN';
+    case 'es':
+      return 'es';
+    default:
+      return 'en';
+  }
+}

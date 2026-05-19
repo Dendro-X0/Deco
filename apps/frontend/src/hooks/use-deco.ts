@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import type {
@@ -29,22 +29,32 @@ import { formatBytes, formatDurationMs } from '../lib/format';
 import { volumeMountsFromPaths } from '../lib/volume-from-path';
 import { toast } from '../lib/toast';
 import { formatCleanupResultSummary } from '../lib/cleanup-result';
-import {
-  computeScanProgressPercent,
-  IDLE_PROGRESS,
-  type ScanProgress,
-} from '../lib/scan-progress';
+import { computeScanProgressPercent, idleProgress, type ScanProgress } from '../lib/scan-progress';
 import { readPhaseTimings, type ScanRunMetrics } from '../lib/scan-statistics';
+import { useI18n } from '@/i18n';
 
 export function useDeco() {
+  const { t } = useI18n();
+  const idle = useMemo(() => idleProgress(t('status.ready')), [t]);
+  type StatusState = { text: string; type: 'active' | 'idle' | 'error' | 'done' };
   const [scanId, setScanId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [candidateMap, setCandidateMap] = useState<Map<string, Candidate>>(new Map());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<ScanProgress>(IDLE_PROGRESS);
-  const [status, setStatus] = useState({ text: 'System Ready', type: 'idle' as 'active' | 'idle' | 'error' | 'done' });
+  const [progress, setProgress] = useState<ScanProgress>(idle);
+  const [status, setStatus] = useState<StatusState>({
+    text: t('status.systemReady'),
+    type: 'idle',
+  });
+
+  useEffect(() => {
+    setStatus((prev) =>
+      prev.type === 'idle' ? { text: t('status.systemReady'), type: 'idle' } : prev,
+    );
+    setProgress((prev) => (prev.phase === null && prev.percent === 0 ? idle : prev));
+  }, [t, idle]);
   const [summary, setSummary] = useState<ScanReport | null>(null);
   const [quarantine, setQuarantine] = useState<QuarantineEntry[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -195,7 +205,7 @@ export function useDeco() {
     const id = activeScanIdRef.current ?? scanId;
     if (!id) {
       finishScan();
-      setProgress(IDLE_PROGRESS);
+      setProgress(idle);
       return;
     }
     try {
@@ -345,7 +355,7 @@ export function useDeco() {
       activeScanIdRef.current = id;
       setScanId(id);
       toast({
-        title: scanMode === 'quick' ? 'Quick update started' : 'Scan started',
+        title: scanMode === 'quick' ? t('status.quickUpdateStarted') : t('status.scanStarted'),
         description:
           scanMode === 'quick'
             ? 'Reusing cached sizes where paths are unchanged. Run a full scan after changing profile or discovery options.'
@@ -355,7 +365,7 @@ export function useDeco() {
       return { scan_id: id };
     } catch {
       finishScan();
-      setProgress(IDLE_PROGRESS);
+      setProgress(idle);
       return null;
     }
   };
@@ -486,7 +496,7 @@ export function useDeco() {
         );
         cleanupRemovedSnapshotRef.current = [];
       } else {
-        setProgress(IDLE_PROGRESS);
+        setProgress(idle);
         setStatus({ text: 'Cleanup failed', type: 'error' });
       }
     },
@@ -720,7 +730,7 @@ export function useDeco() {
         const report = normalizeScanReport(event.payload);
         if (!report.scan_id) {
           finishScan();
-          setProgress(IDLE_PROGRESS);
+          setProgress(idle);
           return;
         }
         if (activeScanIdRef.current && report.scan_id !== activeScanIdRef.current) return;
@@ -766,7 +776,7 @@ export function useDeco() {
         console.error('[Deco] scan-complete handler failed', err);
         setError(err instanceof Error ? err.message : 'Failed to process scan results.');
         finishScan();
-        setProgress(IDLE_PROGRESS);
+        setProgress(idle);
       }
     });
 
@@ -778,7 +788,7 @@ export function useDeco() {
       setError(msg);
       setStatus({ text: `Error: ${msg}`, type: 'error' });
       finishScan();
-      setProgress(IDLE_PROGRESS);
+      setProgress(idle);
     });
 
     return () => {

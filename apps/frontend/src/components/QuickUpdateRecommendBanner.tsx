@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Zap, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useI18n } from '@/i18n';
 import { dismissQuickUpdateHint } from '@/lib/quick-update-hint';
 
 type Props = {
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function QuickUpdateRecommendBanner({ onQuickUpdate, disabled }: Props) {
+  const { t } = useI18n();
   const [hidden, setHidden] = useState(false);
 
   if (hidden) return null;
@@ -22,12 +24,9 @@ export function QuickUpdateRecommendBanner({ onQuickUpdate, disabled }: Props) {
             <Zap className="h-5 w-5" aria-hidden />
           </div>
           <div className="min-w-0 space-y-1">
-            <p className="text-sm font-bold">Use Quick update for your next scan</p>
+            <p className="text-sm font-bold">{t('dashboard.quickUpdateBanner.title')}</p>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
-              After a full scan, <strong className="font-semibold text-foreground">Quick update</strong>{' '}
-              reuses the path inventory and skips re-measuring unchanged folders. On HDDs this often finishes in
-              seconds instead of minutes — ideal for repeat checks when you have not changed profile or discovery
-              options.
+              {t('dashboard.quickUpdateBanner.description')}
             </p>
           </div>
         </div>
@@ -40,7 +39,7 @@ export function QuickUpdateRecommendBanner({ onQuickUpdate, disabled }: Props) {
             onClick={onQuickUpdate}
           >
             <Zap className="h-3.5 w-3.5" />
-            Quick update
+            {t('dashboard.quickUpdateBanner.action')}
           </Button>
           <Button
             type="button"
@@ -53,7 +52,7 @@ export function QuickUpdateRecommendBanner({ onQuickUpdate, disabled }: Props) {
             }}
           >
             <X className="h-4 w-4 mr-1" />
-            Dismiss
+            {t('dashboard.quickUpdateBanner.dismiss')}
           </Button>
         </div>
       </CardContent>

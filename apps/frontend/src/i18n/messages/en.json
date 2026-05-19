@@ -6,7 +6,11 @@
     "settings": "Settings"
   },
   "status": {
-    "label": "Status"
+    "label": "Status",
+    "systemReady": "System Ready",
+    "ready": "Ready",
+    "scanStarted": "Scan started",
+    "quickUpdateStarted": "Quick update started"
   },
   "common": {
     "save": "Save changes",
@@ -14,7 +18,13 @@
     "discard": "Discard changes",
     "custom": "Custom",
     "sizing": "Sizing…",
-    "notApplicable": "N/A"
+    "notApplicable": "N/A",
+    "reset": "Reset",
+    "delete": "Delete",
+    "show": "Show",
+    "allDrives": "All drives",
+    "anyTime": "Any time",
+    "localDisk": "Local Disk"
   },
   "header": {
     "dashboard": {
@@ -145,6 +155,33 @@
       "projects": "project folders",
       "drives": "local drives",
       "all": "projects + drives"
+    },
+    "partition": {
+      "title": "Partitions to scan",
+      "description": "Each selected drive includes its volume root (e.g. D:\\) so top-level trees are scanned; system folders are skipped.",
+      "addDrive": "Add drive",
+      "choosePartition": "Choose a partition…",
+      "allDrivesSelected": "All drives already selected",
+      "selected": "Selected: {{list}}",
+      "detecting": "Detecting local storage…",
+      "freeOf": "{{free}} free of {{total}}",
+      "volumeKind": "({{kind}})",
+      "devFolders": "Also scan dev folders on selected drives (Users\\…\\Projects, source, code, …)",
+      "allFixedDrives": "All fixed drives",
+      "clear": "Clear"
+    },
+    "quickUpdateBanner": {
+      "title": "Use Quick update for your next scan",
+      "description": "After a full scan, Quick update reuses the path inventory and skips re-measuring unchanged folders. On HDDs this often finishes in seconds instead of minutes — ideal for repeat checks when you have not changed profile or discovery options.",
+      "action": "Quick update",
+      "dismiss": "Dismiss"
+    },
+    "summary": {
+      "scope": "scope {{scope}}",
+      "profile": "{{profile}} profile",
+      "depth": "depth {{depth}}",
+      "size": "size {{mode}}",
+      "quickUpdateOn": "Quick update on"
     }
   },
   "settings": {
@@ -427,5 +464,61 @@
         "standard": "Standard — follow scan worker count"
       }
     }
+  },
+  "history": {
+    "title": "Scan History",
+    "description": "Review previous scan sessions and their reclaimed space.",
+    "clearAll": "Clear all",
+    "filters": "Filters",
+    "sizeMin": "Size (min)",
+    "sizeMax": "Size (max)",
+    "when": "When",
+    "partition": "Partition / drive",
+    "showing": "Showing {{filtered}} of {{total}} records",
+    "roots": "Roots: {{list}}",
+    "drives": "Drives: {{list}}",
+    "meta": "{{count}} candidates · profile {{profile}}{{safe}}",
+    "safeSuffix": " · {{count}} safe",
+    "recovered": "Recovered",
+    "reuseConfig": "Reuse Config",
+    "noMatch": "No records match these filters.",
+    "clearFilters": "Clear filters",
+    "empty": "No history available.",
+    "deleteTitle": "Delete scan record?",
+    "deleteDescription": "Remove the scan from {{label}}? This cannot be undone.",
+    "clearTitle": "Clear all scan history?",
+    "clearDescription": "Remove all {{count}} scan records from this device? This cannot be undone.",
+    "timeRange": {
+      "all": "Any time",
+      "1h": "Past 1 hour",
+      "24h": "Past 24 hours",
+      "7d": "Past 7 days",
+      "30d": "Past 30 days"
+    }
+  },
+  "quarantine": {
+    "title": "Quarantine",
+    "description": "Temporarily held folders — restore anytime, or purge items older than {{days}} days.",
+    "refresh": "Refresh",
+    "exportLog": "Export log",
+    "purgeEligible": "Purge eligible",
+    "purgeNone": "No items are older than {{days}} days yet.",
+    "searchPlaceholder": "Search by path or id…",
+    "purgeEligibleOnly": "Purge-eligible only",
+    "selectAll": "Select all ({{count}})",
+    "showing": "Showing {{filtered}} of {{total}}",
+    "held": "{{size}} held",
+    "restoreSelected": "Restore selected ({{count}})",
+    "purgeEligibleBadge": "Purge eligible",
+    "daysUntilPurge": "{{days}}d until purge",
+    "emptyTitle": "Quarantine is empty.",
+    "emptyDescription": "Cleaned folders appear here until you restore them or they are purged after the retention period.",
+    "goToDashboard": "Go to Dashboard",
+    "restore": "Restore",
+    "noMatch": "No entries match these filters.",
+    "purgeTitle": "Purge eligible quarantine items?",
+    "purgeDescription": "Permanently remove {{count}} item(s) older than {{days}} days? This cannot be undone.",
+    "purgeNoneEligible": "No items are eligible for purge.",
+    "purge": "Purge"
   }
 }

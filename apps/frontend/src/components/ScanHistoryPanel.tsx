@@ -11,17 +11,20 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
 import {
   filterHistoryItems,
-  HISTORY_TIME_RANGE_OPTIONS,
   historyFilterFromInputs,
   historyFiltersActive,
   type HistoryTimeRange,
   uniqueHistoryVolumes,
 } from '@/lib/history-filter';
+import { localeToIntlTag } from '@/lib/ui-locale';
 import { volumesFromRoots } from '@/lib/scan-report';
 import type { HistoryItem } from '@/types';
+
+const HISTORY_TIME_RANGES: HistoryTimeRange[] = ['all', '1h', '24h', '7d', '30d'];
 
 type Props = {
   items: HistoryItem[];
@@ -36,6 +39,10 @@ type PendingConfirm =
   | null;
 
 export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props) {
+  const { t, locale } = useI18n();
+  const intlTag = localeToIntlTag(locale);
+  const formatWhen = (iso: string) => new Date(iso).toLocaleString(intlTag);
+
   const [sizeMinInput, setSizeMinInput] = useState('');
   const [sizeMaxInput, setSizeMaxInput] = useState('');
   const [timeRange, setTimeRange] = useState<HistoryTimeRange>('all');
@@ -80,10 +87,8 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
       <Card className="border-border/40 bg-card/30">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-            <CardTitle>Scan History</CardTitle>
-            <CardDescription>
-              Review previous scan sessions and their reclaimed space.
-            </CardDescription>
+            <CardTitle>{t('history.title')}</CardTitle>
+            <CardDescription>{t('history.description')}</CardDescription>
           </div>
           <Button
             variant="destructive"
@@ -93,17 +98,17 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
             onClick={() => setPending({ kind: 'clear' })}
           >
             <Trash2 size={14} />
-            Clear all
+            {t('history.clearAll')}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-background/40 p-3">
             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-              Filters
+              {t('history.filters')}
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">Size (min)</label>
+                <label className="text-[10px] font-semibold text-muted-foreground">{t('history.sizeMin')}</label>
                 <Input
                   placeholder="100MB"
                   className="h-8 bg-background/50 text-sm"
@@ -112,7 +117,7 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">Size (max)</label>
+                <label className="text-[10px] font-semibold text-muted-foreground">{t('history.sizeMax')}</label>
                 <Input
                   placeholder="50GB"
                   className="h-8 bg-background/50 text-sm"
@@ -121,15 +126,15 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">When</label>
+                <label className="text-[10px] font-semibold text-muted-foreground">{t('history.when')}</label>
                 <Select value={timeRange} onValueChange={(v) => setTimeRange(v as HistoryTimeRange)}>
                   <SelectTrigger className="h-8 bg-background/50">
-                    <SelectValue placeholder="Any time" />
+                    <SelectValue placeholder={t('common.anyTime')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {HISTORY_TIME_RANGE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {HISTORY_TIME_RANGES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {t(`history.timeRange.${value}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -139,14 +144,14 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
             <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
               <div className="space-y-1 flex-1 min-w-[10rem]">
                 <label className="text-[10px] font-semibold text-muted-foreground">
-                  Partition / drive
+                  {t('history.partition')}
                 </label>
                 <Select value={volumeMount} onValueChange={setVolumeMount}>
                   <SelectTrigger className="h-8 bg-background/50">
-                    <SelectValue placeholder="All drives" />
+                    <SelectValue placeholder={t('common.allDrives')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All drives</SelectItem>
+                    <SelectItem value="all">{t('common.allDrives')}</SelectItem>
                     {volumeOptions.map((vol) => (
                       <SelectItem key={vol} value={vol}>
                         {vol}
@@ -158,7 +163,7 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
               <div className="flex gap-2 sm:pb-0.5">
                 {filtersActive ? (
                   <Button variant="outline" size="sm" onClick={resetFilters}>
-                    Reset
+                    {t('common.reset')}
                   </Button>
                 ) : null}
               </div>
@@ -169,7 +174,7 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
             <div className="space-y-3">
               {filtersActive && filtered.length !== items.length ? (
                 <p className="text-xs text-muted-foreground">
-                  Showing {filtered.length} of {items.length} records
+                  {t('history.showing', { filtered: filtered.length, total: items.length })}
                 </p>
               ) : null}
               {filtered.map((item) => (
@@ -179,25 +184,31 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                 >
                   <div className="space-y-1 min-w-0">
                     <p className="font-bold text-sm tracking-tight">
-                      {new Date(item.created_at).toLocaleString()}
+                      {formatWhen(item.created_at)}
                     </p>
                     <p className="text-[10px] text-muted-foreground opacity-70 truncate">
-                      Roots: {item.roots.join(', ')}
+                      {t('history.roots', { list: item.roots.join(', ') })}
                     </p>
                     {volumesFromRoots(item.roots).length > 0 ? (
                       <p className="text-[10px] text-muted-foreground/60">
-                        Drives: {volumesFromRoots(item.roots).join(', ')}
+                        {t('history.drives', { list: volumesFromRoots(item.roots).join(', ') })}
                       </p>
                     ) : null}
                     <p className="text-[10px] text-muted-foreground/60">
-                      {item.candidate_count ?? 0} candidates · profile {item.profile}
-                      {item.safe_count != null ? ` · ${item.safe_count} safe` : ''}
+                      {t('history.meta', {
+                        count: item.candidate_count ?? 0,
+                        profile: item.profile,
+                        safe:
+                          item.safe_count != null
+                            ? t('history.safeSuffix', { count: item.safe_count })
+                            : '',
+                      })}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 sm:gap-6 shrink-0">
                     <div className="text-right">
                       <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-1">
-                        Recovered
+                        {t('history.recovered')}
                       </p>
                       <p className="text-sm font-black text-primary">{formatBytes(item.total_bytes)}</p>
                     </div>
@@ -208,7 +219,7 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                         className="h-8 font-semibold"
                         onClick={() => onReuse(item)}
                       >
-                        Reuse Config
+                        {t('history.reuseConfig')}
                       </Button>
                       <Button
                         variant="outline"
@@ -219,12 +230,12 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
                           setPending({
                             kind: 'delete',
                             scanId: item.scan_id,
-                            label: new Date(item.created_at).toLocaleString(),
+                            label: formatWhen(item.created_at),
                           })
                         }
                       >
                         <Trash2 size={14} />
-                        Delete
+                        {t('common.delete')}
                       </Button>
                     </div>
                   </div>
@@ -234,9 +245,9 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
           ) : items.length > 0 ? (
             <div className="py-16 text-center flex flex-col items-center gap-3">
               <Search className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-muted-foreground font-medium">No records match these filters.</p>
+              <p className="text-muted-foreground font-medium">{t('history.noMatch')}</p>
               <Button variant="outline" size="sm" onClick={resetFilters}>
-                Clear filters
+                {t('history.clearFilters')}
               </Button>
             </div>
           ) : (
@@ -244,7 +255,7 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
               <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center">
                 <HistoryIcon className="text-muted-foreground/50" />
               </div>
-              <p className="text-muted-foreground font-medium">No history available.</p>
+              <p className="text-muted-foreground font-medium">{t('history.empty')}</p>
             </div>
           )}
         </CardContent>
@@ -252,13 +263,13 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
 
       <ConfirmDialog
         open={pending?.kind === 'delete'}
-        title="Delete scan record?"
+        title={t('history.deleteTitle')}
         description={
           pending?.kind === 'delete'
-            ? `Remove the scan from ${pending.label}? This cannot be undone.`
+            ? t('history.deleteDescription', { label: pending.label })
             : ''
         }
-        confirmLabel="Delete"
+        confirmLabel={t('common.delete')}
         destructive
         busy={busy}
         onConfirm={() => void handleConfirm()}
@@ -267,9 +278,9 @@ export function ScanHistoryPanel({ items, onReuse, onDelete, onClearAll }: Props
 
       <ConfirmDialog
         open={pending?.kind === 'clear'}
-        title="Clear all scan history?"
-        description={`Remove all ${items.length} scan records from this device? This cannot be undone.`}
-        confirmLabel="Clear all"
+        title={t('history.clearTitle')}
+        description={t('history.clearDescription', { count: items.length })}
+        confirmLabel={t('history.clearAll')}
         destructive
         busy={busy}
         onConfirm={() => void handleConfirm()}

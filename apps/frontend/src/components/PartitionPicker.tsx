@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
 import type { StorageVolume } from '@/types';
 
@@ -33,6 +34,7 @@ export function PartitionPicker({
   showQuickAddSelect,
   storageRefreshToken = 0,
 }: Props) {
+  const { t } = useI18n();
   const [volumes, setVolumes] = useState<StorageVolume[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectKey, setSelectKey] = useState(0);
@@ -80,11 +82,8 @@ export function PartitionPicker({
         <div className="flex items-center gap-2">
           <HardDrive size={18} className="text-primary" />
           <div>
-            <p className="font-bold text-sm">Partitions to scan</p>
-            <p className="text-xs text-muted-foreground">
-              Each selected drive includes its volume root (e.g. D:\\) so top-level trees are scanned;
-              system folders are skipped.
-            </p>
+            <p className="font-bold text-sm">{t('dashboard.partition.title')}</p>
+            <p className="text-xs text-muted-foreground">{t('dashboard.partition.description')}</p>
           </div>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={refresh} disabled={loading || disabled}>
@@ -94,7 +93,9 @@ export function PartitionPicker({
 
       {showQuickAddSelect && !loading && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Add drive</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {t('dashboard.partition.addDrive')}
+          </p>
           <Select
             key={selectKey}
             onValueChange={(value) => {
@@ -105,7 +106,11 @@ export function PartitionPicker({
           >
             <SelectTrigger className="w-full">
               <SelectValue
-                placeholder={unselected.length ? 'Choose a partition…' : 'All drives already selected'}
+                placeholder={
+                  unselected.length
+                    ? t('dashboard.partition.choosePartition')
+                    : t('dashboard.partition.allDrivesSelected')
+                }
               />
             </SelectTrigger>
             <SelectContent>
@@ -117,13 +122,17 @@ export function PartitionPicker({
             </SelectContent>
           </Select>
           {selectedVolumes.length > 0 && (
-            <p className="text-xs text-muted-foreground">Selected: {selectedVolumes.join(', ')}</p>
+            <p className="text-xs text-muted-foreground">
+              {t('dashboard.partition.selected', { list: selectedVolumes.join(', ') })}
+            </p>
           )}
         </div>
       )}
 
       {loading && volumes.length === 0 ? (
-        <p className="text-xs text-muted-foreground py-4 text-center">Detecting local storage…</p>
+        <p className="text-xs text-muted-foreground py-4 text-center">
+          {t('dashboard.partition.detecting')}
+        </p>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {volumes.map((vol) => {
@@ -161,8 +170,13 @@ export function PartitionPicker({
                     />
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {formatBytes(vol.available_bytes)} free of {formatBytes(vol.total_bytes)}
-                    <span className="ml-1 opacity-70">({vol.volume_kind})</span>
+                    {t('dashboard.partition.freeOf', {
+                      free: formatBytes(vol.available_bytes),
+                      total: formatBytes(vol.total_bytes),
+                    })}
+                    <span className="ml-1 opacity-70">
+                      {t('dashboard.partition.volumeKind', { kind: vol.volume_kind })}
+                    </span>
                   </p>
                 </div>
               </div>
@@ -178,11 +192,11 @@ export function PartitionPicker({
             onCheckedChange={(v) => onIncludeProjectFoldersChange(v === true)}
             disabled={disabled}
           />
-          Also scan dev folders on selected drives (Users\…\Projects, source, code, …)
+          {t('dashboard.partition.devFolders')}
         </label>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={selectAllFixed} disabled={disabled}>
-            All fixed drives
+            {t('dashboard.partition.allFixedDrives')}
           </Button>
           <Button
             type="button"
@@ -191,7 +205,7 @@ export function PartitionPicker({
             onClick={() => onSelectedVolumesChange([])}
             disabled={disabled}
           >
-            Clear
+            {t('dashboard.partition.clear')}
           </Button>
         </div>
       </div>

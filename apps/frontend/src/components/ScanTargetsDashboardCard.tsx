@@ -4,9 +4,9 @@ import { CustomScanRoots } from '@/components/CustomScanRoots';
 import { PartitionPicker } from '@/components/PartitionPicker';
 import { ScanModeTabList } from '@/components/ScanModeTabs';
 import type { ScanMode } from '@/components/ScanModeSelector';
-import { cleanupProfileSummary, resolveCleanupProfile } from '@/lib/cleanup-profiles';
-import { scanStrategySummary, resolveScanStrategy } from '@/lib/scan-strategy';
-import { useI18n } from '@/i18n';
+import { resolveCleanupProfile } from '@/lib/cleanup-profiles';
+import { resolveScanStrategy } from '@/lib/scan-strategy';
+import { cleanupProfileSummaryLocalized, scanStrategySummaryLocalized, useI18n } from '@/i18n';
 import type { Settings } from '@/types';
 
 type Props = {
@@ -65,11 +65,11 @@ export function ScanTargetsDashboardCard({
           {settings ? (
             <>
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                {cleanupProfileSummary(resolveCleanupProfile(settings), settings)}
+                {cleanupProfileSummaryLocalized(t, resolveCleanupProfile(settings), settings)}
               </span>
               <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
                 {t('dashboard.scanTargets.strategy')}:{' '}
-                {scanStrategySummary(resolveScanStrategy(settings), settings)}
+                {scanStrategySummaryLocalized(t, resolveScanStrategy(settings), settings)}
               </span>
             </>
           ) : null}

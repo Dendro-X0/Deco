@@ -6,7 +6,11 @@
     "settings": "Ajustes"
   },
   "status": {
-    "label": "Estado"
+    "label": "Estado",
+    "systemReady": "Sistema listo",
+    "ready": "Listo",
+    "scanStarted": "Escaneo iniciado",
+    "quickUpdateStarted": "Actualización rápida iniciada"
   },
   "common": {
     "save": "Guardar cambios",
@@ -14,7 +18,13 @@
     "discard": "Descartar cambios",
     "custom": "Personalizado",
     "sizing": "Calculando tamaño…",
-    "notApplicable": "N/D"
+    "notApplicable": "N/D",
+    "reset": "Restablecer",
+    "delete": "Eliminar",
+    "show": "Mostrar",
+    "allDrives": "Todas las unidades",
+    "anyTime": "Cualquier momento",
+    "localDisk": "Disco local"
   },
   "header": {
     "dashboard": {
@@ -145,6 +155,33 @@
       "projects": "carpetas de proyecto",
       "drives": "unidades locales",
       "all": "proyectos + unidades"
+    },
+    "partition": {
+      "title": "Particiones a escanear",
+      "description": "Cada unidad seleccionada incluye la raíz del volumen (p. ej. D:\\) para escanear árboles de nivel superior; se omiten carpetas del sistema.",
+      "addDrive": "Añadir unidad",
+      "choosePartition": "Elegir partición…",
+      "allDrivesSelected": "Todas las unidades ya están seleccionadas",
+      "selected": "Seleccionado: {{list}}",
+      "detecting": "Detectando almacenamiento local…",
+      "freeOf": "{{free}} libres de {{total}}",
+      "volumeKind": "({{kind}})",
+      "devFolders": "También escanear carpetas de desarrollo en las unidades seleccionadas (Users\\…\\Projects, source, code, …)",
+      "allFixedDrives": "Todas las unidades fijas",
+      "clear": "Borrar"
+    },
+    "quickUpdateBanner": {
+      "title": "Use actualización rápida en su próximo escaneo",
+      "description": "Tras un escaneo completo, la actualización rápida reutiliza el inventario de rutas y omite volver a medir carpetas sin cambios. En HDD suele terminar en segundos en lugar de minutos.",
+      "action": "Actualización rápida",
+      "dismiss": "Descartar"
+    },
+    "summary": {
+      "scope": "alcance {{scope}}",
+      "profile": "perfil {{profile}}",
+      "depth": "profundidad {{depth}}",
+      "size": "tamaño {{mode}}",
+      "quickUpdateOn": "actualización rápida activa"
     }
   },
   "settings": {
@@ -427,5 +464,61 @@
         "standard": "Estándar — sigue workers de escaneo"
       }
     }
+  },
+  "history": {
+    "title": "Historial de escaneos",
+    "description": "Revise sesiones de escaneo anteriores y el espacio recuperado.",
+    "clearAll": "Borrar todo",
+    "filters": "Filtros",
+    "sizeMin": "Tamaño (mín.)",
+    "sizeMax": "Tamaño (máx.)",
+    "when": "Cuándo",
+    "partition": "Partición / unidad",
+    "showing": "Mostrando {{filtered}} de {{total}} registros",
+    "roots": "Raíces: {{list}}",
+    "drives": "Unidades: {{list}}",
+    "meta": "{{count}} candidatos · perfil {{profile}}{{safe}}",
+    "safeSuffix": " · {{count}} seguros",
+    "recovered": "Recuperado",
+    "reuseConfig": "Reutilizar config.",
+    "noMatch": "Ningún registro coincide con estos filtros.",
+    "clearFilters": "Borrar filtros",
+    "empty": "No hay historial disponible.",
+    "deleteTitle": "¿Eliminar registro de escaneo?",
+    "deleteDescription": "¿Eliminar el escaneo de {{label}}? No se puede deshacer.",
+    "clearTitle": "¿Borrar todo el historial de escaneos?",
+    "clearDescription": "¿Eliminar los {{count}} registros de escaneo de este equipo? No se puede deshacer.",
+    "timeRange": {
+      "all": "Cualquier momento",
+      "1h": "Última hora",
+      "24h": "Últimas 24 horas",
+      "7d": "Últimos 7 días",
+      "30d": "Últimos 30 días"
+    }
+  },
+  "quarantine": {
+    "title": "Cuarentena",
+    "description": "Carpetas retenidas temporalmente — restáurelas cuando quiera o purgue las de más de {{days}} días.",
+    "refresh": "Actualizar",
+    "exportLog": "Exportar registro",
+    "purgeEligible": "Purgar elegibles",
+    "purgeNone": "Aún no hay elementos de más de {{days}} días.",
+    "searchPlaceholder": "Buscar por ruta o id…",
+    "purgeEligibleOnly": "Solo elegibles para purga",
+    "selectAll": "Seleccionar todo ({{count}})",
+    "showing": "Mostrando {{filtered}} de {{total}}",
+    "held": "{{size}} retenidos",
+    "restoreSelected": "Restaurar selección ({{count}})",
+    "purgeEligibleBadge": "Elegible para purga",
+    "daysUntilPurge": "{{days}}d para purga",
+    "emptyTitle": "La cuarentena está vacía.",
+    "emptyDescription": "Las carpetas limpiadas aparecen aquí hasta que las restaure o se purguen tras el periodo de retención.",
+    "goToDashboard": "Ir al panel",
+    "restore": "Restaurar",
+    "noMatch": "Ninguna entrada coincide con estos filtros.",
+    "purgeTitle": "¿Purgar elementos elegibles de la cuarentena?",
+    "purgeDescription": "¿Eliminar permanentemente {{count}} elemento(s) de más de {{days}} días? No se puede deshacer.",
+    "purgeNoneEligible": "No hay elementos elegibles para purga.",
+    "purge": "Purgar"
   }
 }

@@ -14,18 +14,21 @@ import {
 } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { DisabledActionHint } from '@/components/DisabledActionHint';
+import { useI18n } from '@/i18n';
 import { formatBytes } from '@/lib/format';
 import {
   countPurgeEligible,
   daysUntilPurgeEligible,
   filterQuarantineEntries,
-  HISTORY_TIME_RANGE_OPTIONS,
   quarantineFilterFromInputs,
   quarantineFiltersActive,
   type HistoryTimeRange,
   uniqueQuarantineVolumes,
 } from '@/lib/quarantine-filter';
+import { localeToIntlTag } from '@/lib/ui-locale';
 import type { BulkRestoreResponse, QuarantineEntry } from '@/types';
+
+const HISTORY_TIME_RANGES: HistoryTimeRange[] = ['all', '1h', '24h', '7d', '30d'];
 
 type Props = {
   entries: QuarantineEntry[];
@@ -61,6 +64,10 @@ export function QuarantinePanel({
   onPurge,
   onGoToDashboard,
 }: Props) {
+  const { t, locale } = useI18n();
+  const intlTag = localeToIntlTag(locale);
+  const formatWhen = (iso: string) => new Date(iso).toLocaleString(intlTag);
+
   const [searchInput, setSearchInput] = useState('');
   const [sizeMinInput, setSizeMinInput] = useState('');
   const [sizeMaxInput, setSizeMaxInput] = useState('');
@@ -166,14 +173,12 @@ export function QuarantinePanel({
       <Card className="border-border/40 bg-card/30">
         <CardHeader className="flex flex-row items-start justify-between gap-4">
           <div>
-            <CardTitle>Quarantine</CardTitle>
-            <CardDescription>
-              Temporarily held folders — restore anytime, or purge items older than {retentionDays} days.
-            </CardDescription>
+            <CardTitle>{t('quarantine.title')}</CardTitle>
+            <CardDescription>{t('quarantine.description', { days: retentionDays })}</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => void onReload()}>
-              Refresh
+              {t('quarantine.refresh')}
             </Button>
             <Button
               variant="outline"
@@ -182,12 +187,12 @@ export function QuarantinePanel({
               disabled={filtered.length === 0}
               onClick={() => downloadAuditLog(filtered)}
             >
-              <Download size={14} /> Export log
+              <Download size={14} /> {t('quarantine.exportLog')}
             </Button>
             <DisabledActionHint
               reason={
                 purgeEligibleCount === 0
-                  ? `No items are older than ${retentionDays} days yet.`
+                  ? t('quarantine.purgeNone', { days: retentionDays })
                   : null
               }
             >
@@ -199,7 +204,7 @@ export function QuarantinePanel({
                 onClick={() => setPurgeConfirmOpen(true)}
               >
                 <Trash2 size={14} />
-                Purge eligible
+                {t('quarantine.purgeEligible')}
               </Button>
             </DisabledActionHint>
           </div>
@@ -207,12 +212,12 @@ export function QuarantinePanel({
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 rounded-lg border border-border/40 bg-background/40 p-3">
             <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-              Filters
+              {t('history.filters')}
             </p>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by path or id…"
+                placeholder={t('quarantine.searchPlaceholder')}
                 className="pl-8 h-8 bg-background/50 text-sm"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -220,7 +225,7 @@ export function QuarantinePanel({
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">Size (min)</label>
+                <label className="text-[10px] font-semibold text-muted-foreground">{t('history.sizeMin')}</label>
                 <Input
                   placeholder="100MB"
                   className="h-8 bg-background/50 text-sm"
@@ -229,7 +234,7 @@ export function QuarantinePanel({
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">Size (max)</label>
+                <label className="text-[10px] font-semibold text-muted-foreground">{t('history.sizeMax')}</label>
                 <Input
                   placeholder="50GB"
                   className="h-8 bg-background/50 text-sm"
@@ -238,15 +243,15 @@ export function QuarantinePanel({
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold text-muted-foreground">When</label>
+                <label className="text-[10px] font-semibold text-muted-foreground">{t('history.when')}</label>
                 <Select value={timeRange} onValueChange={(v) => setTimeRange(v as HistoryTimeRange)}>
                   <SelectTrigger className="h-8 bg-background/50">
-                    <SelectValue placeholder="Any time" />
+                    <SelectValue placeholder={t('common.anyTime')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {HISTORY_TIME_RANGE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {HISTORY_TIME_RANGES.map((value) => (
+                      <SelectItem key={value} value={value}>
+                        {t(`history.timeRange.${value}`)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -256,14 +261,14 @@ export function QuarantinePanel({
             <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
               <div className="space-y-1 flex-1 min-w-[10rem]">
                 <label className="text-[10px] font-semibold text-muted-foreground">
-                  Partition / drive
+                  {t('history.partition')}
                 </label>
                 <Select value={volumeMount} onValueChange={setVolumeMount}>
                   <SelectTrigger className="h-8 bg-background/50">
-                    <SelectValue placeholder="All drives" />
+                    <SelectValue placeholder={t('common.allDrives')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All drives</SelectItem>
+                    <SelectItem value="all">{t('common.allDrives')}</SelectItem>
                     {volumeOptions.map((vol) => (
                       <SelectItem key={vol} value={vol}>
                         {vol}
@@ -277,11 +282,11 @@ export function QuarantinePanel({
                   checked={onlyPurgeEligible}
                   onCheckedChange={(v) => setOnlyPurgeEligible(v === true)}
                 />
-                Purge-eligible only
+                {t('quarantine.purgeEligibleOnly')}
               </label>
               {filtersActive ? (
                 <Button variant="outline" size="sm" className="sm:pb-0.5" onClick={resetFilters}>
-                  Reset
+                  {t('common.reset')}
                 </Button>
               ) : null}
             </div>
@@ -291,18 +296,20 @@ export function QuarantinePanel({
             <div className="flex items-center justify-between text-sm flex-wrap gap-2">
               <label className="flex items-center gap-2 cursor-pointer">
                 <Checkbox checked={allSelected} onCheckedChange={(v) => handleSelectAll(v === true)} />
-                Select all ({filtered.length})
+                {t('quarantine.selectAll', { count: filtered.length })}
               </label>
               <div className="flex items-center gap-3">
                 {filtersActive && filtered.length !== entries.length ? (
                   <span className="text-xs text-muted-foreground">
-                    Showing {filtered.length} of {entries.length}
+                    {t('quarantine.showing', { filtered: filtered.length, total: entries.length })}
                   </span>
                 ) : null}
-                <span className="text-muted-foreground text-xs">{formatBytes(totalBytes)} held</span>
+                <span className="text-muted-foreground text-xs">
+                  {t('quarantine.held', { size: formatBytes(totalBytes) })}
+                </span>
                 {selectedIds.size > 0 ? (
                   <Button size="sm" variant="secondary" disabled={restoring} onClick={() => void handleBulkRestore()}>
-                    Restore selected ({selectedIds.size})
+                    {t('quarantine.restoreSelected', { count: selectedIds.size })}
                   </Button>
                 ) : null}
               </div>
@@ -328,7 +335,7 @@ export function QuarantinePanel({
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-sm tracking-tight">{entry.id.slice(0, 8)}…</span>
                           <span className="text-[10px] text-muted-foreground">
-                            {new Date(entry.timestamp_iso).toLocaleString()}
+                            {formatWhen(entry.timestamp_iso)}
                           </span>
                           {entry.size_bytes != null ? (
                             <span className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">
@@ -342,7 +349,9 @@ export function QuarantinePanel({
                                 : 'bg-muted text-muted-foreground'
                             }`}
                           >
-                            {daysLeft === 0 ? 'Purge eligible' : `${daysLeft}d until purge`}
+                            {daysLeft === 0
+                              ? t('quarantine.purgeEligibleBadge')
+                              : t('quarantine.daysUntilPurge', { days: daysLeft })}
                           </span>
                         </div>
                         <p className="text-[11px] font-mono text-muted-foreground truncate">
@@ -361,7 +370,7 @@ export function QuarantinePanel({
                         onClick={() => void revealPath(entry.original_path)}
                       >
                         <FolderOpen size={14} />
-                        Show
+                        {t('common.show')}
                       </Button>
                       <Button
                         variant="ghost"
@@ -369,7 +378,7 @@ export function QuarantinePanel({
                         className="h-8"
                         onClick={() => void onRestore(entry.id)}
                       >
-                        Restore
+                        {t('quarantine.restore')}
                       </Button>
                     </div>
                   </div>
@@ -379,9 +388,9 @@ export function QuarantinePanel({
           ) : noFilterMatches ? (
             <div className="py-16 text-center flex flex-col items-center gap-3">
               <Search className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-muted-foreground font-medium">No entries match these filters.</p>
+              <p className="text-muted-foreground font-medium">{t('quarantine.noMatch')}</p>
               <Button variant="outline" size="sm" onClick={resetFilters}>
-                Clear filters
+                {t('history.clearFilters')}
               </Button>
             </div>
           ) : (
@@ -390,16 +399,15 @@ export function QuarantinePanel({
                 <ShieldAlert className="text-muted-foreground/50" />
               </div>
               <div className="space-y-1">
-                <p className="text-muted-foreground font-medium">Quarantine is empty.</p>
+                <p className="text-muted-foreground font-medium">{t('quarantine.emptyTitle')}</p>
                 <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Cleaned folders appear here until you restore them or they are purged after the
-                  retention period.
+                  {t('quarantine.emptyDescription')}
                 </p>
               </div>
               {onGoToDashboard ? (
                 <Button className="gap-2 font-semibold" onClick={onGoToDashboard}>
                   <LayoutDashboard size={16} />
-                  Go to Dashboard
+                  {t('quarantine.goToDashboard')}
                 </Button>
               ) : null}
             </div>
@@ -409,13 +417,13 @@ export function QuarantinePanel({
 
       <ConfirmDialog
         open={purgeConfirmOpen}
-        title="Purge eligible quarantine items?"
+        title={t('quarantine.purgeTitle')}
         description={
           purgeEligibleCount > 0
-            ? `Permanently remove ${purgeEligibleCount} item(s) older than ${retentionDays} days? This cannot be undone.`
-            : 'No items are eligible for purge.'
+            ? t('quarantine.purgeDescription', { count: purgeEligibleCount, days: retentionDays })
+            : t('quarantine.purgeNoneEligible')
         }
-        confirmLabel="Purge"
+        confirmLabel={t('quarantine.purge')}
         destructive
         busy={purging}
         onConfirm={() => void handlePurgeConfirm()}
