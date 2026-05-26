@@ -127,7 +127,6 @@ function readWindowsVolumeFilesystem(driveLetter: string): string | null {
 }
 
 function destRequiresNtfs(destAbs: string): string | null {
-  if (!isWindows()) return 'migrate-tool-dir is Windows-only in v0.9.0.';
   const m = /^([A-Za-z]):/.exec(path.resolve(destAbs));
   if (!m) return 'Could not determine drive letter for destination (junction requires NTFS).';
   const fsType = readWindowsVolumeFilesystem(m[1]!);
@@ -141,7 +140,6 @@ function destRequiresNtfs(destAbs: string): string | null {
 }
 
 function isBlockedSource(sourceAbs: string): string | null {
-  if (!isWindows()) return 'This command is Windows-only in v0.9.0.';
   if (isDriveRoot(sourceAbs)) return 'Refusing to migrate a drive root.';
 
   const resolved = path.resolve(sourceAbs);
@@ -190,6 +188,8 @@ async function countFiles(absPath: string, queue: TaskQueue): Promise<number> {
   return total;
 }
 
+const WINDOWS_ONLY_ERROR = 'migrate-tool-dir is Windows-only in v0.9.0.';
+
 export async function planToolDirMigration(args: {
   readonly tool?: MigrateToolId;
   readonly source?: string;
@@ -199,16 +199,7 @@ export async function planToolDirMigration(args: {
 }): Promise<MigrationPlan> {
   const warnings: string[] = [];
   const errors: string[] = [];
-
-  if (!isWindows()) {
-    return {
-      ok: false,
-      source: args.source ?? '',
-      dest: args.dest ?? '',
-      warnings,
-      errors: ['migrate-tool-dir is Windows-only in v0.9.0.'],
-    };
-  }
+  const winOnly = isWindows();
 
   let tool = args.tool;
   let source = args.source;
@@ -247,17 +238,6 @@ export async function planToolDirMigration(args: {
   const sourceAbs = path.resolve(source!);
   const destAbs = path.resolve(dest!);
 
-  const blocked = isBlockedSource(sourceAbs);
-  if (blocked) errors.push(blocked);
-
-  if (!(await existsDir(sourceAbs))) {
-    errors.push(`Source does not exist or is not a directory: ${sourceAbs}`);
-  }
-
-  if (await isSymlinkOrJunction(sourceAbs)) {
-    errors.push(`Refusing to migrate a symlink/junction source without explicit override: ${sourceAbs}`);
-  }
-
   if (isUnder(destAbs, sourceAbs)) {
     errors.push('Destination is inside source; refusing (would recurse).');
   }
@@ -265,16 +245,31 @@ export async function planToolDirMigration(args: {
     errors.push('Source is inside destination; refusing.');
   }
 
-  const ntfsErr = destRequiresNtfs(destAbs);
-  if (ntfsErr) errors.push(ntfsErr);
+  if (winOnly) {
+    const blocked = isBlockedSource(sourceAbs);
+    if (blocked) errors.push(blocked);
 
-  if (tool === 'docker-desktop') {
-    warnings.push('Docker Desktop migration is plan-only in v0.9.0 (WSL/VHDX safety constraints).');
+    if (!(await existsDir(sourceAbs))) {
+      errors.push(`Source does not exist or is not a directory: ${sourceAbs}`);
+    }
+
+    if (await isSymlinkOrJunction(sourceAbs)) {
+      errors.push(`Refusing to migrate a symlink/junction source without explicit override: ${sourceAbs}`);
+    }
+
+    const ntfsErr = destRequiresNtfs(destAbs);
+    if (ntfsErr) errors.push(ntfsErr);
+
+    if (tool === 'docker-desktop') {
+      warnings.push('Docker Desktop migration is plan-only in v0.9.0 (WSL/VHDX safety constraints).');
+    }
+  } else {
+    errors.push(WINDOWS_ONLY_ERROR);
   }
 
   let bytes: number | undefined;
   let fileCount: number | undefined;
-  if (args.includeSize && errors.length === 0) {
+  if (winOnly && args.includeSize && errors.length === 0) {
     const queue = new TaskQueue(32);
     const sizeErrors: string[] = [];
     bytes = await getDirSizeBytes(sourceAbs, queue, sizeErrors);
