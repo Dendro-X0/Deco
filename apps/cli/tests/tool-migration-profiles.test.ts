@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getToolMigrationProfile,
   isToolMigrationBundle,
   parseMigrateToolId,
   TOOL_MIGRATION_PROFILES,
@@ -15,8 +16,17 @@ describe('tool-migration-profiles', () => {
     expect(parseMigrateToolId('unknown-tool')).toBeNull();
   });
 
-  it('cursor is a two-leg bundle', () => {
+  it('cursor is a two-leg bundle profile', () => {
     expect(isToolMigrationBundle('cursor')).toBe(true);
+    const profile = getToolMigrationProfile('cursor');
+    expect(profile.bundleLegs).toHaveLength(2);
+    expect(profile.bundleLegs?.[0]?.leg).toBe('roaming');
+    expect(profile.bundleLegs?.[1]?.leg).toBe('local');
+    expect(profile.bundleLegs?.[0]?.destLeaf).toBe('Cursor');
+    expect(profile.bundleLegs?.[1]?.destLeaf).toBe('Cursor-Local');
+  });
+
+  it.skipIf(process.platform !== 'win32')('cursor bundle resolves Windows paths', () => {
     const { legs, errors } = resolveToolBundleLegs('cursor', 'G:\\DevToolData');
     expect(errors).toEqual([]);
     expect(legs).toHaveLength(2);
