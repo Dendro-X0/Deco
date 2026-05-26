@@ -29,6 +29,7 @@ import {
   settingsSaveDisabledReason,
 } from '@/lib/disabled-reasons';
 import { pickQuarantineFolder, pickToolMigrationRoot } from '@/lib/pick-folders';
+import { TOOL_MIGRATION_UI_PROFILES, type ToolMigrationUiId } from '@/lib/tool-migration-profiles';
 import {
   isWindowsSystemDrivePath,
   quarantineStorageSummary,
@@ -150,7 +151,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [pickingQuarantine, setPickingQuarantine] = useState(false);
-  const [migrationTool, setMigrationTool] = useState<'cursor' | 'vscode' | 'docker-desktop'>('cursor');
+  const [migrationTool, setMigrationTool] = useState<ToolMigrationUiId>('cursor');
   const [migrationDestRoot, setMigrationDestRoot] = useState('');
   const [migrationPlanning, setMigrationPlanning] = useState(false);
   const [migrationRunning, setMigrationRunning] = useState(false);
@@ -745,9 +746,11 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cursor">Cursor</SelectItem>
-                    <SelectItem value="vscode">VS Code</SelectItem>
-                    <SelectItem value="docker-desktop">Docker Desktop (plan only)</SelectItem>
+                    {TOOL_MIGRATION_UI_PROFILES.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

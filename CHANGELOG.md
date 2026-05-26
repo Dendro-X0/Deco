@@ -4,6 +4,18 @@
 
 Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
 
+## [0.9.1] - (in progress)
+
+See [v0.9.1-manifest.md](docs/product/v0.9.1-manifest.md).
+
+### Added
+
+- **Tool migration profiles** — shared catalog for Cursor, VS Code, Claude Code, Codex CLI, cursor-local, and plan-only entries for Docker, npm cache, pnpm store, and Claude Desktop ([tool-migration-profiles.md](docs/product/tool-migration-profiles.md)).
+
+### Fixed
+
+- **Release versioning** — bump `tauri.conf.json` / package versions before tag so installers ship as `Deco_0.9.1_*` (corrects mistaken `0.8.5` assets on the `v0.9.0` GitHub Release).
+
 ## [0.9.0] - 2026-05-25
 
 See [v0.9.0-manifest.md](docs/product/v0.9.0-manifest.md).

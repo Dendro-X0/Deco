@@ -33,7 +33,8 @@ import { createPathPolicy } from './path-policy.js';
 import { classifyTargets } from './classifier.js';
 import { deleteCandidates, type DeleteExecutionResult } from './delete.js';
 import { purgeQuarantine, restoreFromQuarantine } from './quarantine.js';
-import { planToolDirMigration, runToolDirMigration, type MigrateToolId } from './migrate-tool-dir.js';
+import { planToolDirMigration, runToolDirMigration } from './migrate-tool-dir.js';
+import { parseMigrateToolId, TOOL_MIGRATION_PROFILES, type MigrateToolId } from './tool-migration-profiles.js';
 import type {
   CleanupCandidate,
   CleanupMode,
@@ -52,7 +53,7 @@ const DEFAULT_PROFILE: CleanupProfile = 'safe';
 const DEFAULT_DELETE_MODE: DeleteMode = 'quarantine';
 const DEFAULT_STALE_DAYS = 45;
 const DEFAULT_QUARANTINE_RETENTION_DAYS = 30;
-const CLI_VERSION = '0.9.0';
+const CLI_VERSION = '0.9.1';
 
 export type TargetDir = CleanupCandidate;
 export type ScanReport = ScanReportV2;
@@ -549,7 +550,11 @@ export function formatBytes(bytes: number): string {
 }
 
 function isValidMigrateTool(value: string): value is MigrateToolId {
-  return value === 'cursor' || value === 'vscode' || value === 'docker-desktop';
+  return parseMigrateToolId(value) !== null;
+}
+
+function migrateToolIdsHelp(): string {
+  return TOOL_MIGRATION_PROFILES.map((p) => p.id).join('|');
 }
 
 async function runMigrateToolDirCommand(argv: readonly string[]): Promise<void> {
@@ -567,7 +572,7 @@ async function runMigrateToolDirCommand(argv: readonly string[]): Promise<void> 
         '  deco migrate-tool-dir plan --source <path> --dest <path> [--json]',
         '',
         'Options:',
-        '  --tool <id>        cursor|vscode|docker-desktop',
+        `  --tool <id>        ${migrateToolIdsHelp()}`,
         '  --source <path>    Explicit source directory (advanced/custom)',
         '  --dest <path>      Explicit destination directory (advanced/custom)',
         '  --dest-root <path> Destination root; tool leaf folder is appended',
@@ -594,7 +599,9 @@ async function runMigrateToolDirCommand(argv: readonly string[]): Promise<void> 
     const arg = rest[i];
     if (arg === '--tool') {
       const next = rest[i + 1];
-      if (!next || !isValidMigrateTool(next)) throw new Error('Invalid --tool. Use cursor|vscode|docker-desktop');
+      if (!next || !isValidMigrateTool(next)) {
+        throw new Error(`Invalid --tool. Use ${migrateToolIdsHelp()}`);
+      }
       tool = next;
       i += 1;
       continue;

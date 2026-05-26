@@ -4,8 +4,15 @@ import os from 'node:os';
 import { TaskQueue } from './concurrency.js';
 import { getDirSizeBytes } from './scan.js';
 import { lstat, mkdir, mkdtemp, readdir, realpath, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import {
+  isToolMigrationPlanOnly,
+  parseMigrateToolId,
+  resolveToolDefaultSource,
+  resolveToolDestLeaf,
+  type MigrateToolId,
+} from './tool-migration-profiles.js';
 
-export type MigrateToolId = 'cursor' | 'vscode' | 'docker-desktop';
+export type { MigrateToolId } from './tool-migration-profiles.js';
 export type MigrationAction = 'plan' | 'run';
 
 export type MigrationPlan = {
@@ -56,33 +63,6 @@ function isUnder(child: string, parent: string): boolean {
   const p = normalizeForPrefixCompare(parent);
   if (c === p) return true;
   return c.startsWith(p.endsWith(path.sep) ? p : `${p}${path.sep}`);
-}
-
-function getToolDefaultSource(tool: MigrateToolId): string | null {
-  if (!isWindows()) return null;
-  const appData = process.env.APPDATA;
-  const localAppData = process.env.LOCALAPPDATA;
-
-  if (tool === 'cursor') {
-    return appData ? path.join(appData, 'Cursor') : null;
-  }
-  if (tool === 'vscode') {
-    return appData ? path.join(appData, 'Code') : null;
-  }
-  if (tool === 'docker-desktop') {
-    // Docker Desktop storage is complicated (WSL2 VHDX / ProgramData / LocalAppData).
-    // v0.9.0 is intentionally plan-only guidance for Docker Desktop.
-    if (localAppData) return path.join(localAppData, 'Docker');
-    return null;
-  }
-  return null;
-}
-
-function getToolDefaultDestLeaf(tool: MigrateToolId): string {
-  if (tool === 'cursor') return 'Cursor';
-  if (tool === 'vscode') return 'Code';
-  if (tool === 'docker-desktop') return 'Docker';
-  return tool;
 }
 
 function getBlockedPrefixesWindows(): string[] {
@@ -188,7 +168,7 @@ async function countFiles(absPath: string, queue: TaskQueue): Promise<number> {
   return total;
 }
 
-const WINDOWS_ONLY_ERROR = 'migrate-tool-dir is Windows-only in v0.9.0.';
+const WINDOWS_ONLY_ERROR = 'migrate-tool-dir is Windows-only in v0.9.x.';
 
 export async function planToolDirMigration(args: {
   readonly tool?: MigrateToolId;
@@ -209,13 +189,13 @@ export async function planToolDirMigration(args: {
   if (args.dest) dest = args.dest;
 
   if (tool && !source) {
-    source = getToolDefaultSource(tool) ?? undefined;
+    source = resolveToolDefaultSource(tool) ?? undefined;
     if (!source) errors.push(`Could not resolve default source path for tool: ${tool}`);
   }
 
   if (tool && !dest) {
     if (args.destRoot) {
-      dest = path.join(args.destRoot, getToolDefaultDestLeaf(tool));
+      dest = path.join(args.destRoot, resolveToolDestLeaf(tool));
     } else {
       errors.push('Missing --dest-root (or pass --dest directly).');
     }
@@ -260,8 +240,8 @@ export async function planToolDirMigration(args: {
     const ntfsErr = destRequiresNtfs(destAbs);
     if (ntfsErr) errors.push(ntfsErr);
 
-    if (tool === 'docker-desktop') {
-      warnings.push('Docker Desktop migration is plan-only in v0.9.0 (WSL/VHDX safety constraints).');
+    if (tool && isToolMigrationPlanOnly(tool)) {
+      warnings.push(`${tool} migration is plan-only in this release (see docs/product/tool-migration-profiles.md).`);
     }
   } else {
     errors.push(WINDOWS_ONLY_ERROR);
@@ -291,7 +271,7 @@ export async function planToolDirMigration(args: {
     fileCount,
     warnings,
     errors,
-    planOnly: tool === 'docker-desktop',
+    planOnly: tool ? isToolMigrationPlanOnly(tool) : false,
   };
 }
 
@@ -317,7 +297,13 @@ export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly
     return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: ['Windows-only in v0.9.0.'] };
   }
   if (plan.planOnly) {
-    return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: ['This tool target is plan-only in v0.9.0.'] };
+    return {
+      ok: false,
+      source: plan.source,
+      dest: plan.dest,
+      warnings,
+      errors: ['This tool target is plan-only in this release (use Plan for guidance).'],
+    };
   }
 
   const sourceAbs = plan.source;

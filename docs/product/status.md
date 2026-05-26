@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.9.0` — [v0.9.0-manifest.md](v0.9.0-manifest.md) (rebuild installers if assets still show `0.8.5` in filenames)
+Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.9.0` (installers may show `0.8.5` — use **`v0.9.1`** next) · **Development head:** [v0.9.1-manifest.md](v0.9.1-manifest.md)
 
 ---
 
@@ -16,18 +16,17 @@ Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.9.0` — [v0.9.0-mani
 
 | Item | Location |
 |------|----------|
-| **Active** | Finish `v0.9.0` — secure directory migration (Windows); **manual QA + tag pending** · [v0.9.0-manifest.md](v0.9.0-manifest.md) |
-| **Queue** | USN-assisted discover (narrow walk) — research; no manifest yet |
+| **Active** | `v0.9.1` — migration profile expansion + correct release artifacts · [v0.9.1-manifest.md](v0.9.1-manifest.md) |
+| **Queue** | `v0.9.2` Docker run path; USN-assisted discover — research |
 
-### v0.9.0 progress (dev only until tagged)
+### v0.9.1 progress
 
 | Gate | State |
 |------|--------|
-| Rust + CLI + desktop UI | Implemented on `main` / dev build |
-| NTFS destination check | Done |
-| Docs | [migrate-tool-dir.md](../cli/migrate-tool-dir.md), [user-guide](../desktop/user-guide.md) |
-| **Your next step** | Manual Cursor migration test on `G:` (see manifest QA) |
-| **Production** | Tag `v0.9.0` only after QA + green CI |
+| Profile catalog (TS + Rust) | Done |
+| Claude Code / Codex / cursor-local / npm / pnpm profiles | Done (plan-only where noted) |
+| Version bump → `0.9.1` | Done in repo — **tag `v0.9.1` after QA** |
+| Installers | Must show `Deco_0.9.1_*` and footer **v0.9.1** |
 
 ### Version queue (summary)
 
@@ -37,7 +36,8 @@ Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.9.0` — [v0.9.0-mani
 | `v0.8.3` | Localization phase 2 + UX (History, Quarantine, pickers, modals) |
 | `v0.8.4` | README product demos |
 | `v0.8.5` | Windows USN / MFT inventory (experimental) |
-| `v0.9.0` | Secure tool directory migration (Windows) — **in progress** |
+| `v0.9.0` | Secure tool directory migration (Windows) — shipped (installer version mismatch; see v0.9.1) |
+| `v0.9.1` | More migration profiles + correct `0.9.1` installers — **in progress** |
 
 ## Quick commands
 

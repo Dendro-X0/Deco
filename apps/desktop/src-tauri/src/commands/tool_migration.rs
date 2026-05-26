@@ -28,7 +28,7 @@ fn resolve_plan(
         let plan_only = tool
             .as_deref()
             .and_then(|t| ToolId::parse(t).ok())
-            .map(|id| matches!(id, ToolId::DockerDesktop))
+            .map(|id| id.is_plan_only())
             .unwrap_or(false);
         return Ok(tool_migration::plan_paths(&wire, src, dst, include_size, plan_only));
     }

@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-25 · **Latest shipped:** `v0.9.0` — [v0.9.0-manifest.md](v0.9.0-manifest.md)
+**Last updated:** 2026-05-25 · **Latest shipped:** `v0.9.0` · **In development:** `v0.9.1` — [v0.9.1-manifest.md](v0.9.1-manifest.md)
 
 **Release model:** One feature set per version, in roadmap order. Desktop installers target **Windows, macOS, and Linux** from **`v0.8.0`** onward (see [v0.8.0-manifest.md](v0.8.0-manifest.md)).
 
@@ -242,7 +242,9 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 
 | Version | Scope | Status |
 |---------|--------|--------|
-| `v0.9.0` | Secure directory migration (Windows), CLI surface, Cursor/VS Code targets, Docker plan-only guidance | Planned — [v0.9.0-manifest.md](v0.9.0-manifest.md) |
+| `v0.9.0` | Secure directory migration (Windows), CLI surface, Cursor/VS Code targets, Docker plan-only guidance | Shipped — [v0.9.0-manifest.md](v0.9.0-manifest.md) |
+| `v0.9.1` | Profile registry; Claude Code, Codex CLI, cursor-local; npm/pnpm plan-only; installer version fix | In progress — [v0.9.1-manifest.md](v0.9.1-manifest.md) |
+| `v0.9.2+` | Docker run migration; multi-path agent bundles; JetBrains caches | Planned |
 
 | Item | Version | Notes |
 |------|---------|--------|

@@ -5,20 +5,32 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use walkdir::WalkDir;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ToolId {
     Cursor,
+    CursorLocal,
     Vscode,
+    ClaudeCode,
+    CodexCli,
+    ClaudeDesktop,
     DockerDesktop,
+    NpmCache,
+    PnpmStore,
 }
 
 impl ToolId {
     pub fn parse(s: &str) -> Result<Self, String> {
         match s.trim().to_lowercase().as_str() {
             "cursor" => Ok(Self::Cursor),
+            "cursor-local" => Ok(Self::CursorLocal),
             "vscode" => Ok(Self::Vscode),
+            "claude-code" => Ok(Self::ClaudeCode),
+            "codex-cli" => Ok(Self::CodexCli),
+            "claude-desktop" => Ok(Self::ClaudeDesktop),
             "docker-desktop" => Ok(Self::DockerDesktop),
+            "npm-cache" => Ok(Self::NpmCache),
+            "pnpm-store" => Ok(Self::PnpmStore),
             other => Err(format!("unknown tool id: {other}")),
         }
     }
@@ -26,9 +38,25 @@ impl ToolId {
     pub fn wire(&self) -> &'static str {
         match self {
             ToolId::Cursor => "cursor",
+            ToolId::CursorLocal => "cursor-local",
             ToolId::Vscode => "vscode",
+            ToolId::ClaudeCode => "claude-code",
+            ToolId::CodexCli => "codex-cli",
+            ToolId::ClaudeDesktop => "claude-desktop",
             ToolId::DockerDesktop => "docker-desktop",
+            ToolId::NpmCache => "npm-cache",
+            ToolId::PnpmStore => "pnpm-store",
         }
+    }
+
+    pub fn is_plan_only(self) -> bool {
+        matches!(
+            self,
+            ToolId::ClaudeDesktop
+                | ToolId::DockerDesktop
+                | ToolId::NpmCache
+                | ToolId::PnpmStore
+        )
     }
 }
 
@@ -74,16 +102,59 @@ fn is_under(child: &Path, parent: &Path) -> bool {
 }
 
 #[cfg(windows)]
+fn user_profile_dir() -> Option<PathBuf> {
+    std::env::var_os("USERPROFILE").map(PathBuf::from)
+}
+
+#[cfg(windows)]
 fn default_source(tool: &ToolId) -> Result<PathBuf, String> {
     let appdata = std::env::var("APPDATA").map_err(|_| "APPDATA is not set".to_string())?;
     let local = std::env::var("LOCALAPPDATA").ok();
+    let profile = user_profile_dir();
+
     let p = match tool {
         ToolId::Cursor => PathBuf::from(appdata).join("Cursor"),
+        ToolId::CursorLocal => {
+            let local = local.ok_or_else(|| "LOCALAPPDATA is not set".to_string())?;
+            PathBuf::from(local).join("Cursor")
+        }
         ToolId::Vscode => PathBuf::from(appdata).join("Code"),
-        // Docker Desktop storage is complex (WSL VHDX + ProgramData). This default is only guidance.
+        ToolId::ClaudeCode => {
+            let profile = profile.ok_or_else(|| "USERPROFILE is not set".to_string())?;
+            profile.join(".claude")
+        }
+        ToolId::CodexCli => {
+            if let Ok(home) = std::env::var("CODEX_HOME") {
+                let trimmed = home.trim();
+                if !trimmed.is_empty() {
+                    return Ok(PathBuf::from(trimmed));
+                }
+            }
+            let profile = profile.ok_or_else(|| "USERPROFILE is not set".to_string())?;
+            profile.join(".codex")
+        }
+        ToolId::ClaudeDesktop => PathBuf::from(appdata).join("Claude"),
         ToolId::DockerDesktop => {
             let local = local.ok_or_else(|| "LOCALAPPDATA is not set".to_string())?;
             PathBuf::from(local).join("Docker")
+        }
+        ToolId::NpmCache => {
+            if let Some(ref local) = local {
+                PathBuf::from(local).join("npm-cache")
+            } else if let Some(ref profile) = profile {
+                profile.join("AppData").join("Local").join("npm-cache")
+            } else {
+                return Err("Could not resolve npm cache path (LOCALAPPDATA / USERPROFILE).".to_string());
+            }
+        }
+        ToolId::PnpmStore => {
+            if let Some(ref local) = local {
+                PathBuf::from(local).join("pnpm").join("store")
+            } else if let Some(ref profile) = profile {
+                profile.join("AppData").join("Local").join("pnpm").join("store")
+            } else {
+                return Err("Could not resolve pnpm store path (LOCALAPPDATA / USERPROFILE).".to_string());
+            }
         }
     };
     Ok(p)
@@ -91,14 +162,20 @@ fn default_source(tool: &ToolId) -> Result<PathBuf, String> {
 
 #[cfg(not(windows))]
 fn default_source(_tool: &ToolId) -> Result<PathBuf, String> {
-    Err("Tool migration is Windows-only in v0.9.0.".to_string())
+    Err("Tool migration is Windows-only in v0.9.x.".to_string())
 }
 
 fn dest_leaf(tool: &ToolId) -> &'static str {
     match tool {
         ToolId::Cursor => "Cursor",
+        ToolId::CursorLocal => "Cursor-Local",
         ToolId::Vscode => "Code",
+        ToolId::ClaudeCode => "claude-code",
+        ToolId::CodexCli => "codex",
+        ToolId::ClaudeDesktop => "Claude-Desktop",
         ToolId::DockerDesktop => "Docker",
+        ToolId::NpmCache => "npm-cache",
+        ToolId::PnpmStore => "pnpm-store",
     }
 }
 
@@ -122,7 +199,7 @@ fn dest_requires_ntfs_error(dest: &Path) -> Option<String> {
 
 #[cfg(not(windows))]
 fn dest_requires_ntfs_error(_dest: &Path) -> Option<String> {
-    Some("Tool migration is Windows-only in v0.9.0.".to_string())
+    Some("Tool migration is Windows-only in v0.9.x.".to_string())
 }
 
 #[cfg(windows)]
@@ -202,7 +279,7 @@ fn estimate_tree(source: &Path) -> (Option<u64>, Option<u64>, Vec<String>) {
 }
 
 pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan {
-    let plan_only = matches!(tool, ToolId::DockerDesktop);
+    let plan_only = tool.is_plan_only();
     let source = match default_source(&tool) {
         Ok(p) => p,
         Err(e) => {
@@ -235,10 +312,10 @@ pub fn plan_paths(
     let mut errors: Vec<String> = Vec::new();
 
     if plan_only {
-        warnings.push(
-            "Docker Desktop migration is plan-only in v0.9.0 (WSL/VHDX safety constraints)."
-                .to_string(),
-        );
+        warnings.push(format!(
+            "{} migration is plan-only in this release (see docs/product/tool-migration-profiles.md).",
+            tool_wire
+        ));
     }
 
     if let Some(msg) = blocked_source(&source) {
