@@ -520,6 +520,27 @@
       "ntfsUsn": "Sonda del diario USN de NTFS (Windows)",
       "ntfsUsnDesc": "Cada escaneo añade advertencias que indican si el diario de cambios NTFS es legible en las unidades con letra de disco usadas por el escaneo. El descubrimiento sigue usando un recorrido completo de directorios. En macOS y Linux esta opción no tiene efecto."
     },
+    "toolMigration": {
+      "title": "Migración de almacenamiento de herramientas (Windows)",
+      "description": "Mueve directorios grandes de herramientas fuera del disco del sistema y deja una unión (junction) para que la herramienta siga funcionando. Planifica primero; para ejecutar, cierra la herramienta para evitar archivos bloqueados.",
+      "tool": "Herramienta",
+      "destRoot": "Raíz de destino",
+      "destRootPlaceholder": "D:\\DevToolData",
+      "plan": "Planificar",
+      "run": "Ejecutar migración",
+      "planSummary": "Resumen del plan",
+      "source": "Origen:",
+      "dest": "Destino:",
+      "size": "Tamaño estimado:",
+      "planOnly": "Esta herramienta es solo-plan (plan-only) en v0.9.0.",
+      "warnings": "Advertencias ({{count}})",
+      "errors": "Errores ({{count}})",
+      "doneOk": "Migración completada.",
+      "doneFail": "La migración falló.",
+      "audit": "Registro de auditoría:",
+      "backup": "Copia de seguridad:",
+      "unsupportedPlatform": "La migración de directorios de herramientas solo está disponible en Windows (unión NTFS). En macOS y Linux, use la CLI en Windows o espere una versión futura."
+    },
     "presets": {
       "cleanup": {
         "first_scan": {

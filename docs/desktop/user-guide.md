@@ -52,6 +52,7 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 | Include Python venv | High-risk; review tier |
 | Advanced Mode | Required for hard-delete (if exposed in your build) |
 | NTFS USN journal probe (Experimental, Windows) | Off by default. When on, scans prepend warnings about USN journal visibility on drive-letter volumes; discovery is still a full walk |
+| Tool storage migration (Windows) | Moves large tool directories (Cursor / VS Code) off the OS drive and leaves a junction behind so the tool keeps working |
 
 ### Policy pack gallery (Settings)
 
@@ -63,6 +64,21 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 6. **Apply policy pack**, then **Reveal in Explorer** if you want to open the `.deco` folder.
 
 Validate from CLI: `deco validate-policy examples/deco-policies/python-data-science`.
+
+### Tool storage migration (Windows, v0.9.0)
+
+Use this when `%APPDATA%` tool folders (e.g. **Cursor**) fill the OS drive. Migration **copies** data to another drive and leaves a **junction** at the original path so the tool keeps working.
+
+1. **Quit the tool** (Cursor / VS Code) — check Task Manager.
+2. Open **Settings** → **Tool storage migration (Windows)**.
+3. Choose tool **Cursor**, set destination root (e.g. `G:\DevToolData`), click **Plan**.
+4. Confirm destination is `G:\DevToolData\Cursor` and plan shows no errors.
+5. Click **Run migration** and wait for completion.
+6. Start the tool and verify settings, extensions, and chat history.
+
+CLI equivalent: [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
+
+**Production note:** This ships in **`v0.9.0`**; until that tag is published, use a **dev build** (`pnpm dev:desktop`).
 
 ## Manual QA before a release
 

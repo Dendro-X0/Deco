@@ -520,6 +520,27 @@
       "ntfsUsn": "NTFS USN journal probe (Windows)",
       "ntfsUsnDesc": "Each scan adds warnings that report whether the NTFS update journal is readable on drive-letter volumes used by the scan. Discovery still uses a full directory walk. On macOS and Linux this option has no effect."
     },
+    "toolMigration": {
+      "title": "Tool storage migration (Windows)",
+      "description": "Move large tool directories off your OS drive and leave a junction behind so the tool keeps working. Plan first; run requires closing the tool to avoid locked files.",
+      "tool": "Tool",
+      "destRoot": "Destination root",
+      "destRootPlaceholder": "D:\\DevToolData",
+      "plan": "Plan",
+      "run": "Run migration",
+      "planSummary": "Plan summary",
+      "source": "Source:",
+      "dest": "Dest:",
+      "size": "Estimated size:",
+      "planOnly": "This tool is plan-only in v0.9.0.",
+      "warnings": "Warnings ({{count}})",
+      "errors": "Errors ({{count}})",
+      "doneOk": "Migration completed.",
+      "doneFail": "Migration failed.",
+      "audit": "Audit log:",
+      "backup": "Backup:",
+      "unsupportedPlatform": "Tool directory migration is available on Windows only (NTFS junction). On macOS and Linux, use the CLI on a Windows machine or wait for a future release."
+    },
     "presets": {
       "cleanup": {
         "first_scan": {

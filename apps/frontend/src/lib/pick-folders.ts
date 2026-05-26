@@ -14,6 +14,15 @@ export async function pickQuarantineFolder(): Promise<string | null> {
   return paths?.[0] ?? null;
 }
 
+/** Single folder for tool migration destination root. */
+export async function pickToolMigrationRoot(): Promise<string | null> {
+  const paths = await pickFolders({
+    multiple: false,
+    title: 'Select destination root (e.g. D:\\DevToolData)',
+  });
+  return paths?.[0] ?? null;
+}
+
 async function pickFolders(opts: {
   multiple: boolean;
   title: string;

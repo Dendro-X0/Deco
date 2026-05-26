@@ -520,6 +520,27 @@
       "ntfsUsn": "NTFS USN 日志探测（Windows）",
       "ntfsUsnDesc": "每次扫描会添加警告，说明扫描涉及的盘符卷上 NTFS 更新日志是否可读。发现阶段仍使用完整目录遍历。在 macOS 和 Linux 上此选项无效。"
     },
+    "toolMigration": {
+      "title": "工具存储迁移（Windows）",
+      "description": "将大型工具目录从系统盘迁移到其他盘符，并在原位置保留连接点（junction）以保持工具正常工作。先计划；运行前请关闭工具以避免文件占用。",
+      "tool": "工具",
+      "destRoot": "目标根目录",
+      "destRootPlaceholder": "D:\\DevToolData",
+      "plan": "计划",
+      "run": "执行迁移",
+      "planSummary": "计划摘要",
+      "source": "源：",
+      "dest": "目标：",
+      "size": "估算大小：",
+      "planOnly": "该工具在 v0.9.0 中仅支持计划（plan-only）。",
+      "warnings": "警告（{{count}}）",
+      "errors": "错误（{{count}}）",
+      "doneOk": "迁移完成。",
+      "doneFail": "迁移失败。",
+      "audit": "审计日志：",
+      "backup": "备份：",
+      "unsupportedPlatform": "工具目录迁移仅适用于 Windows（NTFS 连接点）。在 macOS 和 Linux 上请使用 Windows 上的 CLI，或等待后续版本。"
+    },
     "presets": {
       "cleanup": {
         "first_scan": {

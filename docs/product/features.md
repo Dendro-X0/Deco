@@ -28,6 +28,7 @@ Current implementation progress and handoff details: [status.md](status.md).
 - Free-space planner (`Free X GB`) with safe-first selection and optional review inclusion.
 - **Workspace summary** card on the dashboard (monorepos with 2+ projects) — reclaim totals per detected project root with safe/review/blocked subtotals; checkbox per workspace selects that project’s safe-tier rows only (no double-counting).
 - Results table **Group by project** — collapsible project sections (same grouping as workspace rollups).
+- **Tool storage migration (Windows, v0.9.0 dev)** — Settings UI + CLI to move tool directories (e.g. Cursor) off the OS drive with a junction left at the original path; see [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
 
 ## Safety
 
@@ -50,6 +51,7 @@ Current implementation progress and handoff details: [status.md](status.md).
   - `restore_quarantine_bulk`
   - `list_quarantine_filtered`
   - `plan_free_space`
+  - `migrate_tool_dir_plan` / `migrate_tool_dir_run` (Windows)
 
 ## Distribution
 

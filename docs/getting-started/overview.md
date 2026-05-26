@@ -26,6 +26,12 @@ Details: [Safety model](../product/safety.md), [PROJECT.md](../../PROJECT.md).
 - An automatic cleaner for `Documents`, `Downloads`, or user media.
 - A Docker/image pruning tool (out of scope unless framed separately later).
 
+## Docker note (migration vs pruning)
+
+Deco does **not** aim to compete with Docker’s own cleanup commands for pruning images/volumes.
+
+However, **directory migration** for tool storage (moving large tool-managed folders off `C:` and leaving a junction/symlink behind) is a separate, bounded feature. It can help when Docker Desktop and WSL-related storage grows on the OS drive, even if “prune images” remains out of scope.
+
 ## Next steps
 
 - [Install](install.md) from GitHub Releases

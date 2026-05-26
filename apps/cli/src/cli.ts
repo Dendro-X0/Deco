@@ -33,6 +33,7 @@ import { createPathPolicy } from './path-policy.js';
 import { classifyTargets } from './classifier.js';
 import { deleteCandidates, type DeleteExecutionResult } from './delete.js';
 import { purgeQuarantine, restoreFromQuarantine } from './quarantine.js';
+import { planToolDirMigration, runToolDirMigration, type MigrateToolId } from './migrate-tool-dir.js';
 import type {
   CleanupCandidate,
   CleanupMode,
@@ -547,6 +548,145 @@ export function formatBytes(bytes: number): string {
   return `${value.toFixed(2)} ${units[idx]}`;
 }
 
+function isValidMigrateTool(value: string): value is MigrateToolId {
+  return value === 'cursor' || value === 'vscode' || value === 'docker-desktop';
+}
+
+async function runMigrateToolDirCommand(argv: readonly string[]): Promise<void> {
+  const sub = argv[1];
+  const rest = argv.slice(2);
+
+  if (!sub || (sub !== 'plan' && sub !== 'run') || rest.includes('--help') || rest.includes('-h')) {
+    process.stdout.write(
+      [
+        'deco migrate-tool-dir',
+        '',
+        'Usage:',
+        '  deco migrate-tool-dir plan --tool cursor --dest-root "D:/DevToolData" [--json]',
+        '  deco migrate-tool-dir run  --tool cursor --dest-root "D:/DevToolData" --yes [--json]',
+        '  deco migrate-tool-dir plan --source <path> --dest <path> [--json]',
+        '',
+        'Options:',
+        '  --tool <id>        cursor|vscode|docker-desktop',
+        '  --source <path>    Explicit source directory (advanced/custom)',
+        '  --dest <path>      Explicit destination directory (advanced/custom)',
+        '  --dest-root <path> Destination root; tool leaf folder is appended',
+        '  --no-size          Skip size estimate (faster)',
+        '  --copy-only        Copy to destination but do not replace source with junction',
+        '  --yes              Required for run mode (destructive rename + junction)',
+        '  --json             Emit JSON plan/result',
+      ].join('\n') + '\n'
+    );
+    if (!sub) process.exitCode = 1;
+    return;
+  }
+
+  let tool: MigrateToolId | undefined;
+  let source: string | undefined;
+  let dest: string | undefined;
+  let destRoot: string | undefined;
+  let includeSize = true;
+  let json = false;
+  let yes = false;
+  let copyOnly = false;
+
+  for (let i = 0; i < rest.length; i += 1) {
+    const arg = rest[i];
+    if (arg === '--tool') {
+      const next = rest[i + 1];
+      if (!next || !isValidMigrateTool(next)) throw new Error('Invalid --tool. Use cursor|vscode|docker-desktop');
+      tool = next;
+      i += 1;
+      continue;
+    }
+    if (arg === '--source') {
+      const next = rest[i + 1];
+      if (!next) throw new Error('Missing value for --source');
+      source = next;
+      i += 1;
+      continue;
+    }
+    if (arg === '--dest') {
+      const next = rest[i + 1];
+      if (!next) throw new Error('Missing value for --dest');
+      dest = next;
+      i += 1;
+      continue;
+    }
+    if (arg === '--dest-root') {
+      const next = rest[i + 1];
+      if (!next) throw new Error('Missing value for --dest-root');
+      destRoot = next;
+      i += 1;
+      continue;
+    }
+    if (arg === '--no-size') {
+      includeSize = false;
+      continue;
+    }
+    if (arg === '--json') {
+      json = true;
+      continue;
+    }
+    if (arg === '--yes') {
+      yes = true;
+      continue;
+    }
+    if (arg === '--copy-only') {
+      copyOnly = true;
+      continue;
+    }
+    throw new Error(`Unknown migrate-tool-dir argument: ${arg}`);
+  }
+
+  const plan = await planToolDirMigration({ tool, source, dest, destRoot, includeSize });
+
+  if (sub === 'plan') {
+    if (json) {
+      process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
+    } else {
+      process.stdout.write(`Source: ${plan.source}\n`);
+      process.stdout.write(`Dest:   ${plan.dest}\n`);
+      if (plan.bytes !== undefined) process.stdout.write(`Size:   ${formatBytes(plan.bytes)}\n`);
+      if (plan.fileCount !== undefined) process.stdout.write(`Files:  ${plan.fileCount}\n`);
+      if (plan.planOnly) process.stdout.write('Note: This tool target is plan-only in v0.9.0.\n');
+      if (plan.warnings.length > 0) {
+        process.stdout.write(`Warnings (${plan.warnings.length}):\n`);
+        for (const w of plan.warnings) process.stdout.write(`  ! ${w}\n`);
+      }
+      if (plan.errors.length > 0) {
+        process.stdout.write(`Errors (${plan.errors.length}):\n`);
+        for (const e of plan.errors) process.stdout.write(`  x ${e}\n`);
+        process.exitCode = 1;
+      }
+    }
+    return;
+  }
+
+  if (!yes) {
+    throw new Error('Refusing to run migration without --yes');
+  }
+
+  const result = await runToolDirMigration(plan, { copyOnly });
+  if (json) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } else {
+    process.stdout.write(result.ok ? 'Migration succeeded.\n' : 'Migration failed.\n');
+    process.stdout.write(`Source: ${result.source}\n`);
+    process.stdout.write(`Dest:   ${result.dest}\n`);
+    if (result.auditLogPath) process.stdout.write(`Audit:  ${result.auditLogPath}\n`);
+    if (result.warnings.length > 0) {
+      process.stdout.write(`Warnings (${result.warnings.length}):\n`);
+      for (const w of result.warnings) process.stdout.write(`  ! ${w}\n`);
+    }
+    if (result.errors.length > 0) {
+      process.stdout.write(`Errors (${result.errors.length}):\n`);
+      for (const e of result.errors) process.stdout.write(`  x ${e}\n`);
+    }
+  }
+  if (!result.ok) process.exitCode = 1;
+}
+
 async function discoverGoCachesIfEnabled(options: CliOptions): Promise<DiscoveredTarget[]> {
   if (!options.checkGoCache) return [];
   const discovered: DiscoveredTarget[] = [];
@@ -722,6 +862,8 @@ function getUsageText(): string {
     '  deco --profile safe --delete-mode quarantine',
     '  deco --restore <id>',
     '  deco --purge-quarantine --yes',
+    '  deco migrate-tool-dir plan --tool cursor --dest-root "D:/DevToolData" [--json]',
+    '  deco migrate-tool-dir run  --tool cursor --dest-root "D:/DevToolData" --yes [--json]',
     '  deco validate-policy <path>   Validate .deco/disk-cleanup.json policy pack',
     '  deco --help',
     '  deco --version',
@@ -890,6 +1032,10 @@ async function main(): Promise<void> {
     const argv = process.argv.slice(2);
     if (argv[0] === 'validate-policy') {
       await runValidatePolicyCommand(argv);
+      return;
+    }
+    if (argv[0] === 'migrate-tool-dir') {
+      await runMigrateToolDirCommand(argv);
       return;
     }
     if (argv.includes('--help') || argv.includes('-h')) {

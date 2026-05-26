@@ -27,6 +27,10 @@ deco --check-go-cache --include-review --dry-run --root .
 # Restore / purge quarantine
 deco --restore <quarantine-id> --root .
 deco --purge-quarantine --yes --root .
+
+# Migrate large tool directories off C: (Windows)
+deco migrate-tool-dir plan --tool cursor --dest-root "D:/DevToolData"
+deco migrate-tool-dir run  --tool cursor --dest-root "D:/DevToolData" --yes
 ```
 
 ## Ecosystem flags (M7+)
@@ -54,6 +58,7 @@ pnpm -F @dendro-x0/deco-cli test
 ```
 
 See [Configuration](configuration.md) for repo-level JSON policy.
+See [Migrate tool directories](migrate-tool-dir.md) for the Windows junction-based migration flow.
 
 ## CI automation
 

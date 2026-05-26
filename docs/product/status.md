@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.5` · **Focus:** maintenance hiatus — see [version-roadmap.md](version-roadmap.md)
+Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.8.5` · **Development head:** `v0.9.0` (not tagged) — [v0.9.0-manifest.md](v0.9.0-manifest.md)
 
 ---
 
@@ -16,8 +16,18 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.5` · **Focus:** ma
 
 | Item | Location |
 |------|----------|
-| **Active** | Maintenance / hiatus — [v0.8.5-manifest.md](v0.8.5-manifest.md) shipped (USN probe); next work TBD on [version-roadmap.md](version-roadmap.md) |
+| **Active** | Finish `v0.9.0` — secure directory migration (Windows); **manual QA + tag pending** · [v0.9.0-manifest.md](v0.9.0-manifest.md) |
 | **Queue** | USN-assisted discover (narrow walk) — research; no manifest yet |
+
+### v0.9.0 progress (dev only until tagged)
+
+| Gate | State |
+|------|--------|
+| Rust + CLI + desktop UI | Implemented on `main` / dev build |
+| NTFS destination check | Done |
+| Docs | [migrate-tool-dir.md](../cli/migrate-tool-dir.md), [user-guide](../desktop/user-guide.md) |
+| **Your next step** | Manual Cursor migration test on `G:` (see manifest QA) |
+| **Production** | Tag `v0.9.0` only after QA + green CI |
 
 ### Version queue (summary)
 
@@ -27,6 +37,7 @@ Last updated: 2026-05-19 · **Latest GitHub Release:** `v0.8.5` · **Focus:** ma
 | `v0.8.3` | Localization phase 2 + UX (History, Quarantine, pickers, modals) |
 | `v0.8.4` | README product demos |
 | `v0.8.5` | Windows USN / MFT inventory (experimental) |
+| `v0.9.0` | Secure tool directory migration (Windows) — **in progress** |
 
 ## Quick commands
 
