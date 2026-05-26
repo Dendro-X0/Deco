@@ -1,6 +1,7 @@
 use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(windows)]
 use std::process::Command;
 use walkdir::WalkDir;
 
@@ -148,25 +149,28 @@ fn read_volume_filesystem_name(mount: &str) -> Result<String, String> {
     Ok(String::from_utf16_lossy(&fs_buf[..len]))
 }
 
+#[cfg(windows)]
 fn blocked_source(source: &Path) -> Option<String> {
-    #[cfg(windows)]
-    {
-        let s = source.to_string_lossy().to_lowercase();
-        let roots = [
-            std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".to_string()),
-            std::env::var("ProgramFiles").unwrap_or_else(|_| "C:\\Program Files".to_string()),
-            std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| "C:\\Program Files (x86)".to_string()),
-            std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string()),
-        ]
-        .map(|p| p.to_lowercase());
-        if roots.iter().any(|p| s == *p) {
-            return Some("Refusing to migrate a protected root directory.".to_string());
-        }
-        // Refuse drive roots like C:\
-        if s.len() <= 3 && s.ends_with(":\\") {
-            return Some("Refusing to migrate a drive root.".to_string());
-        }
+    let s = source.to_string_lossy().to_lowercase();
+    let roots = [
+        std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".to_string()),
+        std::env::var("ProgramFiles").unwrap_or_else(|_| "C:\\Program Files".to_string()),
+        std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| "C:\\Program Files (x86)".to_string()),
+        std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string()),
+    ]
+    .map(|p| p.to_lowercase());
+    if roots.iter().any(|p| s == *p) {
+        return Some("Refusing to migrate a protected root directory.".to_string());
     }
+    // Refuse drive roots like C:\
+    if s.len() <= 3 && s.ends_with(":\\") {
+        return Some("Refusing to migrate a drive root.".to_string());
+    }
+    None
+}
+
+#[cfg(not(windows))]
+fn blocked_source(_source: &Path) -> Option<String> {
     None
 }
 
@@ -501,6 +505,7 @@ mod tests {
         assert!(!is_under(&parent, &child));
     }
 
+    #[cfg(windows)]
     #[test]
     fn blocked_source_rejects_drive_root() {
         let root = PathBuf::from(r"C:\");
