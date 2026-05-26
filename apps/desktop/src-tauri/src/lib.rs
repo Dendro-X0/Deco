@@ -49,6 +49,9 @@ pub fn run() {
                 settings: Mutex::new(Settings::default()),
             }));
 
+            #[cfg(windows)]
+            std::thread::spawn(util::windows_shortcuts::prune_stale_deco_desktop_shortcuts);
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -566,6 +566,9 @@ async function runMigrateToolDirCommand(argv: readonly string[]): Promise<void> 
       [
         'deco migrate-tool-dir',
         '',
+        'Experimental — not guaranteed. Desktop app uses a manual guide instead of Run migration.',
+        'See docs/desktop/ide-storage-off-os-drive.md',
+        '',
         'Usage:',
         '  deco migrate-tool-dir plan --tool cursor --dest-root "D:/DevToolData" [--json]',
         '  deco migrate-tool-dir run  --tool cursor --dest-root "D:/DevToolData" --yes [--json]',

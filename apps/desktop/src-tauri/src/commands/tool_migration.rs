@@ -42,18 +42,23 @@ fn resolve_plan(
 }
 
 #[tauri::command]
-pub fn migrate_tool_dir_plan(
+pub async fn migrate_tool_dir_plan(
     tool: Option<String>,
     dest_root: Option<String>,
     source: Option<String>,
     dest: Option<String>,
     include_size: Option<bool>,
 ) -> Result<MigrationPlan, String> {
-    resolve_plan(tool, dest_root, source, dest, include_size.unwrap_or(true))
+    let include_size = include_size.unwrap_or(true);
+    tauri::async_runtime::spawn_blocking(move || {
+        resolve_plan(tool, dest_root, source, dest, include_size)
+    })
+    .await
+    .map_err(|e| format!("migration plan task failed: {e}"))?
 }
 
 #[tauri::command]
-pub fn migrate_tool_dir_run(
+pub async fn migrate_tool_dir_run(
     tool: Option<String>,
     dest_root: Option<String>,
     source: Option<String>,
@@ -61,21 +66,17 @@ pub fn migrate_tool_dir_run(
     copy_only: Option<bool>,
     app: AppHandle,
 ) -> Result<MigrationResult, String> {
-    let plan = resolve_plan(
-        tool,
-        dest_root,
-        source,
-        dest,
-        false,
-    )?;
+    let copy_only = copy_only.unwrap_or(false);
     let data_dir = app
         .path()
         .app_data_dir()
         .map_err(|e| format!("failed resolving app data dir: {e}"))?;
     let audit_dir = data_dir.join("migrations");
-    Ok(tool_migration::run_from_plan(
-        plan,
-        copy_only.unwrap_or(false),
-        &audit_dir,
-    ))
+
+    tauri::async_runtime::spawn_blocking(move || -> Result<MigrationResult, String> {
+        let plan = resolve_plan(tool, dest_root, source, dest, false)?;
+        Ok(tool_migration::run_from_plan(plan, copy_only, &audit_dir))
+    })
+    .await
+    .map_err(|e| format!("migration run task failed: {e}"))?
 }

@@ -51,7 +51,8 @@ Current implementation progress and handoff details: [status.md](status.md).
   - `restore_quarantine_bulk`
   - `list_quarantine_filtered`
   - `plan_free_space`
-  - `migrate_tool_dir_plan` / `migrate_tool_dir_run` (Windows)
+  - Settings → **IDE storage off OS drive** (manual guide; automated migration removed from UI)
+  - `migrate_tool_dir_plan` / `migrate_tool_dir_run` (Windows, experimental CLI/backend only)
 
 ## Distribution
 

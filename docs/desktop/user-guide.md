@@ -52,7 +52,7 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 | Include Python venv | High-risk; review tier |
 | Advanced Mode | Required for hard-delete (if exposed in your build) |
 | NTFS USN journal probe (Experimental, Windows) | Off by default. When on, scans prepend warnings about USN journal visibility on drive-letter volumes; discovery is still a full walk |
-| Tool storage migration (Windows) | Moves large tool directories (Cursor / VS Code) off the OS drive and leaves a junction behind so the tool keeps working |
+| IDE data on the OS drive | Manual guide (junction procedure, not guaranteed). Automated migration removed from Settings |
 
 ### Policy pack gallery (Settings)
 
@@ -65,25 +65,15 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 
 Validate from CLI: `deco validate-policy examples/deco-policies/python-data-science`.
 
-### Tool storage migration (Windows, v0.9.1)
+### IDE data on the OS drive (manual guide)
 
-Use this when `%APPDATA%` / `%LOCALAPPDATA%` tool folders (e.g. **Cursor**) fill the OS drive. Migration **copies** data to another drive and leaves a **junction** at the original path so the tool keeps working.
+When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small **C:** volume, use **Settings → IDE data on the OS drive** for an in-app summary and link to the full guide:
 
-1. **Quit the tool** (Cursor / VS Code) — check Task Manager and the tray icon.
-2. Open **Settings** → **Tool storage migration (Windows)**.
-3. Choose **Cursor (Roaming + Local)**, set destination root (e.g. `G:\DevToolData`), click **Plan**.
-4. Confirm both legs in the plan summary:
-   - Roaming → `G:\DevToolData\Cursor` (settings, extensions, chat)
-   - Local → `G:\DevToolData\Cursor-Local` (caches; skipped if that folder does not exist yet)
-5. Click **Run migration** and wait for completion.
-6. Start Cursor and verify settings, extensions, and chat history.
+[ide-storage-off-os-drive.md](ide-storage-off-os-drive.md)
 
-CLI equivalent: [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
+Deco **does not** run one-click migration from the desktop app. Relocation requires a careful manual procedure (copy, backup rename, `mklink /J` on NTFS). npm, pnpm, and Docker are easier to move because those tools expose configurable paths.
 
-```bash
-deco migrate-tool-dir plan --tool cursor --dest-root "G:\DevToolData"
-deco migrate-tool-dir run  --tool cursor --dest-root "G:\DevToolData" --yes
-```
+The CLI command `deco migrate-tool-dir` remains for power users but is **experimental and not guaranteed** — see [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
 
 ## Manual QA before a release
 

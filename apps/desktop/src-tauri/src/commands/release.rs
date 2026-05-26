@@ -278,7 +278,13 @@ fn launch_installer_on_linux(path: &Path, kind: InstallerKind) -> Result<(), Str
 #[cfg(windows)]
 fn launch_windows_msi(path: &Path) -> Result<(), String> {
     Command::new("msiexec.exe")
-        .args(["/i", &path.to_string_lossy()])
+        .args([
+            "/i",
+            &path.to_string_lossy(),
+            "/passive",
+            "REINSTALL=ALL",
+            "REINSTALLMODE=vomus",
+        ])
         .spawn()
         .map_err(|e| format!("Could not start MSI installer: {e}"))?;
     Ok(())

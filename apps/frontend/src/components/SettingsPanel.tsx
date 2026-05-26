@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { resolveAppPlatform } from '@/lib/app-update';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,14 +26,12 @@ import {
   settingsDiscardDisabledReason,
   settingsSaveDisabledReason,
 } from '@/lib/disabled-reasons';
-import { pickQuarantineFolder, pickToolMigrationRoot } from '@/lib/pick-folders';
-import { TOOL_MIGRATION_UI_PROFILES, type ToolMigrationUiId } from '@/lib/tool-migration-profiles';
+import { pickQuarantineFolder } from '@/lib/pick-folders';
 import {
   isWindowsSystemDrivePath,
   quarantineStorageSummary,
 } from '@/lib/quarantine-storage';
 import { normalizeSettings } from '@/lib/settings-normalize';
-import { formatBytes } from '@/lib/format';
 import {
   CLEANUP_PROFILE_PRESETS,
   applyCleanupProfilePreset,
@@ -52,6 +48,7 @@ import type { Settings } from '@/types';
 import { CheckForUpdatesSection } from '@/components/CheckForUpdatesSection';
 import { PolicyPackSection } from '@/components/PolicyPackSection';
 import { UiLocaleSection } from '@/components/UiLocaleSection';
+import { IdeStorageGuideSection } from '@/components/IdeStorageGuideSection';
 import { useI18n } from '@/i18n';
 import {
   cleanupProfileDescription,
@@ -66,51 +63,6 @@ type Props = {
   onSave: (settings: Settings) => Promise<void>;
   onDiscard: () => void;
   onError?: (message: string) => void;
-};
-
-type ToolMigrationPlanLeg = {
-  leg: string;
-  source: string;
-  dest: string;
-  bytes?: number;
-  file_count?: number;
-  skipped: boolean;
-  skip_reason?: string;
-};
-
-type ToolMigrationPlan = {
-  ok: boolean;
-  tool: string;
-  source: string;
-  dest: string;
-  bytes?: number;
-  file_count?: number;
-  warnings: string[];
-  errors: string[];
-  plan_only: boolean;
-  legs?: ToolMigrationPlanLeg[];
-  running_processes?: string[];
-};
-
-type ToolMigrationResultLeg = {
-  leg: string;
-  ok: boolean;
-  source: string;
-  dest: string;
-  backup_path?: string;
-  skipped?: boolean;
-};
-
-type ToolMigrationResult = {
-  ok: boolean;
-  tool: string;
-  source: string;
-  dest: string;
-  audit_log_path?: string;
-  backup_path?: string;
-  warnings: string[];
-  errors: string[];
-  legs?: ToolMigrationResultLeg[];
 };
 
 function SettingsSection({
@@ -173,17 +125,6 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [pickingQuarantine, setPickingQuarantine] = useState(false);
-  const [migrationTool, setMigrationTool] = useState<ToolMigrationUiId>('cursor');
-  const [migrationDestRoot, setMigrationDestRoot] = useState('');
-  const [migrationPlanning, setMigrationPlanning] = useState(false);
-  const [migrationRunning, setMigrationRunning] = useState(false);
-  const [migrationPlan, setMigrationPlan] = useState<ToolMigrationPlan | null>(null);
-  const [migrationResult, setMigrationResult] = useState<ToolMigrationResult | null>(null);
-  const [migrationSupported, setMigrationSupported] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    void resolveAppPlatform().then((p) => setMigrationSupported(p.os === 'windows'));
-  }, []);
 
   const saved = useMemo(
     () => (settings ? normalizeSettings(settings) : null),
@@ -234,69 +175,6 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
       await onSave(payload);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const planMigration = async () => {
-    const destRoot = migrationDestRoot.trim();
-    if (!destRoot) {
-      if (onError) onError(t('settings.toolMigration.destRootRequired'));
-      return;
-    }
-    setMigrationPlanning(true);
-    setMigrationResult(null);
-    try {
-      const plan = (await invoke('migrate_tool_dir_plan', {
-        tool: migrationTool,
-        destRoot,
-        includeSize: true,
-      })) as ToolMigrationPlan;
-      setMigrationPlan(plan);
-      if (!plan.ok && onError) onError(plan.errors?.[0] ?? 'Migration plan failed.');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (onError) onError(msg);
-    } finally {
-      setMigrationPlanning(false);
-    }
-  };
-
-  const runMigration = async () => {
-    if (!migrationPlan?.ok || migrationPlan.plan_only) return;
-    const running = migrationPlan.running_processes ?? [];
-    if (running.length > 0) {
-      if (onError) {
-        onError(
-          t('settings.toolMigration.processesRunningDetail', {
-            processes: running.join(', '),
-          }),
-        );
-      }
-      return;
-    }
-    const bundleNote =
-      migrationPlan.legs && migrationPlan.legs.length > 1
-        ? '\n\nThis profile migrates multiple folders (e.g. Roaming + Local). Each leg runs in order.'
-        : '';
-    const confirmed = window.confirm(
-      `This will copy data to the destination, rename the original folder as a backup, and create a directory junction.${bundleNote}\n\nClose the tool first (Cursor/VS Code) to avoid locked files.\n\nProceed?`,
-    );
-    if (!confirmed) return;
-    setMigrationRunning(true);
-    try {
-      const destRoot = migrationDestRoot.trim();
-      const result = (await invoke('migrate_tool_dir_run', {
-        tool: migrationTool,
-        destRoot,
-        copyOnly: false,
-      })) as ToolMigrationResult;
-      setMigrationResult(result);
-      if (!result.ok && onError) onError(result.errors?.[0] ?? 'Migration failed.');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (onError) onError(msg);
-    } finally {
-      setMigrationRunning(false);
     }
   };
 
@@ -762,206 +640,7 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
 
         <Separator />
 
-        {migrationSupported === false ? (
-          <SettingsSection
-            title={t('settings.toolMigration.title')}
-            description={t('settings.toolMigration.unsupportedPlatform')}
-          />
-        ) : null}
-
-        {migrationSupported !== false ? (
-        <SettingsSection
-          title={t('settings.toolMigration.title')}
-          description={t('settings.toolMigration.description')}
-        >
-          <div className="space-y-3 rounded-lg border border-border/40 bg-muted/10 p-4 max-w-2xl">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  {t('settings.toolMigration.tool')}
-                </label>
-                <Select
-                  value={migrationTool}
-                  onValueChange={(v) => setMigrationTool(v as typeof migrationTool)}
-                  disabled={scanning || saving || migrationPlanning || migrationRunning}
-                >
-                  <SelectTrigger className="bg-background/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TOOL_MIGRATION_UI_PROFILES.map((profile) => (
-                      <SelectItem key={profile.id} value={profile.id}>
-                        {profile.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  {t('settings.toolMigration.destRoot')}
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    value={migrationDestRoot}
-                    onChange={(e) => setMigrationDestRoot(e.target.value)}
-                    placeholder={t('settings.toolMigration.destRootPlaceholder')}
-                    className="font-mono text-sm flex-1"
-                    disabled={scanning || saving || migrationPlanning || migrationRunning}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="shrink-0"
-                    disabled={scanning || saving || migrationPlanning || migrationRunning}
-                    onClick={() => {
-                      void (async () => {
-                        const picked = await pickToolMigrationRoot();
-                        if (picked) setMigrationDestRoot(picked);
-                      })();
-                    }}
-                  >
-                    {t('settings.safety.browse')}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={
-                  scanning ||
-                  saving ||
-                  migrationPlanning ||
-                  migrationRunning ||
-                  migrationDestRoot.trim().length === 0
-                }
-                onClick={() => void planMigration()}
-              >
-                {migrationPlanning ? t('common.loading') : t('settings.toolMigration.plan')}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={
-                  scanning ||
-                  saving ||
-                  migrationPlanning ||
-                  migrationRunning ||
-                  !migrationPlan?.ok ||
-                  migrationPlan.plan_only ||
-                  (migrationPlan.running_processes?.length ?? 0) > 0
-                }
-                onClick={() => void runMigration()}
-              >
-                {migrationRunning ? t('common.loading') : t('settings.toolMigration.run')}
-              </Button>
-            </div>
-
-            {migrationPlan ? (
-              <div className="space-y-2 text-xs">
-                <p className="font-semibold">{t('settings.toolMigration.planSummary')}</p>
-                {migrationPlan.legs && migrationPlan.legs.length > 0 ? (
-                  <ul className="space-y-2 list-none pl-0">
-                    {migrationPlan.legs.map((leg) => (
-                      <li key={leg.leg} className="rounded border border-border/40 p-2 space-y-1">
-                        <p className="font-semibold capitalize">{leg.leg}</p>
-                        {leg.skipped ? (
-                          <p className="text-muted-foreground">{leg.skip_reason ?? t('settings.toolMigration.legSkipped')}</p>
-                        ) : (
-                          <>
-                            <p>
-                              <span className="text-muted-foreground">{t('settings.toolMigration.source')}</span>{' '}
-                              <span className="font-mono break-all">{leg.source}</span>
-                            </p>
-                            <p>
-                              <span className="text-muted-foreground">{t('settings.toolMigration.dest')}</span>{' '}
-                              <span className="font-mono break-all">{leg.dest}</span>
-                            </p>
-                            {leg.bytes != null ? (
-                              <p>
-                                <span className="text-muted-foreground">{t('settings.toolMigration.size')}</span>{' '}
-                                <span className="font-mono">{formatBytes(leg.bytes)}</span>
-                              </p>
-                            ) : null}
-                          </>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <>
-                    <p>
-                      <span className="text-muted-foreground">{t('settings.toolMigration.source')}</span>{' '}
-                      <span className="font-mono break-all">{migrationPlan.source}</span>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">{t('settings.toolMigration.dest')}</span>{' '}
-                      <span className="font-mono break-all">{migrationPlan.dest}</span>
-                    </p>
-                  </>
-                )}
-                {migrationPlan.bytes != null ? (
-                  <p>
-                    <span className="text-muted-foreground">{t('settings.toolMigration.totalSize')}</span>{' '}
-                    <span className="font-mono">{formatBytes(migrationPlan.bytes)}</span>
-                  </p>
-                ) : null}
-                {migrationPlan.plan_only ? (
-                  <p className="text-amber-600/90">{t('settings.toolMigration.planOnly')}</p>
-                ) : null}
-                {(migrationPlan.running_processes?.length ?? 0) > 0 ? (
-                  <div className="rounded border border-amber-500/40 bg-amber-500/10 p-2 space-y-1 text-amber-600/95">
-                    <p className="font-semibold">{t('settings.toolMigration.processesRunning')}</p>
-                    <p>{t('settings.toolMigration.processesRunningDetail', { processes: migrationPlan.running_processes!.join(', ') })}</p>
-                  </div>
-                ) : null}
-                {migrationPlan.warnings?.length ? (
-                  <div className="space-y-1 text-amber-600/90">
-                    <p className="font-semibold">
-                      {t('settings.toolMigration.warnings', { count: migrationPlan.warnings.length })}
-                    </p>
-                    <ul className="list-disc pl-4 space-y-0.5">
-                      {migrationPlan.warnings.map((warning, index) => (
-                        <li key={`${index}-${warning.slice(0, 24)}`}>{warning}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-                {migrationPlan.errors?.length ? (
-                  <p className="text-destructive">
-                    {t('settings.toolMigration.errors', { count: migrationPlan.errors.length })}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {migrationResult ? (
-              <div className="space-y-2 text-xs">
-                <p className="font-semibold">
-                  {migrationResult.ok ? t('settings.toolMigration.doneOk') : t('settings.toolMigration.doneFail')}
-                </p>
-                {migrationResult.audit_log_path ? (
-                  <p>
-                    <span className="text-muted-foreground">{t('settings.toolMigration.audit')}</span>{' '}
-                    <span className="font-mono break-all">{migrationResult.audit_log_path}</span>
-                  </p>
-                ) : null}
-                {migrationResult.backup_path ? (
-                  <p className="text-amber-600/90">
-                    <span className="text-muted-foreground">{t('settings.toolMigration.backup')}</span>{' '}
-                    <span className="font-mono break-all">{migrationResult.backup_path}</span>
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </SettingsSection>
-        ) : null}
+        <IdeStorageGuideSection />
 
         <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-border/40">
           <DisabledActionHint reason={discardReason}>

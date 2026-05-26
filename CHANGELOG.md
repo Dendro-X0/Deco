@@ -4,6 +4,18 @@
 
 Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
 
+### Changed
+
+- **IDE storage guide replaces automated migration in Settings** — Plan/Run UI removed; in-app manual guide for moving Cursor/VS Code data off the OS drive (not guaranteed). See [ide-storage-off-os-drive.md](docs/desktop/ide-storage-off-os-drive.md).
+
+### Added
+
+- **Windows shortcut cleanup** — on startup and in the NSIS installer hook, stale `Deco*.lnk` desktop shortcuts are removed before the installer recreates the canonical shortcut (fixes duplicate icons after in-app updates).
+
+### Fixed
+
+- **Cross-volume junction verify** — CLI/desktop migration helper no longer calls `canonicalize` on the junction path (avoids Windows error 448 when Roaming on `C:` points at data on `G:`).
+
 ## [0.9.1] - (in progress)
 
 See [v0.9.1-manifest.md](docs/product/v0.9.1-manifest.md).

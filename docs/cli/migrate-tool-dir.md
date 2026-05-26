@@ -1,8 +1,10 @@
 ## Migrate tool directories (Windows)
 
-Deco can migrate certain large, high-churn tool directories off a constrained OS drive (usually `C:`) onto another drive (e.g. `D:`), while leaving behind a **directory junction** so the tool still works at its original path.
+> **Experimental — not a supported product guarantee.** The desktop app no longer offers Plan/Run migration. Use the [manual IDE storage guide](../desktop/ide-storage-off-os-drive.md) for Cursor, VS Code, and similar tools. This CLI remains for scripting and testing only.
 
-This is intended to prevent workflows where you repeatedly delete app/tool data to reclaim space (and lose history/settings/extensions).
+Deco can **attempt** to migrate certain large, high-churn tool directories off a constrained OS drive (usually `C:`) onto another drive (e.g. `D:`), while leaving behind a **directory junction** so the tool still works at its original path.
+
+Failures can destroy profiles. Prefer manual steps in the guide when reliability matters more than automation.
 
 ### Safety model
 

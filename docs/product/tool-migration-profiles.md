@@ -1,6 +1,6 @@
 # Tool migration profiles (Windows)
 
-Canonical list for `deco migrate-tool-dir` and Settings → **Tool storage migration**.  
+Canonical list for experimental `deco migrate-tool-dir` (CLI). The desktop **Settings** UI shows a [manual IDE storage guide](../desktop/ide-storage-off-os-drive.md) instead of automated migration.  
 Implementation: `apps/cli/src/tool-migration-profiles.ts` and `apps/desktop/src-tauri/src/util/tool_migration.rs`.
 
 **Platform:** Windows NTFS junction migrations only in v0.9.x. Other OSes: plan path checks in CI; run is blocked.

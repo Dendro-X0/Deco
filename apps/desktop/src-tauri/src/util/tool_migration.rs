@@ -585,6 +585,33 @@ fn mklink_junction(_link_path: &Path, _target: &Path) -> Result<(), String> {
     Err("Tool migration is Windows-only in v0.9.0.".to_string())
 }
 
+/// Verify junction without `canonicalize` on the link (fails on cross-volume mount points, Windows error 448).
+fn verify_junction_target(source: &Path, dest: &Path) -> Result<(), String> {
+    let expected = fs::canonicalize(dest).map_err(|e| format!("failed canonicalize dest: {e}"))?;
+
+    #[cfg(windows)]
+    {
+        let link_target = fs::read_link(source)
+            .map_err(|e| format!("failed reading junction target: {e}"))?;
+        let resolved = fs::canonicalize(&link_target).unwrap_or(link_target);
+        if resolved.to_string_lossy().eq_ignore_ascii_case(&expected.to_string_lossy()) {
+            return Ok(());
+        }
+        return Err(format!(
+            "junction verification failed: {} -> {} (expected {})",
+            source.display(),
+            resolved.display(),
+            expected.display()
+        ));
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = (source, expected);
+        Ok(())
+    }
+}
+
 pub fn run(
     tool: ToolId,
     dest_root: &Path,
@@ -639,17 +666,9 @@ fn execute_migration_leg(
         return Err(e);
     }
 
-    let resolved = fs::canonicalize(source)
-        .map_err(|e| format!("failed verifying junction (canonicalize): {e}"))?;
-    let expected = fs::canonicalize(dest).map_err(|e| format!("failed canonicalize dest: {e}"))?;
-    if resolved.to_string_lossy().to_lowercase() != expected.to_string_lossy().to_lowercase() {
+    if let Err(e) = verify_junction_target(source, dest) {
         rollback();
-        return Err(format!(
-            "junction verification failed: {} -> {} (expected {})",
-            source.display(),
-            resolved.display(),
-            expected.display()
-        ));
+        return Err(e);
     }
 
     fs::remove_dir_all(&backup)

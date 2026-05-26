@@ -3,7 +3,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { TaskQueue } from './concurrency.js';
 import { getDirSizeBytes } from './scan.js';
-import { lstat, mkdir, mkdtemp, readdir, realpath, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readdir, readlink, realpath, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import {
   isToolMigrationBundle,
   isToolMigrationPlanOnly,
@@ -484,9 +484,14 @@ async function runSinglePath(
     await rename(sourceAbs, backupPath);
     await symlink(destAbs, sourceAbs, 'junction');
 
-    const resolved = await realpath(sourceAbs);
-    if (normalizeForPrefixCompare(resolved) !== normalizeForPrefixCompare(destAbs)) {
-      throw new Error(`Junction verification failed: ${sourceAbs} -> ${resolved} (expected ${destAbs})`);
+    const linkTarget = await readlink(sourceAbs);
+    const resolvedTarget = path.isAbsolute(linkTarget)
+      ? linkTarget
+      : path.resolve(path.dirname(sourceAbs), linkTarget);
+    const resolved = await realpath(resolvedTarget);
+    const expected = await realpath(destAbs);
+    if (normalizeForPrefixCompare(resolved) !== normalizeForPrefixCompare(expected)) {
+      throw new Error(`Junction verification failed: ${sourceAbs} -> ${resolved} (expected ${expected})`);
     }
 
     await rm(backupPath, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 });
