@@ -12,6 +12,7 @@ import {
   resolveToolDestLeaf,
   type MigrateToolId,
 } from './tool-migration-profiles.js';
+import { detectRunningToolProcesses, enrichPlanWithRunningProcesses, runningProcessWarning } from './tool-migration-processes.js';
 
 export type { MigrateToolId } from './tool-migration-profiles.js';
 export type MigrationAction = 'plan' | 'run';
@@ -38,6 +39,7 @@ export type MigrationPlan = {
   readonly errors: readonly string[];
   readonly planOnly?: boolean;
   readonly legs?: readonly MigrationPlanLeg[];
+  readonly running_processes?: readonly string[];
 };
 
 export type MigrationResultLeg = {
@@ -393,7 +395,7 @@ export async function planToolDirMigration(args: {
   }
 
   if (tool && isToolMigrationBundle(tool) && args.destRoot && !args.source && !args.dest) {
-    return planToolBundle(tool, args.destRoot, args.includeSize ?? false);
+    return enrichPlanWithRunningProcesses(tool, await planToolBundle(tool, args.destRoot, args.includeSize ?? false));
   }
 
   const planOnly = tool ? isToolMigrationPlanOnly(tool) : false;
@@ -405,7 +407,7 @@ export async function planToolDirMigration(args: {
     toolLabel: tool,
   });
 
-  return {
+  return enrichPlanWithRunningProcesses(tool, {
     ok: single.ok,
     tool,
     source: path.resolve(source!),
@@ -416,7 +418,7 @@ export async function planToolDirMigration(args: {
     warnings: [...warnings, ...single.warnings],
     errors: [...errors, ...single.errors],
     planOnly,
-  };
+  });
 }
 
 async function writeAuditLog(payload: unknown): Promise<string | undefined> {
@@ -555,6 +557,16 @@ export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly
       warnings,
       errors: ['This tool target is plan-only in this release (use Plan for guidance).'],
     };
+  }
+
+  const running =
+    plan.running_processes ??
+    (plan.tool ? detectRunningToolProcesses(plan.tool) : []);
+  if (running.length > 0) {
+    const msg =
+      runningProcessWarning(running) ??
+      `Close these processes before Run migration: ${running.join(', ')}`;
+    return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: [msg] };
   }
 
   const copyOnly = Boolean(opts?.copyOnly);

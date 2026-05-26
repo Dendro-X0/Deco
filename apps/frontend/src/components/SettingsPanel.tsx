@@ -89,6 +89,7 @@ type ToolMigrationPlan = {
   errors: string[];
   plan_only: boolean;
   legs?: ToolMigrationPlanLeg[];
+  running_processes?: string[];
 };
 
 type ToolMigrationResultLeg = {
@@ -237,13 +238,18 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
   };
 
   const planMigration = async () => {
+    const destRoot = migrationDestRoot.trim();
+    if (!destRoot) {
+      if (onError) onError(t('settings.toolMigration.destRootRequired'));
+      return;
+    }
     setMigrationPlanning(true);
     setMigrationResult(null);
     try {
       const plan = (await invoke('migrate_tool_dir_plan', {
         tool: migrationTool,
-        dest_root: migrationDestRoot,
-        include_size: true,
+        destRoot,
+        includeSize: true,
       })) as ToolMigrationPlan;
       setMigrationPlan(plan);
       if (!plan.ok && onError) onError(plan.errors?.[0] ?? 'Migration plan failed.');
@@ -257,6 +263,17 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
 
   const runMigration = async () => {
     if (!migrationPlan?.ok || migrationPlan.plan_only) return;
+    const running = migrationPlan.running_processes ?? [];
+    if (running.length > 0) {
+      if (onError) {
+        onError(
+          t('settings.toolMigration.processesRunningDetail', {
+            processes: running.join(', '),
+          }),
+        );
+      }
+      return;
+    }
     const bundleNote =
       migrationPlan.legs && migrationPlan.legs.length > 1
         ? '\n\nThis profile migrates multiple folders (e.g. Roaming + Local). Each leg runs in order.'
@@ -267,10 +284,11 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
     if (!confirmed) return;
     setMigrationRunning(true);
     try {
+      const destRoot = migrationDestRoot.trim();
       const result = (await invoke('migrate_tool_dir_run', {
         tool: migrationTool,
-        dest_root: migrationDestRoot,
-        copy_only: false,
+        destRoot,
+        copyOnly: false,
       })) as ToolMigrationResult;
       setMigrationResult(result);
       if (!result.ok && onError) onError(result.errors?.[0] ?? 'Migration failed.');
@@ -835,7 +853,8 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                   migrationPlanning ||
                   migrationRunning ||
                   !migrationPlan?.ok ||
-                  migrationPlan.plan_only
+                  migrationPlan.plan_only ||
+                  (migrationPlan.running_processes?.length ?? 0) > 0
                 }
                 onClick={() => void runMigration()}
               >
@@ -895,10 +914,23 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
                 {migrationPlan.plan_only ? (
                   <p className="text-amber-600/90">{t('settings.toolMigration.planOnly')}</p>
                 ) : null}
+                {(migrationPlan.running_processes?.length ?? 0) > 0 ? (
+                  <div className="rounded border border-amber-500/40 bg-amber-500/10 p-2 space-y-1 text-amber-600/95">
+                    <p className="font-semibold">{t('settings.toolMigration.processesRunning')}</p>
+                    <p>{t('settings.toolMigration.processesRunningDetail', { processes: migrationPlan.running_processes!.join(', ') })}</p>
+                  </div>
+                ) : null}
                 {migrationPlan.warnings?.length ? (
-                  <p className="text-amber-600/90">
-                    {t('settings.toolMigration.warnings', { count: migrationPlan.warnings.length })}
-                  </p>
+                  <div className="space-y-1 text-amber-600/90">
+                    <p className="font-semibold">
+                      {t('settings.toolMigration.warnings', { count: migrationPlan.warnings.length })}
+                    </p>
+                    <ul className="list-disc pl-4 space-y-0.5">
+                      {migrationPlan.warnings.map((warning, index) => (
+                        <li key={`${index}-${warning.slice(0, 24)}`}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
                 {migrationPlan.errors?.length ? (
                   <p className="text-destructive">

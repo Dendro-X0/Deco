@@ -100,6 +100,8 @@ pub struct MigrationPlan {
     pub plan_only: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub legs: Option<Vec<MigrationPlanLeg>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub running_processes: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -325,6 +327,20 @@ fn estimate_tree(source: &Path) -> (Option<u64>, Option<u64>, Vec<String>) {
     (Some(bytes), Some(files), warnings)
 }
 
+fn attach_running_process_warning(plan: &mut MigrationPlan, tool: ToolId) {
+    let running = crate::util::tool_migration_processes::detect_running_processes(tool);
+    if running.is_empty() {
+        plan.running_processes = None;
+        return;
+    }
+    plan.running_processes = Some(running.clone());
+    if let Some(msg) = crate::util::tool_migration_processes::running_process_warning(tool) {
+        if !plan.warnings.iter().any(|w| w.contains("Close these processes")) {
+            plan.warnings.push(msg);
+        }
+    }
+}
+
 fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan {
     let tool_wire = tool.wire().to_string();
     let mut warnings: Vec<String> = Vec::new();
@@ -355,10 +371,6 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
                 skipped: true,
                 skip_reason: Some("Source directory does not exist (nothing to migrate for this leg).".to_string()),
             });
-            warnings.push(format!(
-                "Skipped leg \"{leg_name}\": source not found ({}).",
-                source.display()
-            ));
             continue;
         }
 
@@ -405,7 +417,7 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
     let ok = active_legs > 0 && errors.is_empty();
     let first_active = plan_legs.iter().find(|l| !l.skipped);
 
-    MigrationPlan {
+    let mut plan = MigrationPlan {
         ok,
         tool: tool_wire.clone(),
         source: first_active
@@ -420,7 +432,10 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
         errors,
         plan_only: false,
         legs: Some(plan_legs),
-    }
+        running_processes: None,
+    };
+    attach_running_process_warning(&mut plan, tool);
+    plan
 }
 
 pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan {
@@ -443,6 +458,7 @@ pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan
                 errors: vec![e],
                 plan_only,
                 legs: None,
+                running_processes: None,
             };
         }
     };
@@ -503,7 +519,7 @@ pub fn plan_paths(
         (None, None)
     };
 
-    MigrationPlan {
+    let mut plan = MigrationPlan {
         ok: errors.is_empty(),
         tool: tool_wire.to_string(),
         source: source.to_string_lossy().to_string(),
@@ -514,7 +530,12 @@ pub fn plan_paths(
         errors,
         plan_only,
         legs: None,
+        running_processes: None,
+    };
+    if let Ok(id) = ToolId::parse(tool_wire) {
+        attach_running_process_warning(&mut plan, id);
     }
+    plan
 }
 
 fn copy_tree(source: &Path, dest: &Path) -> Result<Vec<String>, String> {
@@ -721,7 +742,7 @@ fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) 
 }
 
 pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> MigrationResult {
-    let mut warnings = plan.warnings.clone();
+    let warnings = plan.warnings.clone();
     let mut errors = plan.errors.clone();
 
     if !plan.ok {
@@ -750,6 +771,27 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
             errors,
             legs: None,
         };
+    }
+
+    if let Ok(id) = ToolId::parse(&plan.tool) {
+        let running = crate::util::tool_migration_processes::detect_running_processes(id);
+        if !running.is_empty() {
+            errors.push(format!(
+                "Cannot run migration while these processes are running: {}. Close them and try Plan again.",
+                running.join(", ")
+            ));
+            return MigrationResult {
+                ok: false,
+                tool: plan.tool,
+                source: plan.source,
+                dest: plan.dest,
+                audit_log_path: None,
+                backup_path: None,
+                warnings,
+                errors,
+                legs: None,
+            };
+        }
     }
 
     if plan.legs.is_some() {
