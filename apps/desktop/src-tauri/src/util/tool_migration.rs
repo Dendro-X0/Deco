@@ -8,7 +8,9 @@ use walkdir::WalkDir;
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ToolId {
+    /// Roaming + LocalAppData bundle (one-click).
     Cursor,
+    CursorRoaming,
     CursorLocal,
     Vscode,
     ClaudeCode,
@@ -23,6 +25,7 @@ impl ToolId {
     pub fn parse(s: &str) -> Result<Self, String> {
         match s.trim().to_lowercase().as_str() {
             "cursor" => Ok(Self::Cursor),
+            "cursor-roaming" => Ok(Self::CursorRoaming),
             "cursor-local" => Ok(Self::CursorLocal),
             "vscode" => Ok(Self::Vscode),
             "claude-code" => Ok(Self::ClaudeCode),
@@ -38,6 +41,7 @@ impl ToolId {
     pub fn wire(&self) -> &'static str {
         match self {
             ToolId::Cursor => "cursor",
+            ToolId::CursorRoaming => "cursor-roaming",
             ToolId::CursorLocal => "cursor-local",
             ToolId::Vscode => "vscode",
             ToolId::ClaudeCode => "claude-code",
@@ -58,6 +62,29 @@ impl ToolId {
                 | ToolId::PnpmStore
         )
     }
+
+    pub fn is_bundle(self) -> bool {
+        matches!(self, ToolId::Cursor)
+    }
+
+    pub fn bundle_members(self) -> &'static [(&'static str, ToolId)] {
+        match self {
+            ToolId::Cursor => &[("roaming", ToolId::CursorRoaming), ("local", ToolId::CursorLocal)],
+            _ => &[],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MigrationPlanLeg {
+    pub leg: String,
+    pub source: String,
+    pub dest: String,
+    pub bytes: Option<u64>,
+    pub file_count: Option<u64>,
+    pub skipped: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skip_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -71,6 +98,20 @@ pub struct MigrationPlan {
     pub warnings: Vec<String>,
     pub errors: Vec<String>,
     pub plan_only: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub legs: Option<Vec<MigrationPlanLeg>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MigrationResultLeg {
+    pub leg: String,
+    pub ok: bool,
+    pub source: String,
+    pub dest: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backup_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub skipped: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -83,6 +124,8 @@ pub struct MigrationResult {
     pub backup_path: Option<String>,
     pub warnings: Vec<String>,
     pub errors: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub legs: Option<Vec<MigrationResultLeg>>,
 }
 
 fn now_stamp() -> String {
@@ -113,7 +156,10 @@ fn default_source(tool: &ToolId) -> Result<PathBuf, String> {
     let profile = user_profile_dir();
 
     let p = match tool {
-        ToolId::Cursor => PathBuf::from(appdata).join("Cursor"),
+        ToolId::Cursor => {
+            return Err("cursor is a bundle profile; use plan(tool, dest_root) instead.".to_string());
+        }
+        ToolId::CursorRoaming => PathBuf::from(appdata).join("Cursor"),
         ToolId::CursorLocal => {
             let local = local.ok_or_else(|| "LOCALAPPDATA is not set".to_string())?;
             PathBuf::from(local).join("Cursor")
@@ -168,6 +214,7 @@ fn default_source(_tool: &ToolId) -> Result<PathBuf, String> {
 fn dest_leaf(tool: &ToolId) -> &'static str {
     match tool {
         ToolId::Cursor => "Cursor",
+        ToolId::CursorRoaming => "Cursor",
         ToolId::CursorLocal => "Cursor-Local",
         ToolId::Vscode => "Code",
         ToolId::ClaudeCode => "claude-code",
@@ -278,7 +325,109 @@ fn estimate_tree(source: &Path) -> (Option<u64>, Option<u64>, Vec<String>) {
     (Some(bytes), Some(files), warnings)
 }
 
+fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan {
+    let tool_wire = tool.wire().to_string();
+    let mut warnings: Vec<String> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
+    let mut plan_legs: Vec<MigrationPlanLeg> = Vec::new();
+    let mut total_bytes: u64 = 0;
+    let mut total_files: u64 = 0;
+    let mut has_size = false;
+    let mut active_legs = 0usize;
+
+    for (leg_name, member) in tool.bundle_members() {
+        let source = match default_source(&member) {
+            Ok(p) => p,
+            Err(e) => {
+                errors.push(format!("[{leg_name}] {e}"));
+                continue;
+            }
+        };
+        let dest = dest_root.join(dest_leaf(&member));
+
+        if !source.is_dir() {
+            plan_legs.push(MigrationPlanLeg {
+                leg: leg_name.to_string(),
+                source: source.to_string_lossy().to_string(),
+                dest: dest.to_string_lossy().to_string(),
+                bytes: None,
+                file_count: None,
+                skipped: true,
+                skip_reason: Some("Source directory does not exist (nothing to migrate for this leg).".to_string()),
+            });
+            warnings.push(format!(
+                "Skipped leg \"{leg_name}\": source not found ({}).",
+                source.display()
+            ));
+            continue;
+        }
+
+        let member_plan_only = member.is_plan_only();
+        let leg_plan = plan_paths(member.wire(), source.clone(), dest.clone(), include_size, member_plan_only);
+        warnings.extend(leg_plan.warnings);
+        if !leg_plan.ok {
+            errors.extend(leg_plan.errors.into_iter().map(|e| format!("[{leg_name}] {e}")));
+            plan_legs.push(MigrationPlanLeg {
+                leg: leg_name.to_string(),
+                source: leg_plan.source,
+                dest: leg_plan.dest,
+                bytes: leg_plan.bytes,
+                file_count: leg_plan.file_count,
+                skipped: false,
+                skip_reason: None,
+            });
+            continue;
+        }
+
+        active_legs += 1;
+        if let Some(b) = leg_plan.bytes {
+            total_bytes = total_bytes.saturating_add(b);
+            has_size = true;
+        }
+        if let Some(f) = leg_plan.file_count {
+            total_files = total_files.saturating_add(f);
+        }
+        plan_legs.push(MigrationPlanLeg {
+            leg: leg_name.to_string(),
+            source: leg_plan.source,
+            dest: leg_plan.dest,
+            bytes: leg_plan.bytes,
+            file_count: leg_plan.file_count,
+            skipped: false,
+            skip_reason: None,
+        });
+    }
+
+    if active_legs == 0 && errors.is_empty() {
+        errors.push("No bundle legs had an existing source directory to migrate.".to_string());
+    }
+
+    let ok = active_legs > 0 && errors.is_empty();
+    let first_active = plan_legs.iter().find(|l| !l.skipped);
+
+    MigrationPlan {
+        ok,
+        tool: tool_wire.clone(),
+        source: first_active
+            .map(|l| l.source.clone())
+            .unwrap_or_else(|| plan_legs.first().map(|l| l.source.clone()).unwrap_or_default()),
+        dest: first_active
+            .map(|l| l.dest.clone())
+            .unwrap_or_else(|| plan_legs.first().map(|l| l.dest.clone()).unwrap_or_default()),
+        bytes: if has_size { Some(total_bytes) } else { None },
+        file_count: if has_size { Some(total_files) } else { None },
+        warnings,
+        errors,
+        plan_only: false,
+        legs: Some(plan_legs),
+    }
+}
+
 pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan {
+    if tool.is_bundle() {
+        return plan_bundle(tool, dest_root, include_size);
+    }
+
     let plan_only = tool.is_plan_only();
     let source = match default_source(&tool) {
         Ok(p) => p,
@@ -293,6 +442,7 @@ pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan
                 warnings: vec![],
                 errors: vec![e],
                 plan_only,
+                legs: None,
             };
         }
     };
@@ -363,6 +513,7 @@ pub fn plan_paths(
         warnings,
         errors,
         plan_only,
+        legs: None,
     }
 }
 
@@ -424,6 +575,151 @@ pub fn run(
     run_from_plan(plan, copy_only, audit_dir)
 }
 
+fn execute_migration_leg(
+    source: &Path,
+    dest: &Path,
+    copy_only: bool,
+) -> Result<Option<PathBuf>, String> {
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("failed creating dest parent: {} ({e})", parent.display()))?;
+    }
+    if dest.exists() {
+        let empty = fs::read_dir(dest)
+            .map_err(|e| format!("failed reading dest: {} ({e})", dest.display()))?
+            .next()
+            .is_none();
+        if !empty {
+            return Err(format!("Destination exists and is not empty: {}", dest.display()));
+        }
+    } else {
+        fs::create_dir_all(dest)
+            .map_err(|e| format!("failed creating dest: {} ({e})", dest.display()))?;
+    }
+
+    let copy_warnings = copy_tree(source, dest)?;
+    let _ = copy_warnings;
+
+    if copy_only {
+        return Ok(None);
+    }
+
+    let stamp = now_stamp();
+    let backup = PathBuf::from(format!("{}.deco-backup-{}", source.display(), stamp));
+    fs::rename(source, &backup).map_err(|e| format!("failed renaming source to backup: {e}"))?;
+
+    let rollback = || {
+        let _ = fs::remove_dir_all(source);
+        let _ = fs::rename(&backup, source);
+    };
+
+    if let Err(e) = mklink_junction(source, dest) {
+        rollback();
+        return Err(e);
+    }
+
+    let resolved = fs::canonicalize(source)
+        .map_err(|e| format!("failed verifying junction (canonicalize): {e}"))?;
+    let expected = fs::canonicalize(dest).map_err(|e| format!("failed canonicalize dest: {e}"))?;
+    if resolved.to_string_lossy().to_lowercase() != expected.to_string_lossy().to_lowercase() {
+        rollback();
+        return Err(format!(
+            "junction verification failed: {} -> {} (expected {})",
+            source.display(),
+            resolved.display(),
+            expected.display()
+        ));
+    }
+
+    fs::remove_dir_all(&backup)
+        .map_err(|e| format!("failed removing backup: {} ({e})", backup.display()))?;
+    Ok(None)
+}
+
+fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> MigrationResult {
+    let warnings = plan.warnings.clone();
+    let mut errors = plan.errors.clone();
+    let legs = plan.legs.unwrap_or_default();
+    let mut result_legs: Vec<MigrationResultLeg> = Vec::new();
+    let mut all_ok = true;
+
+    for leg in legs {
+        if leg.skipped {
+            result_legs.push(MigrationResultLeg {
+                leg: leg.leg,
+                ok: true,
+                source: leg.source,
+                dest: leg.dest,
+                backup_path: None,
+                skipped: Some(true),
+            });
+            continue;
+        }
+
+        let source = PathBuf::from(&leg.source);
+        let dest = PathBuf::from(&leg.dest);
+        let run_result = execute_migration_leg(&source, &dest, copy_only);
+        match run_result {
+            Ok(backup) => {
+                result_legs.push(MigrationResultLeg {
+                    leg: leg.leg.clone(),
+                    ok: true,
+                    source: leg.source,
+                    dest: leg.dest,
+                    backup_path: backup.map(|p| p.to_string_lossy().to_string()),
+                    skipped: Some(false),
+                });
+            }
+            Err(e) => {
+                all_ok = false;
+                errors.push(format!("[{}] {e}", leg.leg));
+                result_legs.push(MigrationResultLeg {
+                    leg: leg.leg,
+                    ok: false,
+                    source: leg.source,
+                    dest: leg.dest,
+                    backup_path: None,
+                    skipped: Some(false),
+                });
+                break;
+            }
+        }
+    }
+
+    let stamp = now_stamp();
+    let audit_path = audit_dir.join(format!("migration-bundle-{}.json", stamp));
+    let audit_log_path = if fs::create_dir_all(audit_dir).is_ok() {
+        let payload = serde_json::json!({
+            "ts": chrono::Local::now().to_rfc3339(),
+            "tool": plan.tool,
+            "bundle": true,
+            "ok": all_ok,
+            "legs": result_legs,
+            "warnings": warnings,
+            "errors": errors,
+        });
+        if fs::write(&audit_path, serde_json::to_string_pretty(&payload).unwrap_or_default()).is_ok() {
+            Some(audit_path.to_string_lossy().to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    MigrationResult {
+        ok: all_ok,
+        tool: plan.tool,
+        source: plan.source,
+        dest: plan.dest,
+        audit_log_path,
+        backup_path: None,
+        warnings,
+        errors,
+        legs: Some(result_legs),
+    }
+}
+
 pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> MigrationResult {
     let mut warnings = plan.warnings.clone();
     let mut errors = plan.errors.clone();
@@ -438,10 +734,11 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
             backup_path: None,
             warnings,
             errors,
+            legs: None,
         };
     }
     if plan.plan_only {
-        errors.push("This tool is plan-only in v0.9.0.".to_string());
+        errors.push("This tool is plan-only in v0.9.x.".to_string());
         return MigrationResult {
             ok: false,
             tool: plan.tool,
@@ -451,17 +748,21 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
             backup_path: None,
             warnings,
             errors,
+            legs: None,
         };
+    }
+
+    if plan.legs.is_some() {
+        return run_bundle_from_plan(plan, copy_only, audit_dir);
     }
 
     let source = PathBuf::from(&plan.source);
     let dest = PathBuf::from(&plan.dest);
 
     let stamp = now_stamp();
-    let backup = PathBuf::from(format!("{}.deco-backup-{}", plan.source, stamp));
     let audit_path = audit_dir.join(format!("migration-{}.json", stamp));
 
-    let mut backup_path_out: Option<String> = None;
+    let backup_path_out: Option<String> = None;
 
     let write_audit = |payload: &serde_json::Value| -> Option<String> {
         if fs::create_dir_all(audit_dir).is_err() {
@@ -475,58 +776,7 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
 
     let mut ok = false;
 
-    let result = (|| -> Result<(), String> {
-        if let Some(parent) = dest.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("failed creating dest parent: {} ({e})", parent.display()))?;
-        }
-        if dest.exists() {
-            let empty = fs::read_dir(&dest)
-                .map_err(|e| format!("failed reading dest: {} ({e})", dest.display()))?
-                .next()
-                .is_none();
-            if !empty {
-                return Err(format!("Destination exists and is not empty: {}", dest.display()));
-            }
-        } else {
-            fs::create_dir_all(&dest)
-                .map_err(|e| format!("failed creating dest: {} ({e})", dest.display()))?;
-        }
-
-        let copy_warnings = copy_tree(&source, &dest)?;
-        warnings.extend(copy_warnings.into_iter().take(12));
-
-        if copy_only {
-            return Ok(());
-        }
-
-        fs::rename(&source, &backup)
-            .map_err(|e| format!("failed renaming source to backup: {e}"))?;
-        backup_path_out = Some(backup.to_string_lossy().to_string());
-
-        mklink_junction(&source, &dest)?;
-
-        // Verify junction resolves to the target.
-        let resolved = fs::canonicalize(&source)
-            .map_err(|e| format!("failed verifying junction (canonicalize): {e}"))?;
-        let expected = fs::canonicalize(&dest)
-            .map_err(|e| format!("failed canonicalize dest: {e}"))?;
-        if resolved.to_string_lossy().to_lowercase() != expected.to_string_lossy().to_lowercase() {
-            return Err(format!(
-                "junction verification failed: {} -> {} (expected {})",
-                source.display(),
-                resolved.display(),
-                expected.display()
-            ));
-        }
-
-        // Remove backup after verification.
-        fs::remove_dir_all(&backup)
-            .map_err(|e| format!("failed removing backup: {} ({e})", backup.display()))?;
-        backup_path_out = None;
-
-        Ok(())
-    })();
+    let result = execute_migration_leg(&source, &dest, copy_only).map(|_| ());
 
     match result {
         Ok(()) => {
@@ -534,15 +784,6 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
         }
         Err(e) => {
             errors.push(e);
-            // Rollback best-effort:
-            if !copy_only {
-                let _ = fs::remove_dir_all(&source);
-                if backup.exists() {
-                    if let Err(e) = fs::rename(&backup, &source) {
-                        warnings.push(format!("Rollback warning: failed restoring backup: {e}"));
-                    }
-                }
-            }
         }
     }
 
@@ -567,6 +808,7 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
         backup_path: backup_path_out,
         warnings,
         errors,
+        legs: None,
     }
 }
 

@@ -1,7 +1,6 @@
 /** UI list — keep IDs aligned with apps/cli/src/tool-migration-profiles.ts */
 export const TOOL_MIGRATION_UI_PROFILES = [
-  { id: 'cursor', label: 'Cursor (Roaming)', planOnly: false },
-  { id: 'cursor-local', label: 'Cursor (Local cache)', planOnly: false },
+  { id: 'cursor', label: 'Cursor (Roaming + Local)', planOnly: false },
   { id: 'vscode', label: 'VS Code', planOnly: false },
   { id: 'claude-code', label: 'Claude Code', planOnly: false },
   { id: 'codex-cli', label: 'OpenAI Codex CLI', planOnly: false },

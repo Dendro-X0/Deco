@@ -3,30 +3,51 @@ import path from 'node:path';
 /** Canonical migration profiles — keep in sync with docs/product/tool-migration-profiles.md and Rust `ToolId`. */
 export type ToolMigrationCategory = 'agent' | 'ide' | 'container' | 'package-manager';
 
+export type ToolMigrationBundleLeg = {
+  readonly leg: string;
+  readonly sourceProfileId: string;
+  readonly destLeaf: string;
+};
+
 export type ToolMigrationProfile = {
   readonly id: string;
   readonly label: string;
   readonly category: ToolMigrationCategory;
   readonly destLeaf: string;
   readonly planOnly: boolean;
+  readonly hideFromUi?: boolean;
+  readonly bundleLegs?: readonly ToolMigrationBundleLeg[];
   readonly docNote?: string;
 };
 
 export const TOOL_MIGRATION_PROFILES: readonly ToolMigrationProfile[] = [
   {
     id: 'cursor',
-    label: 'Cursor (Roaming)',
+    label: 'Cursor (Roaming + Local)',
     category: 'agent',
     destLeaf: 'Cursor',
     planOnly: false,
-    docNote: 'Migrates %APPDATA%\\Cursor only; use cursor-local for LocalAppData caches.',
+    docNote: 'Migrates %APPDATA%\\Cursor and %LOCALAPPDATA%\\Cursor in one run.',
+    bundleLegs: [
+      { leg: 'roaming', sourceProfileId: 'cursor-roaming', destLeaf: 'Cursor' },
+      { leg: 'local', sourceProfileId: 'cursor-local', destLeaf: 'Cursor-Local' },
+    ],
+  },
+  {
+    id: 'cursor-roaming',
+    label: 'Cursor (Roaming only)',
+    category: 'agent',
+    destLeaf: 'Cursor',
+    planOnly: false,
+    hideFromUi: true,
   },
   {
     id: 'cursor-local',
-    label: 'Cursor (Local cache)',
+    label: 'Cursor (Local cache only)',
     category: 'agent',
     destLeaf: 'Cursor-Local',
     planOnly: false,
+    hideFromUi: true,
   },
   {
     id: 'vscode',
@@ -99,8 +120,17 @@ export function getToolMigrationProfile(id: MigrateToolId): ToolMigrationProfile
   return profile;
 }
 
+export function isToolMigrationBundle(id: MigrateToolId): boolean {
+  const legs = getToolMigrationProfile(id).bundleLegs;
+  return Boolean(legs && legs.length > 0);
+}
+
 export function isToolMigrationPlanOnly(id: MigrateToolId): boolean {
   return getToolMigrationProfile(id).planOnly;
+}
+
+export function listToolMigrationProfilesForUi(): ToolMigrationProfile[] {
+  return TOOL_MIGRATION_PROFILES.filter((p) => !p.hideFromUi);
 }
 
 function userProfileDir(): string | null {
@@ -110,13 +140,14 @@ function userProfileDir(): string | null {
 /** Primary default source path for a profile on Windows. */
 export function resolveToolDefaultSource(id: MigrateToolId): string | null {
   if (process.platform !== 'win32') return null;
+  if (isToolMigrationBundle(id)) return null;
 
   const appData = process.env.APPDATA;
   const localAppData = process.env.LOCALAPPDATA;
   const profile = userProfileDir();
 
   switch (id) {
-    case 'cursor':
+    case 'cursor-roaming':
       return appData ? path.join(appData, 'Cursor') : null;
     case 'cursor-local':
       return localAppData ? path.join(localAppData, 'Cursor') : null;
@@ -149,4 +180,46 @@ export function resolveToolDefaultSource(id: MigrateToolId): string | null {
 
 export function resolveToolDestLeaf(id: MigrateToolId): string {
   return getToolMigrationProfile(id).destLeaf;
+}
+
+export type ResolvedBundleLeg = {
+  readonly leg: string;
+  readonly sourceProfileId: string;
+  readonly source: string;
+  readonly dest: string;
+  readonly destLeaf: string;
+};
+
+/** Resolve source/dest for each leg of a bundle profile. */
+export function resolveToolBundleLegs(
+  id: MigrateToolId,
+  destRoot: string,
+): { readonly legs: ResolvedBundleLeg[]; readonly errors: string[] } {
+  const profile = getToolMigrationProfile(id);
+  const bundleLegs = profile.bundleLegs;
+  if (!bundleLegs?.length) {
+    return { legs: [], errors: [`Profile ${id} is not a bundle.`] };
+  }
+
+  const errors: string[] = [];
+  const legs: ResolvedBundleLeg[] = [];
+  const root = path.resolve(destRoot);
+
+  for (const spec of bundleLegs) {
+    const sourceProfileId = spec.sourceProfileId as MigrateToolId;
+    const source = resolveToolDefaultSource(sourceProfileId);
+    if (!source) {
+      errors.push(`Could not resolve source for leg "${spec.leg}" (${spec.sourceProfileId}).`);
+      continue;
+    }
+    legs.push({
+      leg: spec.leg,
+      sourceProfileId: spec.sourceProfileId,
+      source: path.resolve(source),
+      dest: path.join(root, spec.destLeaf),
+      destLeaf: spec.destLeaf,
+    });
+  }
+
+  return { legs, errors };
 }

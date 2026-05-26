@@ -65,20 +65,25 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 
 Validate from CLI: `deco validate-policy examples/deco-policies/python-data-science`.
 
-### Tool storage migration (Windows, v0.9.0)
+### Tool storage migration (Windows, v0.9.1)
 
-Use this when `%APPDATA%` tool folders (e.g. **Cursor**) fill the OS drive. Migration **copies** data to another drive and leaves a **junction** at the original path so the tool keeps working.
+Use this when `%APPDATA%` / `%LOCALAPPDATA%` tool folders (e.g. **Cursor**) fill the OS drive. Migration **copies** data to another drive and leaves a **junction** at the original path so the tool keeps working.
 
-1. **Quit the tool** (Cursor / VS Code) — check Task Manager.
+1. **Quit the tool** (Cursor / VS Code) — check Task Manager and the tray icon.
 2. Open **Settings** → **Tool storage migration (Windows)**.
-3. Choose tool **Cursor**, set destination root (e.g. `G:\DevToolData`), click **Plan**.
-4. Confirm destination is `G:\DevToolData\Cursor` and plan shows no errors.
+3. Choose **Cursor (Roaming + Local)**, set destination root (e.g. `G:\DevToolData`), click **Plan**.
+4. Confirm both legs in the plan summary:
+   - Roaming → `G:\DevToolData\Cursor` (settings, extensions, chat)
+   - Local → `G:\DevToolData\Cursor-Local` (caches; skipped if that folder does not exist yet)
 5. Click **Run migration** and wait for completion.
-6. Start the tool and verify settings, extensions, and chat history.
+6. Start Cursor and verify settings, extensions, and chat history.
 
 CLI equivalent: [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
 
-**Production note:** This ships in **`v0.9.0`**; until that tag is published, use a **dev build** (`pnpm dev:desktop`).
+```bash
+deco migrate-tool-dir plan --tool cursor --dest-root "G:\DevToolData"
+deco migrate-tool-dir run  --tool cursor --dest-root "G:\DevToolData" --yes
+```
 
 ## Manual QA before a release
 

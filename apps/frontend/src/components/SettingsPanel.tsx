@@ -68,6 +68,16 @@ type Props = {
   onError?: (message: string) => void;
 };
 
+type ToolMigrationPlanLeg = {
+  leg: string;
+  source: string;
+  dest: string;
+  bytes?: number;
+  file_count?: number;
+  skipped: boolean;
+  skip_reason?: string;
+};
+
 type ToolMigrationPlan = {
   ok: boolean;
   tool: string;
@@ -78,6 +88,16 @@ type ToolMigrationPlan = {
   warnings: string[];
   errors: string[];
   plan_only: boolean;
+  legs?: ToolMigrationPlanLeg[];
+};
+
+type ToolMigrationResultLeg = {
+  leg: string;
+  ok: boolean;
+  source: string;
+  dest: string;
+  backup_path?: string;
+  skipped?: boolean;
 };
 
 type ToolMigrationResult = {
@@ -89,6 +109,7 @@ type ToolMigrationResult = {
   backup_path?: string;
   warnings: string[];
   errors: string[];
+  legs?: ToolMigrationResultLeg[];
 };
 
 function SettingsSection({
@@ -236,8 +257,12 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
 
   const runMigration = async () => {
     if (!migrationPlan?.ok || migrationPlan.plan_only) return;
+    const bundleNote =
+      migrationPlan.legs && migrationPlan.legs.length > 1
+        ? '\n\nThis profile migrates multiple folders (e.g. Roaming + Local). Each leg runs in order.'
+        : '';
     const confirmed = window.confirm(
-      'This will copy data to the destination, rename the original folder as a backup, and create a directory junction.\n\nClose the tool first (Cursor/VS Code) to avoid locked files.\n\nProceed?',
+      `This will copy data to the destination, rename the original folder as a backup, and create a directory junction.${bundleNote}\n\nClose the tool first (Cursor/VS Code) to avoid locked files.\n\nProceed?`,
     );
     if (!confirmed) return;
     setMigrationRunning(true);
@@ -821,17 +846,49 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
             {migrationPlan ? (
               <div className="space-y-2 text-xs">
                 <p className="font-semibold">{t('settings.toolMigration.planSummary')}</p>
-                <p>
-                  <span className="text-muted-foreground">{t('settings.toolMigration.source')}</span>{' '}
-                  <span className="font-mono break-all">{migrationPlan.source}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">{t('settings.toolMigration.dest')}</span>{' '}
-                  <span className="font-mono break-all">{migrationPlan.dest}</span>
-                </p>
+                {migrationPlan.legs && migrationPlan.legs.length > 0 ? (
+                  <ul className="space-y-2 list-none pl-0">
+                    {migrationPlan.legs.map((leg) => (
+                      <li key={leg.leg} className="rounded border border-border/40 p-2 space-y-1">
+                        <p className="font-semibold capitalize">{leg.leg}</p>
+                        {leg.skipped ? (
+                          <p className="text-muted-foreground">{leg.skip_reason ?? t('settings.toolMigration.legSkipped')}</p>
+                        ) : (
+                          <>
+                            <p>
+                              <span className="text-muted-foreground">{t('settings.toolMigration.source')}</span>{' '}
+                              <span className="font-mono break-all">{leg.source}</span>
+                            </p>
+                            <p>
+                              <span className="text-muted-foreground">{t('settings.toolMigration.dest')}</span>{' '}
+                              <span className="font-mono break-all">{leg.dest}</span>
+                            </p>
+                            {leg.bytes != null ? (
+                              <p>
+                                <span className="text-muted-foreground">{t('settings.toolMigration.size')}</span>{' '}
+                                <span className="font-mono">{formatBytes(leg.bytes)}</span>
+                              </p>
+                            ) : null}
+                          </>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <>
+                    <p>
+                      <span className="text-muted-foreground">{t('settings.toolMigration.source')}</span>{' '}
+                      <span className="font-mono break-all">{migrationPlan.source}</span>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">{t('settings.toolMigration.dest')}</span>{' '}
+                      <span className="font-mono break-all">{migrationPlan.dest}</span>
+                    </p>
+                  </>
+                )}
                 {migrationPlan.bytes != null ? (
                   <p>
-                    <span className="text-muted-foreground">{t('settings.toolMigration.size')}</span>{' '}
+                    <span className="text-muted-foreground">{t('settings.toolMigration.totalSize')}</span>{' '}
                     <span className="font-mono">{formatBytes(migrationPlan.bytes)}</span>
                   </p>
                 ) : null}

@@ -5,8 +5,9 @@ import { TaskQueue } from './concurrency.js';
 import { getDirSizeBytes } from './scan.js';
 import { lstat, mkdir, mkdtemp, readdir, realpath, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import {
+  isToolMigrationBundle,
   isToolMigrationPlanOnly,
-  parseMigrateToolId,
+  resolveToolBundleLegs,
   resolveToolDefaultSource,
   resolveToolDestLeaf,
   type MigrateToolId,
@@ -14,6 +15,16 @@ import {
 
 export type { MigrateToolId } from './tool-migration-profiles.js';
 export type MigrationAction = 'plan' | 'run';
+
+export type MigrationPlanLeg = {
+  readonly leg: string;
+  readonly source: string;
+  readonly dest: string;
+  readonly bytes?: number;
+  readonly fileCount?: number;
+  readonly skipped: boolean;
+  readonly skipReason?: string;
+};
 
 export type MigrationPlan = {
   readonly ok: boolean;
@@ -26,6 +37,16 @@ export type MigrationPlan = {
   readonly warnings: readonly string[];
   readonly errors: readonly string[];
   readonly planOnly?: boolean;
+  readonly legs?: readonly MigrationPlanLeg[];
+};
+
+export type MigrationResultLeg = {
+  readonly leg: string;
+  readonly ok: boolean;
+  readonly source: string;
+  readonly dest: string;
+  readonly backupPath?: string;
+  readonly skipped?: boolean;
 };
 
 export type MigrationResult = {
@@ -36,6 +57,7 @@ export type MigrationResult = {
   readonly auditLogPath?: string;
   readonly warnings: readonly string[];
   readonly errors: readonly string[];
+  readonly legs?: readonly MigrationResultLeg[];
 };
 
 function isWindows(): boolean {
@@ -170,6 +192,161 @@ async function countFiles(absPath: string, queue: TaskQueue): Promise<number> {
 
 const WINDOWS_ONLY_ERROR = 'migrate-tool-dir is Windows-only in v0.9.x.';
 
+async function planSinglePath(args: {
+  readonly source: string;
+  readonly dest: string;
+  readonly includeSize: boolean;
+  readonly planOnly: boolean;
+  readonly toolLabel?: string;
+}): Promise<{
+  readonly ok: boolean;
+  readonly warnings: string[];
+  readonly errors: string[];
+  readonly bytes?: number;
+  readonly fileCount?: number;
+}> {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const winOnly = isWindows();
+  const sourceAbs = path.resolve(args.source);
+  const destAbs = path.resolve(args.dest);
+
+  if (isUnder(destAbs, sourceAbs)) {
+    errors.push('Destination is inside source; refusing (would recurse).');
+  }
+  if (isUnder(sourceAbs, destAbs)) {
+    errors.push('Source is inside destination; refusing.');
+  }
+
+  if (winOnly) {
+    const blocked = isBlockedSource(sourceAbs);
+    if (blocked) errors.push(blocked);
+
+    if (!(await existsDir(sourceAbs))) {
+      errors.push(`Source does not exist or is not a directory: ${sourceAbs}`);
+    }
+
+    if (await isSymlinkOrJunction(sourceAbs)) {
+      errors.push(`Refusing to migrate a symlink/junction source without explicit override: ${sourceAbs}`);
+    }
+
+    const ntfsErr = destRequiresNtfs(destAbs);
+    if (ntfsErr) errors.push(ntfsErr);
+
+    if (args.planOnly) {
+      warnings.push(
+        `${args.toolLabel ?? 'Tool'} migration is plan-only in this release (see docs/product/tool-migration-profiles.md).`,
+      );
+    }
+  } else {
+    errors.push(WINDOWS_ONLY_ERROR);
+  }
+
+  let bytes: number | undefined;
+  let fileCount: number | undefined;
+  if (winOnly && args.includeSize && errors.length === 0) {
+    const queue = new TaskQueue(32);
+    const sizeErrors: string[] = [];
+    bytes = await getDirSizeBytes(sourceAbs, queue, sizeErrors);
+    if (sizeErrors.length > 0) warnings.push(...sizeErrors.slice(0, 5));
+    try {
+      fileCount = await countFiles(sourceAbs, queue);
+    } catch {
+      warnings.push('File count estimate failed (permission or transient error).');
+    }
+  }
+
+  return { ok: errors.length === 0, warnings, errors, bytes, fileCount };
+}
+
+async function planToolBundle(
+  tool: MigrateToolId,
+  destRoot: string,
+  includeSize: boolean,
+): Promise<MigrationPlan> {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  const { legs: resolved, errors: resolveErrors } = resolveToolBundleLegs(tool, destRoot);
+  errors.push(...resolveErrors);
+
+  const planLegs: MigrationPlanLeg[] = [];
+  let totalBytes = 0;
+  let totalFiles = 0;
+  let hasSize = false;
+  let activeLegs = 0;
+
+  for (const leg of resolved) {
+    if (!(await existsDir(leg.source))) {
+      planLegs.push({
+        leg: leg.leg,
+        source: leg.source,
+        dest: leg.dest,
+        skipped: true,
+        skipReason: 'Source directory does not exist (nothing to migrate for this leg).',
+      });
+      warnings.push(`Skipped leg "${leg.leg}": source not found (${leg.source}).`);
+      continue;
+    }
+
+    const memberPlanOnly = isToolMigrationPlanOnly(leg.sourceProfileId as MigrateToolId);
+    const single = await planSinglePath({
+      source: leg.source,
+      dest: leg.dest,
+      includeSize,
+      planOnly: memberPlanOnly,
+      toolLabel: leg.sourceProfileId,
+    });
+    warnings.push(...single.warnings);
+    if (!single.ok) {
+      errors.push(...single.errors.map((e) => `[${leg.leg}] ${e}`));
+      planLegs.push({
+        leg: leg.leg,
+        source: leg.source,
+        dest: leg.dest,
+        skipped: false,
+        bytes: single.bytes,
+        fileCount: single.fileCount,
+      });
+      continue;
+    }
+
+    activeLegs += 1;
+    if (single.bytes != null) {
+      totalBytes += single.bytes;
+      hasSize = true;
+    }
+    if (single.fileCount != null) totalFiles += single.fileCount;
+    planLegs.push({
+      leg: leg.leg,
+      source: leg.source,
+      dest: leg.dest,
+      skipped: false,
+      bytes: single.bytes,
+      fileCount: single.fileCount,
+    });
+  }
+
+  const ok = activeLegs > 0 && errors.length === 0;
+  if (activeLegs === 0 && errors.length === 0) {
+    errors.push('No bundle legs had an existing source directory to migrate.');
+  }
+
+  const firstActive = planLegs.find((l) => !l.skipped);
+  return {
+    ok,
+    tool,
+    source: firstActive?.source ?? planLegs[0]?.source ?? '',
+    dest: firstActive?.dest ?? planLegs[0]?.dest ?? '',
+    destRoot,
+    bytes: hasSize ? totalBytes : undefined,
+    fileCount: hasSize ? totalFiles : undefined,
+    warnings,
+    errors,
+    planOnly: false,
+    legs: planLegs,
+  };
+}
+
 export async function planToolDirMigration(args: {
   readonly tool?: MigrateToolId;
   readonly source?: string;
@@ -215,63 +392,30 @@ export async function planToolDirMigration(args: {
     };
   }
 
-  const sourceAbs = path.resolve(source!);
-  const destAbs = path.resolve(dest!);
-
-  if (isUnder(destAbs, sourceAbs)) {
-    errors.push('Destination is inside source; refusing (would recurse).');
-  }
-  if (isUnder(sourceAbs, destAbs)) {
-    errors.push('Source is inside destination; refusing.');
+  if (tool && isToolMigrationBundle(tool) && args.destRoot && !args.source && !args.dest) {
+    return planToolBundle(tool, args.destRoot, args.includeSize ?? false);
   }
 
-  if (winOnly) {
-    const blocked = isBlockedSource(sourceAbs);
-    if (blocked) errors.push(blocked);
-
-    if (!(await existsDir(sourceAbs))) {
-      errors.push(`Source does not exist or is not a directory: ${sourceAbs}`);
-    }
-
-    if (await isSymlinkOrJunction(sourceAbs)) {
-      errors.push(`Refusing to migrate a symlink/junction source without explicit override: ${sourceAbs}`);
-    }
-
-    const ntfsErr = destRequiresNtfs(destAbs);
-    if (ntfsErr) errors.push(ntfsErr);
-
-    if (tool && isToolMigrationPlanOnly(tool)) {
-      warnings.push(`${tool} migration is plan-only in this release (see docs/product/tool-migration-profiles.md).`);
-    }
-  } else {
-    errors.push(WINDOWS_ONLY_ERROR);
-  }
-
-  let bytes: number | undefined;
-  let fileCount: number | undefined;
-  if (winOnly && args.includeSize && errors.length === 0) {
-    const queue = new TaskQueue(32);
-    const sizeErrors: string[] = [];
-    bytes = await getDirSizeBytes(sourceAbs, queue, sizeErrors);
-    if (sizeErrors.length > 0) warnings.push(...sizeErrors.slice(0, 5));
-    try {
-      fileCount = await countFiles(sourceAbs, queue);
-    } catch {
-      warnings.push('File count estimate failed (permission or transient error).');
-    }
-  }
+  const planOnly = tool ? isToolMigrationPlanOnly(tool) : false;
+  const single = await planSinglePath({
+    source: source!,
+    dest: dest!,
+    includeSize: Boolean(args.includeSize),
+    planOnly,
+    toolLabel: tool,
+  });
 
   return {
-    ok: errors.length === 0,
+    ok: single.ok,
     tool,
-    source: sourceAbs,
-    dest: destAbs,
+    source: path.resolve(source!),
+    dest: path.resolve(dest!),
     destRoot: args.destRoot,
-    bytes,
-    fileCount,
-    warnings,
-    errors,
-    planOnly: tool ? isToolMigrationPlanOnly(tool) : false,
+    bytes: single.bytes,
+    fileCount: single.fileCount,
+    warnings: [...warnings, ...single.warnings],
+    errors: [...errors, ...single.errors],
+    planOnly,
   };
 }
 
@@ -286,34 +430,22 @@ async function writeAuditLog(payload: unknown): Promise<string | undefined> {
   }
 }
 
-export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly copyOnly?: boolean }): Promise<MigrationResult> {
-  const warnings: string[] = [...plan.warnings];
+async function runSinglePath(
+  sourceAbs: string,
+  destAbs: string,
+  copyOnly: boolean,
+  legLabel?: string,
+): Promise<MigrationResultLeg & { readonly warnings: string[]; readonly errors: string[]; readonly auditLogPath?: string }> {
+  const warnings: string[] = [];
   const errors: string[] = [];
-
-  if (!plan.ok) {
-    return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: [...plan.errors] };
-  }
-  if (!isWindows()) {
-    return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: ['Windows-only in v0.9.0.'] };
-  }
-  if (plan.planOnly) {
-    return {
-      ok: false,
-      source: plan.source,
-      dest: plan.dest,
-      warnings,
-      errors: ['This tool target is plan-only in this release (use Plan for guidance).'],
-    };
-  }
-
-  const sourceAbs = plan.source;
-  const destAbs = plan.dest;
+  const prefix = legLabel ? `[${legLabel}] ` : '';
 
   const audit: Record<string, unknown> = {
     ts: new Date().toISOString(),
+    leg: legLabel,
     source: sourceAbs,
     dest: destAbs,
-    copyOnly: Boolean(opts?.copyOnly),
+    copyOnly,
   };
 
   let backupPath: string | undefined;
@@ -329,61 +461,169 @@ export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly
       await mkdir(destAbs, { recursive: true });
     }
 
-    // Copy into destination.
-    // Note: Node's fs.cp is generally reliable; junction creation is the critical part.
     const { cp } = await import('node:fs/promises');
     await cp(sourceAbs, destAbs, { recursive: true, force: false, errorOnExist: false });
 
-    if (opts?.copyOnly) {
-      warnings.push('Copy-only mode: original source was not replaced by a junction.');
+    if (copyOnly) {
+      warnings.push(`${prefix}Copy-only: source was not replaced by a junction.`);
       const auditLogPath = await writeAuditLog({ ...audit, result: 'copied' });
-      return { ok: true, source: sourceAbs, dest: destAbs, warnings, errors, auditLogPath };
+      return {
+        leg: legLabel ?? 'single',
+        ok: true,
+        source: sourceAbs,
+        dest: destAbs,
+        warnings,
+        errors,
+        auditLogPath,
+      };
     }
 
-    // Rename source out of the way, then create junction at original path.
     backupPath = `${sourceAbs}.deco-backup-${nowStamp()}`;
     await rename(sourceAbs, backupPath);
     await symlink(destAbs, sourceAbs, 'junction');
 
-    // Verify junction resolves.
     const resolved = await realpath(sourceAbs);
     if (normalizeForPrefixCompare(resolved) !== normalizeForPrefixCompare(destAbs)) {
       throw new Error(`Junction verification failed: ${sourceAbs} -> ${resolved} (expected ${destAbs})`);
     }
 
-    // Cleanup backup after successful verification.
     await rm(backupPath, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 });
     backupPath = undefined;
 
     const auditLogPath = await writeAuditLog({ ...audit, result: 'migrated', verified: true });
-    return { ok: true, source: sourceAbs, dest: destAbs, warnings, errors, auditLogPath };
+    return {
+      leg: legLabel ?? 'single',
+      ok: true,
+      source: sourceAbs,
+      dest: destAbs,
+      warnings,
+      errors,
+      auditLogPath,
+    };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    errors.push(msg);
+    errors.push(`${prefix}${msg}`);
 
-    // Best-effort rollback.
     try {
       if (await existsDir(sourceAbs)) {
-        // If source exists, it might be a partially-created junction.
         const lst = await lstat(sourceAbs);
         if (lst.isSymbolicLink()) {
           await rm(sourceAbs, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 });
         }
       }
     } catch {
-      warnings.push('Rollback warning: failed to remove partial junction at source.');
+      warnings.push(`${prefix}Rollback warning: failed to remove partial junction at source.`);
     }
 
     if (backupPath) {
       try {
         await rename(backupPath, sourceAbs);
       } catch {
-        warnings.push(`Rollback warning: failed to restore backup folder: ${backupPath}`);
+        warnings.push(`${prefix}Rollback warning: failed to restore backup folder: ${backupPath}`);
       }
     }
 
     const auditLogPath = await writeAuditLog({ ...audit, result: 'failed', errors, warnings });
-    return { ok: false, source: sourceAbs, dest: destAbs, backupPath, warnings, errors, auditLogPath };
+    return {
+      leg: legLabel ?? 'single',
+      ok: false,
+      source: sourceAbs,
+      dest: destAbs,
+      backupPath,
+      warnings,
+      errors,
+      auditLogPath,
+    };
   }
+}
+
+export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly copyOnly?: boolean }): Promise<MigrationResult> {
+  const warnings: string[] = [...plan.warnings];
+  const errors: string[] = [];
+
+  if (!plan.ok) {
+    return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: [...plan.errors] };
+  }
+  if (!isWindows()) {
+    return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: ['Windows-only in v0.9.x.'] };
+  }
+  if (plan.planOnly) {
+    return {
+      ok: false,
+      source: plan.source,
+      dest: plan.dest,
+      warnings,
+      errors: ['This tool target is plan-only in this release (use Plan for guidance).'],
+    };
+  }
+
+  const copyOnly = Boolean(opts?.copyOnly);
+
+  if (plan.legs && plan.legs.length > 0) {
+    const resultLegs: MigrationResultLeg[] = [];
+    let auditLogPath: string | undefined;
+    let allOk = true;
+
+    for (const leg of plan.legs) {
+      if (leg.skipped) {
+        resultLegs.push({
+          leg: leg.leg,
+          ok: true,
+          source: leg.source,
+          dest: leg.dest,
+          skipped: true,
+        });
+        continue;
+      }
+
+      const run = await runSinglePath(leg.source, leg.dest, copyOnly, leg.leg);
+      warnings.push(...run.warnings);
+      if (!run.ok) {
+        allOk = false;
+        errors.push(...run.errors);
+      }
+      if (run.auditLogPath) auditLogPath = run.auditLogPath;
+      resultLegs.push({
+        leg: leg.leg,
+        ok: run.ok,
+        source: leg.source,
+        dest: leg.dest,
+        backupPath: run.backupPath,
+      });
+      if (!run.ok) break;
+    }
+
+    const bundleAudit = await writeAuditLog({
+      ts: new Date().toISOString(),
+      tool: plan.tool,
+      bundle: true,
+      legs: resultLegs,
+      ok: allOk,
+      errors,
+      warnings,
+    });
+    if (bundleAudit) auditLogPath = bundleAudit;
+
+    return {
+      ok: allOk,
+      source: plan.source,
+      dest: plan.dest,
+      warnings,
+      errors,
+      auditLogPath,
+      legs: resultLegs,
+    };
+  }
+
+  const run = await runSinglePath(plan.source, plan.dest, copyOnly);
+  return {
+    ok: run.ok,
+    source: plan.source,
+    dest: plan.dest,
+    backupPath: run.backupPath,
+    warnings: [...warnings, ...run.warnings],
+    errors: [...errors, ...run.errors],
+    auditLogPath: run.auditLogPath,
+  };
 }
 

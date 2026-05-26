@@ -11,8 +11,9 @@ Implementation: `apps/cli/src/tool-migration-profiles.ts` and `apps/desktop/src-
 
 | ID | Category | Default source (Windows) | Run in UI/CLI | Notes |
 |----|----------|--------------------------|---------------|-------|
-| `cursor` | agent | `%APPDATA%\Cursor` | Yes | Roaming profile (chat, extensions) |
-| `cursor-local` | agent | `%LOCALAPPDATA%\Cursor` | Yes | Caches, GPU data |
+| `cursor` | agent | Roaming + Local (bundle) | Yes | One-click: `%APPDATA%\Cursor` + `%LOCALAPPDATA%\Cursor` |
+| `cursor-roaming` | agent | `%APPDATA%\Cursor` | Yes | Single leg (CLI/advanced) |
+| `cursor-local` | agent | `%LOCALAPPDATA%\Cursor` | Yes | Single leg (CLI/advanced) |
 | `vscode` | ide | `%APPDATA%\Code` | Yes | |
 | `claude-code` | agent | `%USERPROFILE%\.claude` | Yes (v0.9.1+) | Does not move `%USERPROFILE%\.claude.json` yet |
 | `codex-cli` | agent | `%CODEX_HOME%` or `%USERPROFILE%\.codex` | Yes (v0.9.1+) | Honors `CODEX_HOME` |

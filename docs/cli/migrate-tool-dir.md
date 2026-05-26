@@ -32,11 +32,14 @@ deco migrate-tool-dir plan --tool cursor --dest-root "D:/DevToolData" --json
 deco migrate-tool-dir run  --tool cursor --dest-root "D:/DevToolData" --yes --json
 ```
 
-### Supported tool IDs (v0.9.0)
+### Supported tool IDs
 
-- `cursor`: `%APPDATA%\Cursor`
-- `vscode`: `%APPDATA%\Code`
-- `docker-desktop`: **plan-only** in v0.9.0 (Docker Desktop / WSL storage is more complex; automation is gated)
+See [tool-migration-profiles.md](../product/tool-migration-profiles.md) for the full table.
+
+- `cursor`: **bundle** — `%APPDATA%\Cursor` + `%LOCALAPPDATA%\Cursor` in one Plan/Run (dest: `…/Cursor` and `…/Cursor-Local`)
+- `cursor-roaming` / `cursor-local`: single-leg (advanced)
+- `vscode`, `claude-code`, `codex-cli`: run supported
+- `docker-desktop`, `npm-cache`, `pnpm-store`, `claude-desktop`: **plan-only**
 
 ### Advanced usage (custom paths)
 

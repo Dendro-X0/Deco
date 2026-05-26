@@ -532,6 +532,8 @@
       "source": "源：",
       "dest": "目标：",
       "size": "估算大小：",
+      "totalSize": "合计估算大小：",
+      "legSkipped": "已跳过（未找到源目录）。",
       "planOnly": "该工具在 v0.9.0 中仅支持计划（plan-only）。",
       "warnings": "警告（{{count}}）",
       "errors": "错误（{{count}}）",

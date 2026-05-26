@@ -532,6 +532,8 @@
       "source": "Source:",
       "dest": "Dest:",
       "size": "Estimated size:",
+      "totalSize": "Total estimated size:",
+      "legSkipped": "Skipped (source not found).",
       "planOnly": "This tool is plan-only in v0.9.0.",
       "warnings": "Warnings ({{count}})",
       "errors": "Errors ({{count}})",

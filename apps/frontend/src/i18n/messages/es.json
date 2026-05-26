@@ -532,6 +532,8 @@
       "source": "Origen:",
       "dest": "Destino:",
       "size": "Tamaño estimado:",
+      "totalSize": "Tamaño total estimado:",
+      "legSkipped": "Omitido (origen no encontrado).",
       "planOnly": "Esta herramienta es solo-plan (plan-only) en v0.9.0.",
       "warnings": "Advertencias ({{count}})",
       "errors": "Errores ({{count}})",
