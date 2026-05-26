@@ -4,6 +4,19 @@
 
 Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
 
+## [0.9.0] - 2026-05-25
+
+See [v0.9.0-manifest.md](docs/product/v0.9.0-manifest.md).
+
+### Added
+
+- **Tool storage migration (Windows)** — Move Cursor or VS Code Roaming data off the OS drive with copy, backup, NTFS junction, verify, rollback, and audit logs. Settings → **Tool storage migration** (Plan / Run) and CLI `deco migrate-tool-dir plan|run`. Docker Desktop is **plan-only** in this release.
+- **Documentation** — [migrate-tool-dir.md](docs/cli/migrate-tool-dir.md), desktop user guide, and [tool-cache-migration.md](docs/experiments/tool-cache-migration.md).
+
+### Changed
+
+- **Cross-platform CI** — Path-safety checks in migration planning run on all OSes; Windows-only steps stay gated for macOS/Linux test jobs.
+
 ## [0.8.5] - 2026-05-19
 
 See [v0.8.5-manifest.md](docs/product/v0.8.5-manifest.md).

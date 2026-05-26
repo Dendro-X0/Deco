@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.8.5` · **Development head:** `v0.9.0` (not tagged) — [v0.9.0-manifest.md](v0.9.0-manifest.md)
+Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.9.0` — [v0.9.0-manifest.md](v0.9.0-manifest.md) (rebuild installers if assets still show `0.8.5` in filenames)
 
 ---
 
