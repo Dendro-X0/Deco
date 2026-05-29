@@ -52,7 +52,7 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 | Include Python venv | High-risk; review tier |
 | Advanced Mode | Required for hard-delete (if exposed in your build) |
 | NTFS USN journal probe (Experimental, Windows) | Off by default. When on, scans prepend warnings about USN journal visibility on drive-letter volumes; discovery is still a full walk |
-| IDE data on the OS drive | Manual guide (junction procedure, not guaranteed). Automated migration removed from Settings |
+| IDE data on the OS drive | **Tool storage migration** (Windows): Plan + Run with confirm modal; manual guide below as fallback |
 
 ### Policy pack gallery (Settings)
 
@@ -65,15 +65,31 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 
 Validate from CLI: `deco validate-policy examples/deco-policies/python-data-science`.
 
-### IDE data on the OS drive (manual guide)
+### Tool storage migration (Windows)
 
-When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small **C:** volume, use **Settings → IDE data on the OS drive** for an in-app summary and link to the full guide:
+When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small **C:** volume:
+
+1. Open **Settings → Tool storage migration (Windows)**.
+2. Pick a **tool** profile (e.g. Cursor Roaming + Local) and a **destination root** on NTFS (e.g. `D:\DevToolData`).
+3. Click **Plan** — review source/dest paths, estimated size, and warnings. Close the tool if running processes are reported.
+4. Click **Run migration** — read the confirm dialog, then wait for the busy overlay to finish.
+5. Restart the tool; confirm settings and history. The audit log path is shown in Settings.
+
+Plan-only profiles (Docker Desktop, npm cache, etc.) show sizing and guidance only — use their settings or the manual guide.
+
+The manual guide remains for rollback steps and tools Deco does not run automatically:
 
 [ide-storage-off-os-drive.md](ide-storage-off-os-drive.md)
 
-Deco **does not** run one-click migration from the desktop app. Relocation requires a careful manual procedure (copy, backup rename, `mklink /J` on NTFS). npm, pnpm, and Docker are easier to move because those tools expose configurable paths.
+CLI `deco migrate-tool-dir` remains for scripting — see [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
 
-The CLI command `deco migrate-tool-dir` remains for power users but is **experimental and not guaranteed** — see [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
+### IDE data on the OS drive (manual guide)
+
+When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small **C:** volume, use **Settings → IDE data on the OS drive** for rollback steps, cache-only cleanup, and tools that need manual or config-based moves:
+
+[ide-storage-off-os-drive.md](ide-storage-off-os-drive.md)
+
+npm, pnpm, and Docker are often easier to move because those tools expose configurable paths.
 
 ## Manual QA before a release
 

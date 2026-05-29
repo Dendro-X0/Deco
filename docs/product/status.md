@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.9.0` (installers may show `0.8.5` — use **`v0.9.1`** next) · **Development head:** [v0.9.1-manifest.md](v0.9.1-manifest.md)
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.3` · **Ready to tag:** `v0.9.4` — [v0.9.4-manifest.md](v0.9.4-manifest.md)
 
 ---
 
@@ -16,33 +16,45 @@ Last updated: 2026-05-25 · **Latest GitHub Release:** `v0.9.0` (installers may 
 
 | Item | Location |
 |------|----------|
-| **Active** | `v0.9.1` — migration profile expansion + correct release artifacts · [v0.9.1-manifest.md](v0.9.1-manifest.md) |
-| **Queue** | `v0.9.2` Docker run path; USN-assisted discover — research |
+| **Tag** | `v0.9.4` after `pnpm check` + CI green — desktop migration wizard (Plan + Run) |
+| **QA** | Install `Deco_0.9.4_*` from GitHub Release; quit Cursor; run migration checklist in manifest T1 |
+| **Queue** | `v0.9.5` M3 managed migrations registry; Docker run research |
 
-### v0.9.1 progress
+### v0.9.4 progress
 
 | Gate | State |
 |------|--------|
-| Profile catalog (TS + Rust) | Done |
-| Claude Code / Codex / cursor-local / npm / pnpm profiles | Done (plan-only where noted) |
-| Version bump → `0.9.1` | Done in repo — **tag `v0.9.1` after QA** |
-| Installers | Must show `Deco_0.9.1_*` and footer **v0.9.1** |
+| Manifest + phased plan (M1–M2) | Done |
+| `ToolMigrationSection` Plan + Run + confirm | Done |
+| Version bump → `0.9.4` | Done |
+| Docs + CHANGELOG | Done |
+| `pnpm check` | Run before tag |
+| Manual QA on production installer (T1) | **Deferred** — maintainer tests after install, with Cursor quit |
 
 ### Version queue (summary)
 
 | Version | Feature set |
 |---------|-------------|
-| `v0.8.2` | Localization phase 1 (`en`/`cn`/`es`, Dashboard + Settings) |
-| `v0.8.3` | Localization phase 2 + UX (History, Quarantine, pickers, modals) |
-| `v0.8.4` | README product demos |
-| `v0.8.5` | Windows USN / MFT inventory (experimental) |
-| `v0.9.0` | Secure tool directory migration (Windows) — shipped (installer version mismatch; see v0.9.1) |
-| `v0.9.1` | More migration profiles + correct `0.9.1` installers — **in progress** |
+| `v0.9.3` | Manual IDE storage guide; automated Run removed from Settings |
+| `v0.9.4` | Desktop migration wizard relaunch — Plan + Run with confirm modal |
+| `v0.9.5` | Managed migrations registry (M3) |
 
 ## Quick commands
 
 ```bash
 pnpm install     # required after clone or `pnpm clean`
 pnpm check
-pnpm dev:desktop
+pnpm build:desktop   # local installer smoke; production QA uses Release artifacts
 ```
+
+### Tag v0.9.4 (maintainer)
+
+```bash
+pnpm check
+git commit -m "Prepare v0.9.4"
+git tag -a v0.9.4 -m "v0.9.4"
+git push origin main
+git push origin v0.9.4
+```
+
+After CI uploads `Deco_0.9.4_*`, run manifest **Manual QA** on the installed app.

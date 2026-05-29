@@ -4,6 +4,22 @@
 
 Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
 
+## [0.9.4] - (pending tag)
+
+See [v0.9.4-manifest.md](docs/product/v0.9.4-manifest.md).
+
+**Ship when:** manifest checklist done (except maintainer QA), `pnpm check` green, then tag `v0.9.4`.
+
+### Added
+
+- **Desktop migration wizard (Windows)** — Settings → **Tool storage migration**: tool picker, destination root, **Plan** (paths, size, running-process warnings), **Run migration** behind `ConfirmDialog` and busy overlay, audit log display. Manual IDE guide kept below as fallback.
+
+### Changed
+
+- **Tool migration UI** — extracted to `ToolMigrationSection`; plan-first copy in `en` / `cn` / `es`.
+
+## [0.9.3] - 2026-05-29
+
 ### Changed
 
 - **IDE storage guide replaces automated migration in Settings** — Plan/Run UI removed; in-app manual guide for moving Cursor/VS Code data off the OS drive (not guaranteed). See [ide-storage-off-os-drive.md](docs/desktop/ide-storage-off-os-drive.md).
@@ -16,7 +32,7 @@ Maintenance and future milestones — see [version-roadmap.md](docs/product/vers
 
 - **Cross-volume junction verify** — CLI/desktop migration helper no longer calls `canonicalize` on the junction path (avoids Windows error 448 when Roaming on `C:` points at data on `G:`).
 
-## [0.9.1] - (in progress)
+## [0.9.1] - 2026-05-25
 
 See [v0.9.1-manifest.md](docs/product/v0.9.1-manifest.md).
 

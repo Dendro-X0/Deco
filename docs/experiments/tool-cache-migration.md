@@ -16,7 +16,7 @@ This is motivated by setups where tools hard‑code or strongly prefer a path on
 ### Scope (initial)
 
 - **Platform:** Windows only for v0; specifically NTFS volumes where we can create directory junctions.
-- **Surface:** CLI first (`deco migrate-tool-dir ...`), with a desktop UX follow‑up if it proves useful.
+- **Surface:** CLI first (`deco migrate-tool-dir ...`); desktop UX relaunch in **v0.9.4** — see [v0.9.4-manifest.md](../product/v0.9.4-manifest.md).
 - **Targets:** start with an explicit allow‑list of well‑known dev tools:
   - `Cursor` user data (e.g. `C:\Users\<user>\AppData\Roaming\Cursor`).
   - IDEs and editors (VS Code, JetBrains) caches/history where safe.
