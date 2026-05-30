@@ -73,3 +73,18 @@ CREATE TABLE IF NOT EXISTS path_inventory (
 );
 
 CREATE INDEX IF NOT EXISTS idx_path_inventory_fingerprint ON path_inventory(config_fingerprint);
+
+-- v0.9.9: Deco-managed directory junction migrations (Windows)
+CREATE TABLE IF NOT EXISTS managed_migrations (
+  id TEXT PRIMARY KEY,
+  tool TEXT NOT NULL,
+  source_path TEXT NOT NULL,
+  dest_path TEXT NOT NULL,
+  leg TEXT,
+  migrated_at TEXT NOT NULL,
+  audit_log_path TEXT,
+  discovered INTEGER NOT NULL DEFAULT 0,
+  UNIQUE(source_path)
+);
+
+CREATE INDEX IF NOT EXISTS idx_managed_migrations_migrated_at ON managed_migrations(migrated_at DESC);

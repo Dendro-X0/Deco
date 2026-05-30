@@ -24,6 +24,7 @@ import {
   type ToolMigrationCategory,
   type ToolMigrationUiId,
 } from '@/lib/tool-migration-profiles';
+import { ManagedMigrationsPanel } from '@/components/ManagedMigrationsPanel';
 import type {
   ToolMigrationBackupEntry,
   ToolMigrationPlan,
@@ -215,6 +216,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
   const [result, setResult] = useState<ToolMigrationResult | null>(null);
   const [runConfirmOpen, setRunConfirmOpen] = useState(false);
   const [removedBackupPaths, setRemovedBackupPaths] = useState<Set<string>>(() => new Set());
+  const [managedRefreshKey, setManagedRefreshKey] = useState(0);
 
   useEffect(() => {
     void resolveAppPlatform().then((p) => setSupported(p.os === 'windows'));
@@ -345,6 +347,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
         copyOnly: false,
       })) as ToolMigrationResult;
       setResult(next);
+      if (next.ok) setManagedRefreshKey((k) => k + 1);
       if (!next.ok) onError?.(next.errors?.[0] ?? 'Migration failed.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -784,6 +787,10 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
               ) : null}
             </div>
           ) : null}
+        </div>
+
+        <div className="rounded-lg border border-border/40 bg-muted/10 p-4 max-w-2xl mt-4">
+          <ManagedMigrationsPanel disabled={busy} refreshKey={managedRefreshKey} onError={onError} />
         </div>
       </MigrationSettingsSection>
     </>

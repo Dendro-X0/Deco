@@ -614,7 +614,14 @@
       "doneFail": "Migration failed.",
       "audit": "Audit log:",
       "backup": "Backup:",
-      "unsupportedPlatform": "Tool directory migration is available on Windows only (NTFS junction). On macOS and Linux, use the CLI on a Windows machine or wait for a future release."
+      "unsupportedPlatform": "Tool directory migration is available on Windows only (NTFS junction). On macOS and Linux, use the CLI on a Windows machine or wait for a future release.",
+      "managedTitle": "Your migrations",
+      "managedHint": "Junctions Deco has recorded or detected on this PC. Dismiss removes the list entry only — it does not undo the migration.",
+      "managedEmpty": "No managed migrations yet. Run a migration above, or Deco will detect existing junctions on the next visit.",
+      "managedLoading": "Loading migration history…",
+      "managedDiscovered": "detected",
+      "managedDismiss": "Remove from list",
+      "managedRollback": "Rollback steps"
     },
     "presets": {
       "cleanup": {

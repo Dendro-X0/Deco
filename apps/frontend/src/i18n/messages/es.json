@@ -614,7 +614,14 @@
       "doneFail": "La migración falló.",
       "audit": "Registro de auditoría:",
       "backup": "Copia de seguridad:",
-      "unsupportedPlatform": "La migración de directorios de herramientas solo está disponible en Windows (unión NTFS). En macOS y Linux, use la CLI en Windows o espere una versión futura."
+      "unsupportedPlatform": "La migración de directorios de herramientas solo está disponible en Windows (unión NTFS). En macOS y Linux, use la CLI en Windows o espere una versión futura.",
+      "managedTitle": "Sus migraciones",
+      "managedHint": "Uniones que Deco registró o detectó en este PC. Quitar de la lista no deshace la migración.",
+      "managedEmpty": "Aún no hay migraciones gestionadas. Ejecute una migración arriba o Deco detectará uniones existentes en la próxima visita.",
+      "managedLoading": "Cargando historial de migraciones…",
+      "managedDiscovered": "detectada",
+      "managedDismiss": "Quitar de la lista",
+      "managedRollback": "Pasos de reversión"
     },
     "presets": {
       "cleanup": {

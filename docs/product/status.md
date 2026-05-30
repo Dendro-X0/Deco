@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.8` · Previous: `v0.9.7`
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.9` · Previous: `v0.9.8`
 
 ---
 
@@ -16,10 +16,9 @@
 
 | Item | Location |
 |------|----------|
-| **Shipped** | `v0.9.8` — custom folder migration, path blocklist |
-| **In dev** | `v0.9.9+` — managed migrations registry (M3) |
-| **QA** | Custom toggle + Sims 4 Mods path; block entire Documents |
-| **Queue** | M3 managed migrations registry; dest-root validation warning |
+| **Shipped** | `v0.9.9` — managed migrations registry, dest-root warning |
+| **In dev** | `v0.9.10+` — scan handoff (M4) |
+| **QA** | Low free-space → migration candidate suggestion |
 
 ### v0.9.5 highlights
 

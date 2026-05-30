@@ -1,6 +1,8 @@
 use rusqlite::Connection;
 use std::path::Path;
 
+pub mod managed_migrations;
+
 const SCHEMA: &str = include_str!("schema.sql");
 
 pub fn init_db(db_path: &Path) -> Result<Connection, String> {

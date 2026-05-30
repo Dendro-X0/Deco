@@ -614,7 +614,14 @@
       "doneFail": "迁移失败。",
       "audit": "审计日志：",
       "backup": "备份：",
-      "unsupportedPlatform": "工具目录迁移仅适用于 Windows（NTFS 连接点）。在 macOS 和 Linux 上请使用 Windows 上的 CLI，或等待后续版本。"
+      "unsupportedPlatform": "工具目录迁移仅适用于 Windows（NTFS 连接点）。在 macOS 和 Linux 上请使用 Windows 上的 CLI，或等待后续版本。",
+      "managedTitle": "已管理的迁移",
+      "managedHint": "Deco 已记录或检测到的联接。从列表移除仅删除记录，不会撤销迁移。",
+      "managedEmpty": "尚无已管理的迁移。请在上方运行迁移，或下次打开时 Deco 会自动检测现有联接。",
+      "managedLoading": "正在加载迁移记录…",
+      "managedDiscovered": "已检测",
+      "managedDismiss": "从列表移除",
+      "managedRollback": "回滚步骤"
     },
     "presets": {
       "cleanup": {

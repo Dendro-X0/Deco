@@ -345,6 +345,38 @@ fn default_source(_tool: &ToolId) -> Result<PathBuf, String> {
     Err("Tool migration is Windows-only in v0.9.x.".to_string())
 }
 
+/// Warn when the user entered the tool leaf folder as the destination root.
+pub fn dest_root_leaf_warning(dest_root: &Path, tool: ToolId) -> Option<String> {
+    let name = dest_root.file_name()?.to_str()?;
+    if name.is_empty() {
+        return None;
+    }
+    if tool.is_bundle() {
+        for (_, member) in tool.bundle_members() {
+            if name == dest_leaf(&member) {
+                let leaf = dest_leaf(&member);
+                return Some(format!(
+                    "Destination root already ends with \"{leaf}\". Use the parent folder (e.g. G:\\DevToolData) — Deco appends {leaf} automatically."
+                ));
+            }
+        }
+        return None;
+    }
+    let leaf = dest_leaf(&tool);
+    if name == leaf {
+        Some(format!(
+            "Destination root already ends with \"{leaf}\". Use the parent folder (e.g. G:\\DevToolData) — Deco will create …\\{leaf} under it."
+        ))
+    } else {
+        None
+    }
+}
+
+#[cfg(windows)]
+pub fn default_source_for_discovery(tool: &ToolId) -> Result<PathBuf, String> {
+    default_source(tool)
+}
+
 fn dest_leaf(tool: &ToolId) -> &'static str {
     match tool {
         ToolId::Cursor => "Cursor",
@@ -837,6 +869,9 @@ fn evaluate_idle_bundle(legs: &[MigrationPlanLeg]) -> IdleBundleOutcome {
 fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan {
     let tool_wire = tool.wire().to_string();
     let mut warnings: Vec<String> = Vec::new();
+    if let Some(w) = dest_root_leaf_warning(dest_root, tool) {
+        warnings.push(w);
+    }
     let mut errors: Vec<String> = Vec::new();
     let mut plan_legs: Vec<MigrationPlanLeg> = Vec::new();
     let mut total_bytes: u64 = 0;
@@ -967,6 +1002,11 @@ pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan
         return plan_bundle(tool, dest_root, include_size);
     }
 
+    let mut dest_warnings: Vec<String> = Vec::new();
+    if let Some(w) = dest_root_leaf_warning(dest_root, tool) {
+        dest_warnings.push(w);
+    }
+
     let plan_only = tool.is_plan_only();
     let source = match default_source(&tool) {
         Ok(p) => p,
@@ -990,7 +1030,9 @@ pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan
         }
     };
     let dest = dest_root.join(dest_leaf(&tool));
-    plan_paths(tool.wire(), source, dest, include_size, plan_only)
+    let mut plan = plan_paths(tool.wire(), source, dest, include_size, plan_only);
+    plan.warnings = dest_warnings.into_iter().chain(plan.warnings).collect();
+    plan
 }
 
 /// Plan migration for explicit source/dest paths (advanced / custom).
@@ -1487,6 +1529,19 @@ mod tests {
         assert!(is_deco_backup_dir_name("Cursor.deco-backup-20260525-194813"));
         assert!(!is_deco_backup_dir_name("Cursor"));
         assert!(!is_deco_backup_dir_name("Cursor.deco-backup-evil"));
+    }
+
+    #[test]
+    fn dest_root_leaf_warning_detects_cursor_in_root() {
+        let root = PathBuf::from(r"G:\DevToolData\Cursor");
+        let msg = dest_root_leaf_warning(&root, ToolId::Cursor).expect("warning");
+        assert!(msg.contains("Cursor"));
+    }
+
+    #[test]
+    fn dest_root_leaf_warning_allows_parent_root() {
+        let root = PathBuf::from(r"G:\DevToolData");
+        assert!(dest_root_leaf_warning(&root, ToolId::Cursor).is_none());
     }
 }
 

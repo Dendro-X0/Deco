@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [0.9.9] - 2026-05-29
+
+### Added
+
+- **Managed migrations registry (Windows)** — Settings lists junctions Deco recorded or detected; Open source/dest and link to rollback steps.
+- **Destination-root validation** — Plan warns when the dest root already includes the tool folder (e.g. `G:\DevToolData\Cursor` instead of `G:\DevToolData`).
+
+### Changed
+
+- Successful **Run migration** writes to the local SQLite registry (per source path).
+- **README demo GIFs** — refreshed Settings and Cleanup recordings.
+
+See [v0.9.9-manifest.md](docs/product/v0.9.9-manifest.md).
+
 ## [0.9.8] - 2026-05-29
 
 ### Added

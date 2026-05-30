@@ -1,6 +1,9 @@
+use crate::db::managed_migrations::{self, ManagedMigrationEntry};
+use crate::state::AppState;
 use crate::util::tool_migration::{self, MigrationPlan, MigrationResult, ToolId};
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager};
+use std::sync::Arc;
+use tauri::{AppHandle, Manager, State};
 
 fn resolve_plan(
     tool: Option<String>,
@@ -69,6 +72,7 @@ pub async fn migrate_tool_dir_run(
     dest: Option<String>,
     copy_only: Option<bool>,
     app: AppHandle,
+    state: State<'_, Arc<AppState>>,
 ) -> Result<MigrationResult, String> {
     let copy_only = copy_only.unwrap_or(false);
     let data_dir = app
@@ -76,10 +80,19 @@ pub async fn migrate_tool_dir_run(
         .app_data_dir()
         .map_err(|e| format!("failed resolving app data dir: {e}"))?;
     let audit_dir = data_dir.join("migrations");
+    let state = state.inner().clone();
 
     tauri::async_runtime::spawn_blocking(move || -> Result<MigrationResult, String> {
         let plan = resolve_plan(tool, dest_root, source, dest, false)?;
-        Ok(tool_migration::run_from_plan(plan, copy_only, &audit_dir))
+        let result = tool_migration::run_from_plan(plan, copy_only, &audit_dir);
+        if result.ok {
+            let conn = state
+                .db
+                .lock()
+                .map_err(|e| format!("db lock poisoned: {e}"))?;
+            managed_migrations::record_from_result(&conn, &result)?;
+        }
+        Ok(result)
     })
     .await
     .map_err(|e| format!("migration run task failed: {e}"))?
@@ -92,4 +105,42 @@ pub async fn migrate_tool_dir_delete_backup(path: String) -> Result<u64, String>
     })
     .await
     .map_err(|e| format!("delete backup task failed: {e}"))?
+}
+
+#[tauri::command]
+pub async fn migrate_tool_dir_list_managed(
+    sync_discovered: Option<bool>,
+    state: State<'_, Arc<AppState>>,
+) -> Result<Vec<ManagedMigrationEntry>, String> {
+    let sync = sync_discovered.unwrap_or(true);
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = state
+            .db
+            .lock()
+            .map_err(|e| format!("db lock poisoned: {e}"))?;
+        if sync {
+            let _ = managed_migrations::sync_discovered_junctions(&conn);
+        }
+        managed_migrations::list(&conn)
+    })
+    .await
+    .map_err(|e| format!("list managed migrations failed: {e}"))?
+}
+
+#[tauri::command]
+pub async fn migrate_tool_dir_remove_managed(
+    id: String,
+    state: State<'_, Arc<AppState>>,
+) -> Result<bool, String> {
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = state
+            .db
+            .lock()
+            .map_err(|e| format!("db lock poisoned: {e}"))?;
+        managed_migrations::remove(&conn, &id)
+    })
+    .await
+    .map_err(|e| format!("remove managed migration failed: {e}"))?
 }

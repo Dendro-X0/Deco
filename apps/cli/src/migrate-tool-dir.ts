@@ -4,6 +4,7 @@ import os from 'node:os';
 import { TaskQueue } from './concurrency.js';
 import { getDirSizeBytes } from './scan.js';
 import { lstat, mkdir, mkdtemp, readdir, readlink, realpath, rename, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { destRootLeafWarning } from './dest-root-warning.js';
 import {
   isToolMigrationBundle,
   isToolMigrationPlanOnly,
@@ -250,6 +251,8 @@ async function planToolBundle(
   includeSize: boolean,
 ): Promise<MigrationPlan> {
   const warnings: string[] = [];
+  const leafWarn = destRootLeafWarning(destRoot, tool);
+  if (leafWarn) warnings.push(leafWarn);
   const errors: string[] = [];
   const { legs: resolved, errors: resolveErrors } = resolveToolBundleLegs(tool, destRoot);
   errors.push(...resolveErrors);
@@ -365,6 +368,12 @@ export async function planToolDirMigration(args: {
 
   if (!source) errors.push('Missing --source (or pass --tool).');
   if (!dest) errors.push('Missing --dest (or pass --dest-root with --tool).');
+
+  if (tool && args.destRoot) {
+    const leafWarn = destRootLeafWarning(args.destRoot, tool);
+    if (leafWarn) warnings.push(leafWarn);
+  }
+
   if (errors.length > 0) {
     return {
       ok: false,

@@ -43,6 +43,17 @@ export type ToolMigrationResultLeg = {
   skipped?: boolean;
 };
 
+export type ManagedMigrationEntry = {
+  id: string;
+  tool: string;
+  source_path: string;
+  dest_path: string;
+  leg?: string;
+  migrated_at: string;
+  audit_log_path?: string;
+  discovered: boolean;
+};
+
 export type ToolMigrationResult = {
   ok: boolean;
   tool: string;
