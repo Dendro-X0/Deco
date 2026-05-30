@@ -2,7 +2,23 @@
 
 ## [Unreleased]
 
-Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
+## [0.9.8] - 2026-05-29
+
+### Added
+
+- **Custom folder migration (Windows)** — Settings → **Custom folder** toggle for paths not in the profile list (e.g. `.claude`, Sims 4 Mods).
+- **Migration path blocklist** — blocks system dirs and broad profile roots; allows dot-folders and specific subfolders.
+
+### Changed
+
+- **Settings** — removed the legacy IDE manual migration guide; use Tool storage migration instead.
+- **Custom mode UX** — custom migration is a toggle above the tool picker instead of an item buried in the dropdown.
+
+### Fixed
+
+- **Custom folder mode** — `tool: custom` no longer fails with “unknown tool id”; dot-folders like `.claude` in the user profile are supported.
+
+See [v0.9.8-manifest.md](docs/product/v0.9.8-manifest.md).
 
 ## [0.9.7] - 2026-05-29
 

@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.7` · **In development:** `v0.9.8+` (managed migrations M3)
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.8` · **In development:** `v0.9.9+` (managed migrations registry)
 
 **Release model:** One feature set per version, in roadmap order. Desktop installers target **Windows, macOS, and Linux** from **`v0.8.0`** onward (see [v0.8.0-manifest.md](v0.8.0-manifest.md)).
 
@@ -250,7 +250,8 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 | `v0.9.5` | AppData profiles (browsers, utilities, games); path fixes; Open in Explorer | **Broken release** (no installers — compile failed on CI) |
 | `v0.9.6` | Same as v0.9.5 + cross-platform compile fix | Shipped |
 | `v0.9.7` | Backup cleanup UI; destination verification; already-migrated messaging | Shipped |
-| `v0.9.8+` | Managed migrations registry (M3) | Planned |
+| `v0.9.8` | Custom folder migration + path blocklist; custom mode toggle | Shipped — [v0.9.8-manifest.md](v0.9.8-manifest.md) |
+| `v0.9.9+` | Managed migrations registry (M3) | Planned |
 
 | Item | Version | Notes |
 |------|---------|--------|

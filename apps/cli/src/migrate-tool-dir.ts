@@ -72,10 +72,7 @@ function nowStamp(): string {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
-function isDriveRoot(absPath: string): boolean {
-  const resolved = path.win32.resolve(absPath);
-  return /^[A-Za-z]:\\?$/.test(resolved);
-}
+import { migrationPathBlockReason } from './migration-path-policy.js';
 
 function normalizeForPrefixCompare(pth: string): string {
   const r = path.resolve(pth);
@@ -87,15 +84,6 @@ function isUnder(child: string, parent: string): boolean {
   const p = normalizeForPrefixCompare(parent);
   if (c === p) return true;
   return c.startsWith(p.endsWith(path.sep) ? p : `${p}${path.sep}`);
-}
-
-function getBlockedPrefixesWindows(): string[] {
-  const systemRoot = process.env.SystemRoot || 'C:\\Windows';
-  const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
-  const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
-  const programData = process.env.ProgramData || 'C:\\ProgramData';
-  const userProfile = process.env.USERPROFILE;
-  return [systemRoot, programFiles, programFilesX86, programData, userProfile].filter(Boolean) as string[];
 }
 
 function readWindowsVolumeFilesystem(driveLetter: string): string | null {
@@ -144,18 +132,11 @@ function destRequiresNtfs(destAbs: string): string | null {
 }
 
 function isBlockedSource(sourceAbs: string): string | null {
-  if (isDriveRoot(sourceAbs)) return 'Refusing to migrate a drive root.';
+  return migrationPathBlockReason(sourceAbs, 'source');
+}
 
-  const resolved = path.resolve(sourceAbs);
-  for (const pref of getBlockedPrefixesWindows()) {
-    const prefResolved = path.resolve(pref);
-    // We DO allow migrating AppData subfolders (Cursor/Code) which are under USERPROFILE;
-    // but we refuse profile root itself and other broad parents.
-    if (normalizeForPrefixCompare(resolved) === normalizeForPrefixCompare(prefResolved)) {
-      return `Refusing to migrate a protected root: ${prefResolved}`;
-    }
-  }
-  return null;
+function isBlockedDest(destAbs: string): string | null {
+  return migrationPathBlockReason(destAbs, 'dest');
 }
 
 async function existsDir(absPath: string): Promise<boolean> {
@@ -223,6 +204,8 @@ async function planSinglePath(args: {
   if (winOnly) {
     const blocked = isBlockedSource(sourceAbs);
     if (blocked) errors.push(blocked);
+    const blockedDest = isBlockedDest(destAbs);
+    if (blockedDest) errors.push(blockedDest);
 
     if (!(await existsDir(sourceAbs))) {
       errors.push(`Source does not exist or is not a directory: ${sourceAbs}`);

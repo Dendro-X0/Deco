@@ -1,3 +1,4 @@
+pub mod migration_path_policy;
 pub mod native_path;
 pub mod ntfs_usn;
 pub mod tool_migration;

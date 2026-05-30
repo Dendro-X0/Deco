@@ -28,6 +28,7 @@ export type ToolMigrationPlan = {
   errors: string[];
   plan_only: boolean;
   already_complete?: boolean;
+  custom_mode?: boolean;
   legs?: ToolMigrationPlanLeg[];
   running_processes?: string[];
   pending_backups?: ToolMigrationBackupEntry[];

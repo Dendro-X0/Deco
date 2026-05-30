@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.7` (tag pending CI) · Previous: `v0.9.6`
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.8` · Previous: `v0.9.7`
 
 ---
 
@@ -16,8 +16,9 @@
 
 | Item | Location |
 |------|----------|
-| **Shipped** | `v0.9.7` — backup cleanup, destination verification, already-migrated UX |
-| **QA** | Re-plan Cursor with dest `G:\DevToolData`; confirm green “already complete” + backup delete |
+| **Shipped** | `v0.9.8` — custom folder migration, path blocklist |
+| **In dev** | `v0.9.9+` — managed migrations registry (M3) |
+| **QA** | Custom toggle + Sims 4 Mods path; block entire Documents |
 | **Queue** | M3 managed migrations registry; dest-root validation warning |
 
 ### v0.9.5 highlights

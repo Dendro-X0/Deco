@@ -14,6 +14,24 @@ export async function pickQuarantineFolder(): Promise<string | null> {
   return paths?.[0] ?? null;
 }
 
+/** Single folder to migrate (custom mode source). */
+export async function pickToolMigrationSource(): Promise<string | null> {
+  const paths = await pickFolders({
+    multiple: false,
+    title: 'Select folder to migrate (source)',
+  });
+  return paths?.[0] ?? null;
+}
+
+/** Single folder for custom migration destination (full path, not a parent root). */
+export async function pickToolMigrationDest(): Promise<string | null> {
+  const paths = await pickFolders({
+    multiple: false,
+    title: 'Select destination folder',
+  });
+  return paths?.[0] ?? null;
+}
+
 /** Single folder for tool migration destination root. */
 export async function pickToolMigrationRoot(): Promise<string | null> {
   const paths = await pickFolders({

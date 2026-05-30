@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FolderOpen, Trash2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -16,7 +17,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { OperationBusyOverlay } from '@/components/OperationBusyOverlay';
 import { resolveAppPlatform } from '@/lib/app-update';
 import { formatBytes } from '@/lib/format';
-import { pickToolMigrationRoot } from '@/lib/pick-folders';
+import { pickToolMigrationDest, pickToolMigrationRoot, pickToolMigrationSource } from '@/lib/pick-folders';
 import { revealPathInExplorer } from '@/lib/policy-pack';
 import {
   toolMigrationProfilesByCategory,
@@ -203,7 +204,10 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
   const { t } = useI18n();
   const [supported, setSupported] = useState<boolean | null>(null);
   const [tool, setTool] = useState<ToolMigrationUiId>('cursor');
+  const [customMode, setCustomMode] = useState(false);
   const [destRoot, setDestRoot] = useState('');
+  const [customSource, setCustomSource] = useState('');
+  const [customDest, setCustomDest] = useState('');
   const [busyKind, setBusyKind] = useState<BusyKind | null>(null);
   const [busyStartedAt, setBusyStartedAt] = useState<number | null>(null);
   const [busyElapsedMs, setBusyElapsedMs] = useState(0);
@@ -246,7 +250,53 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
   const categoryLabel = (category: ToolMigrationCategory) =>
     t(`settings.toolMigration.categories.${category}` as 'settings.toolMigration.categories.agent');
 
+  const isCustom = customMode;
+
+  const pathLeafName = (p: string) => {
+    const trimmed = p.trim().replace(/[\\/]+$/, '');
+    const parts = trimmed.split(/[\\/]/);
+    return parts[parts.length - 1] ?? '';
+  };
+
   const planMigration = async () => {
+    if (isCustom) {
+      const source = customSource.trim();
+      const dest = customDest.trim();
+      if (!source) {
+        onError?.(t('settings.toolMigration.customSourceRequired'));
+        return;
+      }
+      if (!dest) {
+        onError?.(t('settings.toolMigration.customDestRequired'));
+        return;
+      }
+      const sourceLeaf = pathLeafName(source);
+      const destLeaf = pathLeafName(dest);
+      if (sourceLeaf && destLeaf && sourceLeaf.toLowerCase() !== destLeaf.toLowerCase()) {
+        onError?.(t('settings.toolMigration.customDestMustBeLeaf'));
+        return;
+      }
+      beginBusy('plan');
+      setResult(null);
+      setPlan(null);
+      try {
+        const next = (await invoke('migrate_tool_dir_plan', {
+          tool: 'custom',
+          source,
+          dest,
+          includeSize: true,
+        })) as ToolMigrationPlan;
+        setPlan(next);
+        if (!next.ok) onError?.(next.errors?.[0] ?? 'Migration plan failed.');
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        onError?.(msg);
+      } finally {
+        endBusy();
+      }
+      return;
+    }
+
     const dest = destRoot.trim();
     if (!dest) {
       onError?.(t('settings.toolMigration.destRootRequired'));
@@ -286,10 +336,12 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
     beginBusy('run');
     setResult(null);
     try {
-      const dest = destRoot.trim();
+      const dest = isCustom ? customDest.trim() : destRoot.trim();
       const next = (await invoke('migrate_tool_dir_run', {
-        tool,
-        destRoot: dest,
+        tool: isCustom ? 'custom' : tool,
+        ...(isCustom
+          ? { source: customSource.trim(), dest }
+          : { destRoot: dest }),
         copyOnly: false,
       })) as ToolMigrationResult;
       setResult(next);
@@ -331,7 +383,11 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
     !plan.plan_only &&
     !plan.already_complete &&
     (plan.running_processes?.length ?? 0) === 0 &&
-    destRoot.trim().length > 0;
+    (isCustom ? customSource.trim().length > 0 && customDest.trim().length > 0 : destRoot.trim().length > 0);
+
+  const canPlan = isCustom
+    ? customSource.trim().length > 0 && customDest.trim().length > 0
+    : destRoot.trim().length > 0;
 
   const overlayDetail =
     busyKind === 'run'
@@ -366,7 +422,31 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
         <div className="space-y-3 rounded-lg border border-border/40 bg-muted/10 p-4 max-w-2xl">
           <p className="text-xs text-muted-foreground leading-relaxed">{t('settings.toolMigration.planFirstNote')}</p>
 
+          <label
+            className={`flex items-center justify-between gap-4 rounded-lg border border-border/40 bg-background/40 p-3 cursor-pointer ${
+              busy ? 'opacity-60 pointer-events-none' : ''
+            }`}
+          >
+            <div className="space-y-0.5 min-w-0">
+              <p className="text-sm font-semibold">{t('settings.toolMigration.customModeLabel')}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                {t('settings.toolMigration.customModeDescription')}
+              </p>
+            </div>
+            <Checkbox
+              checked={customMode}
+              onCheckedChange={(v) => {
+                setCustomMode(v === true);
+                clearPlanState();
+              }}
+              disabled={busy}
+              className="shrink-0"
+              aria-label={t('settings.toolMigration.customModeLabel')}
+            />
+          </label>
+
           <div className="grid gap-4 sm:grid-cols-2">
+            {!isCustom ? (
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                 {t('settings.toolMigration.tool')}
@@ -398,6 +478,8 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                 </SelectContent>
               </Select>
             </div>
+            ) : null}
+            {!isCustom ? (
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
                 {t('settings.toolMigration.destRoot')}
@@ -434,14 +516,93 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
               </div>
               <p className="text-[11px] text-muted-foreground">{t('settings.toolMigration.destRootHint')}</p>
             </div>
+            ) : null}
           </div>
+
+          {isCustom ? (
+              <div className="space-y-4">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {t('settings.toolMigration.customModeHint')}
+                </p>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                    {t('settings.toolMigration.customSource')}
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={customSource}
+                      onChange={(e) => {
+                        setCustomSource(e.target.value);
+                        clearPlanState();
+                      }}
+                      placeholder={t('settings.toolMigration.customSourcePlaceholder')}
+                      className="font-mono text-sm flex-1"
+                      disabled={busy}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={busy}
+                      onClick={() => {
+                        void (async () => {
+                          const picked = await pickToolMigrationSource();
+                          if (picked) {
+                            setCustomSource(picked);
+                            clearPlanState();
+                          }
+                        })();
+                      }}
+                    >
+                      {t('settings.safety.browse')}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                    {t('settings.toolMigration.customDest')}
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={customDest}
+                      onChange={(e) => {
+                        setCustomDest(e.target.value);
+                        clearPlanState();
+                      }}
+                      placeholder={t('settings.toolMigration.customDestPlaceholder')}
+                      className="font-mono text-sm flex-1"
+                      disabled={busy}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={busy}
+                      onClick={() => {
+                        void (async () => {
+                          const picked = await pickToolMigrationDest();
+                          if (picked) {
+                            setCustomDest(picked);
+                            clearPlanState();
+                          }
+                        })();
+                      }}
+                    >
+                      {t('settings.safety.browse')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
               size="sm"
               variant="outline"
-              disabled={busy || destRoot.trim().length === 0}
+              disabled={busy || !canPlan}
               onClick={() => void planMigration()}
             >
               {busyKind === 'plan' ? t('common.loading') : t('settings.toolMigration.plan')}

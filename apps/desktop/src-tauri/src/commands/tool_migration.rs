@@ -19,12 +19,10 @@ fn resolve_plan(
     if explicit_source.is_some() || explicit_dest.is_some() {
         let src = explicit_source.ok_or_else(|| "Missing --source for custom migration.".to_string())?;
         let dst = explicit_dest.ok_or_else(|| "Missing --dest for custom migration.".to_string())?;
-        let wire = tool
-            .as_deref()
-            .map(ToolId::parse)
-            .transpose()?
-            .map(|t| t.wire().to_string())
-            .unwrap_or_else(|| "custom".to_string());
+        let wire = match tool.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            None | Some("custom") => "custom".to_string(),
+            Some(other) => ToolId::parse(other)?.wire().to_string(),
+        };
         let plan_only = tool
             .as_deref()
             .and_then(|t| ToolId::parse(t).ok())
@@ -33,7 +31,13 @@ fn resolve_plan(
         return Ok(tool_migration::plan_paths(&wire, src, dst, include_size, plan_only));
     }
 
-    let tool = ToolId::parse(tool.as_deref().unwrap_or(""))?;
+    let tool_str = tool.as_deref().unwrap_or("").trim();
+    if tool_str.eq_ignore_ascii_case("custom") {
+        return Err(
+            "Custom migration requires --source and --dest (full folder paths).".to_string(),
+        );
+    }
+    let tool = ToolId::parse(tool_str)?;
     let dest_root = dest_root
         .filter(|s| !s.trim().is_empty())
         .map(|s| PathBuf::from(s.trim()))

@@ -154,6 +154,8 @@ pub struct MigrationPlan {
     pub plan_only: bool,
     #[serde(default)]
     pub already_complete: bool,
+    #[serde(default)]
+    pub custom_mode: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub legs: Option<Vec<MigrationPlanLeg>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -422,26 +424,27 @@ fn read_volume_filesystem_name(mount: &str) -> Result<String, String> {
 
 #[cfg(windows)]
 fn blocked_source(source: &Path) -> Option<String> {
-    let s = source.to_string_lossy().to_lowercase();
-    let roots = [
-        std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".to_string()),
-        std::env::var("ProgramFiles").unwrap_or_else(|_| "C:\\Program Files".to_string()),
-        std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| "C:\\Program Files (x86)".to_string()),
-        std::env::var("ProgramData").unwrap_or_else(|_| "C:\\ProgramData".to_string()),
-    ]
-    .map(|p| p.to_lowercase());
-    if roots.iter().any(|p| s == *p) {
-        return Some("Refusing to migrate a protected root directory.".to_string());
-    }
-    // Refuse drive roots like C:\
-    if s.len() <= 3 && s.ends_with(":\\") {
-        return Some("Refusing to migrate a drive root.".to_string());
-    }
-    None
+    crate::util::migration_path_policy::migration_path_block_reason(
+        source,
+        crate::util::migration_path_policy::MigrationPathRole::Source,
+    )
+}
+
+#[cfg(windows)]
+fn blocked_dest(dest: &Path) -> Option<String> {
+    crate::util::migration_path_policy::migration_path_block_reason(
+        dest,
+        crate::util::migration_path_policy::MigrationPathRole::Dest,
+    )
 }
 
 #[cfg(not(windows))]
 fn blocked_source(_source: &Path) -> Option<String> {
+    None
+}
+
+#[cfg(not(windows))]
+fn blocked_dest(_dest: &Path) -> Option<String> {
     None
 }
 
@@ -582,6 +585,33 @@ fn dest_size_suffix(dest: &Path, include_size: bool) -> String {
 
 fn is_optional_bundle_leg(member: ToolId) -> bool {
     matches!(member, ToolId::CursorLocal | ToolId::DiscordLocal)
+}
+
+fn custom_migration_already_complete(
+    source: &Path,
+    dest: &Path,
+    source_check: crate::util::windows_profile_paths::SourceDirCheck,
+) -> bool {
+    use crate::util::windows_profile_paths::{
+        check_migration_dest_dir, junction_points_to, DestDirCheck, SourceDirCheck,
+    };
+
+    match source_check {
+        SourceDirCheck::AlreadyLink => {
+            junction_points_to(source, dest) && check_migration_dest_dir(dest) == DestDirCheck::HasData
+        }
+        SourceDirCheck::NotFound => check_migration_dest_dir(dest) == DestDirCheck::HasData,
+        _ => false,
+    }
+}
+
+fn custom_migration_skip_reason(
+    source: &Path,
+    dest: &Path,
+    source_check: crate::util::windows_profile_paths::SourceDirCheck,
+    include_size: bool,
+) -> String {
+    bundle_leg_skip_reason_with_dest(ToolId::Vscode, source, dest, source_check, include_size)
 }
 
 fn leg_indicates_already_complete(
@@ -922,6 +952,7 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
         errors,
         plan_only: false,
         already_complete,
+        custom_mode: false,
         legs: Some(plan_legs),
         running_processes: None,
         pending_backups: None,
@@ -951,6 +982,7 @@ pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan
                 errors: vec![e],
                 plan_only,
                 already_complete: false,
+                custom_mode: false,
                 legs: None,
                 running_processes: None,
                 pending_backups: None,
@@ -979,7 +1011,19 @@ pub fn plan_paths(
         ));
     }
 
+    let custom_mode = tool_wire == "custom";
+    if custom_mode {
+        warnings.push(
+            "Custom folder migration — pick a specific subfolder (e.g. Documents\\Electronic Arts\\The Sims 4\\Mods), \
+             not entire Documents, AppData, or your user profile."
+                .to_string(),
+        );
+    }
+
     if let Some(msg) = blocked_source(&source) {
+        errors.push(msg);
+    }
+    if let Some(msg) = blocked_dest(&dest) {
         errors.push(msg);
     }
     if let Some(msg) = dest_requires_ntfs_error(&dest) {
@@ -988,7 +1032,15 @@ pub fn plan_paths(
     let source_check = crate::util::windows_profile_paths::check_migrate_source_dir(&source);
     let mut already_complete = false;
     if source_check != crate::util::windows_profile_paths::SourceDirCheck::Ready {
-        if let Ok(id) = ToolId::parse(tool_wire) {
+        if tool_wire == "custom" {
+            let msg = custom_migration_skip_reason(&source, &dest, source_check, include_size);
+            if custom_migration_already_complete(&source, &dest, source_check) {
+                warnings.push(msg);
+                already_complete = true;
+            } else {
+                errors.push(msg);
+            }
+        } else if let Ok(id) = ToolId::parse(tool_wire) {
             let msg = bundle_leg_skip_reason_with_dest(id, &source, &dest, source_check, include_size);
             if leg_indicates_already_complete(id, &source, &dest, source_check) {
                 warnings.push(msg);
@@ -1033,6 +1085,7 @@ pub fn plan_paths(
         errors,
         plan_only,
         already_complete,
+        custom_mode,
         legs: None,
         running_processes: None,
         pending_backups: None,

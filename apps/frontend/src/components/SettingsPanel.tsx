@@ -48,7 +48,6 @@ import type { Settings } from '@/types';
 import { CheckForUpdatesSection } from '@/components/CheckForUpdatesSection';
 import { PolicyPackSection } from '@/components/PolicyPackSection';
 import { UiLocaleSection } from '@/components/UiLocaleSection';
-import { IdeStorageGuideSection } from '@/components/IdeStorageGuideSection';
 import { ToolMigrationSection } from '@/components/ToolMigrationSection';
 import { useI18n } from '@/i18n';
 import {
@@ -645,10 +644,6 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
           disabled={scanning || saving}
           onError={onError}
         />
-
-        <Separator />
-
-        <IdeStorageGuideSection />
 
         <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-border/40">
           <DisabledActionHint reason={discardReason}>

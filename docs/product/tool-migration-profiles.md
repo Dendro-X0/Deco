@@ -66,11 +66,24 @@ Implementation: `apps/cli/src/tool-migration-profiles.ts` and `apps/desktop/src-
 | **v0.9.0** | Cursor, VS Code; Docker plan-only |
 | **v0.9.1** | Profile registry; Claude Code + Codex CLI |
 | **v0.9.4** | Desktop Plan + Run wizard relaunch |
-| **v0.9.5** | AppData browsers, utilities, games (this table) |
+| **v0.9.7** | Backup cleanup; destination verification on re-plan | Shipped |
+| **v0.9.8** | Custom folder migration + path blocklist; custom mode toggle | Shipped — [v0.9.8-manifest.md](v0.9.8-manifest.md) |
 
 ---
 
-## Custom paths
+## Custom folder migration (v0.9.8+)
+
+**Desktop:** Settings → Tool storage migration → **Custom folder** toggle  
+**CLI:** `--source` and `--dest` (unchanged)
+
+Use when no profile matches — e.g. `Documents\Electronic Arts\The Sims 4\Mods` → `G:\Games\Sims4\Mods`.
+
+**Blocked (blocklist):** drive roots; `Windows`, `Program Files`, `ProgramData`; entire `%USERPROFILE%`, `Documents`, `AppData`, `Desktop`, etc.  
+**Allowed:** specific subfolders under those paths.
+
+---
+
+## Custom paths (CLI advanced)
 
 Always supported:
 
