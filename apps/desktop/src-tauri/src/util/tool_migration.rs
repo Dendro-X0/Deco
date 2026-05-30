@@ -345,12 +345,21 @@ fn default_source(_tool: &ToolId) -> Result<PathBuf, String> {
     Err("Tool migration is Windows-only in v0.9.x.".to_string())
 }
 
+fn dest_root_leaf_name(dest_root: &Path) -> Option<String> {
+    let trimmed = dest_root.to_string_lossy().trim().trim_end_matches(['/', '\\']);
+    let last = trimmed
+        .rsplit(['/', '\\'])
+        .find(|s| !s.is_empty())?;
+    if last.is_empty() {
+        None
+    } else {
+        Some(last.to_string())
+    }
+}
+
 /// Warn when the user entered the tool leaf folder as the destination root.
 pub fn dest_root_leaf_warning(dest_root: &Path, tool: ToolId) -> Option<String> {
-    let name = dest_root.file_name()?.to_str()?;
-    if name.is_empty() {
-        return None;
-    }
+    let name = dest_root_leaf_name(dest_root)?;
     if tool.is_bundle() {
         for (_, member) in tool.bundle_members() {
             if name == dest_leaf(&member) {

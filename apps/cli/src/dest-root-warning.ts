@@ -1,4 +1,3 @@
-import path from 'node:path';
 import {
   getToolMigrationProfile,
   isToolMigrationBundle,
@@ -6,9 +5,16 @@ import {
   type MigrateToolId,
 } from './tool-migration-profiles.js';
 
+/** Last path segment — works for Windows paths on any host OS (CI runs on macOS/Linux). */
+function destRootLeafName(destRoot: string): string {
+  const trimmed = destRoot.trim().replace(/[/\\]+$/, '');
+  const parts = trimmed.split(/[/\\]/).filter(Boolean);
+  return parts[parts.length - 1] ?? '';
+}
+
 /** Warn when dest root already includes the tool leaf folder (matches desktop engine). */
 export function destRootLeafWarning(destRoot: string, tool: MigrateToolId): string | undefined {
-  const base = path.basename(path.resolve(destRoot));
+  const base = destRootLeafName(destRoot);
   if (!base) return undefined;
 
   if (isToolMigrationBundle(tool)) {
