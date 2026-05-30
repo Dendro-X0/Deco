@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use walkdir::WalkDir;
 
+use crate::util::windows_profile_paths::user_profile_dir;
+
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ToolId {
@@ -196,11 +198,6 @@ fn is_under(child: &Path, parent: &Path) -> bool {
     }
     c.starts_with(&(p.trim_end_matches(['\\', '/']).to_string() + "\\"))
         || c.starts_with(&(p.trim_end_matches(['\\', '/']).to_string() + "/"))
-}
-
-#[cfg(windows)]
-fn user_profile_dir() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE").map(PathBuf::from)
 }
 
 #[cfg(windows)]

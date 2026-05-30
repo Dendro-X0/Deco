@@ -1,5 +1,6 @@
 //! Remove stale Deco desktop shortcuts after upgrades (Windows).
 
+#[cfg(windows)]
 use std::path::{Path, PathBuf};
 
 const PRODUCT_NAME: &str = "Deco";

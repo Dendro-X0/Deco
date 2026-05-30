@@ -4,7 +4,9 @@
 use std::path::{Path, PathBuf};
 
 pub fn user_profile_dir() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE").map(PathBuf::from)
+    std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(PathBuf::from)
 }
 
 /// `%APPDATA%` or `%USERPROFILE%\AppData\Roaming`.
