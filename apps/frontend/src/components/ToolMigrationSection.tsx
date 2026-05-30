@@ -113,9 +113,9 @@ function MigrationBackupPanel({
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const bytesFreed = (await invoke('migrate_tool_dir_delete_backup', {
+      await invoke('migrate_tool_dir_delete_backup', {
         path: deleteTarget.path,
-      })) as number;
+      });
       onDeleted(deleteTarget.path);
       setDeleteTarget(null);
     } catch (err: unknown) {
