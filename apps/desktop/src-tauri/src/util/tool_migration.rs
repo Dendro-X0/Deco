@@ -346,7 +346,8 @@ fn default_source(_tool: &ToolId) -> Result<PathBuf, String> {
 }
 
 fn dest_root_leaf_name(dest_root: &Path) -> Option<String> {
-    let trimmed = dest_root.to_string_lossy().trim().trim_end_matches(['/', '\\']);
+    let path = dest_root.to_string_lossy();
+    let trimmed = path.trim().trim_end_matches(['/', '\\']);
     let last = trimmed
         .rsplit(['/', '\\'])
         .find(|s| !s.is_empty())?;
