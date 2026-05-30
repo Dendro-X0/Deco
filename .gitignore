@@ -13,3 +13,5 @@ apps/desktop/src-tauri/gen
 .tmp-rust-tests
 .tmp-tests
 target/deco-bench-runs
+/pnpm
+/tsc

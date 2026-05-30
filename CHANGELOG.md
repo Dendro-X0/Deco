@@ -4,6 +4,18 @@
 
 Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
 
+## [0.9.6] - 2026-05-29
+
+Supersedes the **`v0.9.5` tag**, which never published installers (Release workflow failed on macOS/Ubuntu Rust compile).
+
+### Fixed
+
+- **Cross-platform compile** — import `user_profile_dir` from `windows_profile_paths` so `plan_bundle` builds on macOS/Linux CI; Release workflow can run again.
+
+### Includes (from v0.9.5)
+
+- Settings → **Tool storage migration** — Plan + Run, AppData profiles (browsers, utilities, games), **Open source** / **Open destination**, `pnpm build:desktop:msi`.
+
 ## [0.9.5] - 2026-05-29
 
 ### Added

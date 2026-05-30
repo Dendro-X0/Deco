@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.5` (tag pending CI) · Previous: `v0.9.3`
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.6` (tag pending CI) · **Broken tag:** `v0.9.5` (no installers) · Previous: `v0.9.3`
 
 ---
 
@@ -16,7 +16,8 @@
 
 | Item | Location |
 |------|----------|
-| **Shipped** | `v0.9.5` — migration wizard + AppData profiles + Explorer verify buttons |
+| **Shipped** | `v0.9.6` — republish of v0.9.5 migration features + cross-platform compile fix |
+| **Broken** | `v0.9.5` GitHub Release has source zips only (Release CI failed); use **v0.9.6** |
 | **QA** | Cursor bundle on production installer (Roaming may already be junction); use dest `G:\DevToolData` not `G:\DevToolData\Cursor` |
 | **Queue** | M3 managed migrations registry; dest-root validation warning |
 
