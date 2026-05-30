@@ -4,19 +4,22 @@
 
 Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
 
-## [0.9.4] - (pending tag)
-
-See [v0.9.4-manifest.md](docs/product/v0.9.4-manifest.md).
-
-**Ship when:** manifest checklist done (except maintainer QA), `pnpm check` green, then tag `v0.9.4`.
+## [0.9.5] - 2026-05-29
 
 ### Added
 
-- **Desktop migration wizard (Windows)** — Settings → **Tool storage migration**: tool picker, destination root, **Plan** (paths, size, running-process warnings), **Run migration** behind `ConfirmDialog` and busy overlay, audit log display. Manual IDE guide kept below as fallback.
+- **Desktop migration wizard (Windows)** — Settings → **Tool storage migration**: Plan + Run with confirm dialog, busy overlay, audit log, grouped tool picker.
+- **AppData migration profiles** — browsers (Chrome, Edge, Brave; Firefox plan-only), utilities (Discord bundle, Spotify, Slack, Telegram, Notion, OBS), games (Epic, Steam AppData, Battle.net plan-only).
+- **Open in Explorer** — **Open source** / **Open destination** on plan summary paths to verify junction and data after migration.
+- **`pnpm build:desktop:msi`** — MSI-only local build when NSIS bundling times out.
+
+### Fixed
+
+- **AppData path resolution** — fall back to `%USERPROFILE%\AppData\…` when `APPDATA` / `LOCALAPPDATA` are missing in the GUI process; clearer skip messages for missing paths, junctions, and permissions.
 
 ### Changed
 
-- **Tool migration UI** — extracted to `ToolMigrationSection`; plan-first copy in `en` / `cn` / `es`.
+- **Tool migration UI** — `ToolMigrationSection` with category groups; destination-root hint; i18n (`en` / `cn` / `es`).
 
 ## [0.9.3] - 2026-05-29
 

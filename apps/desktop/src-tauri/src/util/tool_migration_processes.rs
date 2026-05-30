@@ -23,13 +23,24 @@ fn is_process_running(_image_name: &str) -> bool {
 
 fn process_image_names(tool: ToolId) -> Vec<&'static str> {
     match tool {
-        ToolId::Cursor | ToolId::CursorRoaming | ToolId::CursorLocal => {
-            vec!["Cursor.exe"]
-        }
+        ToolId::Cursor | ToolId::CursorRoaming | ToolId::CursorLocal => vec!["Cursor.exe"],
         ToolId::Vscode => vec!["Code.exe"],
         ToolId::ClaudeCode => vec!["claude.exe"],
         ToolId::CodexCli => vec!["codex.exe"],
         ToolId::ClaudeDesktop => vec!["Claude.exe"],
+        ToolId::GoogleChrome => vec!["chrome.exe"],
+        ToolId::MicrosoftEdge => vec!["msedge.exe"],
+        ToolId::Brave => vec!["brave.exe"],
+        ToolId::Firefox => vec!["firefox.exe"],
+        ToolId::Discord | ToolId::DiscordRoaming | ToolId::DiscordLocal => vec!["Discord.exe"],
+        ToolId::Spotify => vec!["Spotify.exe"],
+        ToolId::Slack => vec!["slack.exe"],
+        ToolId::Telegram => vec!["Telegram.exe"],
+        ToolId::Notion => vec!["Notion.exe"],
+        ToolId::ObsStudio => vec!["obs64.exe", "obs32.exe"],
+        ToolId::EpicGames => vec!["EpicGamesLauncher.exe"],
+        ToolId::SteamAppdata => vec!["steam.exe"],
+        ToolId::BattleNet => vec!["Battle.net.exe"],
         ToolId::DockerDesktop => vec![
             "Docker Desktop.exe",
             "com.docker.backend.exe",

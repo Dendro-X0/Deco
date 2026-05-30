@@ -1,13 +1,14 @@
 {
   "name": "@dendro-x0/deco-monorepo",
   "private": true,
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "Monorepo for Deco: Disk Cleanup for Developers",
   "scripts": {
     "dev:cli": "pnpm -F @dendro-x0/deco-cli start",
     "build:cli": "pnpm -F @dendro-x0/deco-cli build",
     "dev:desktop": "pnpm -F @dendro-x0/deco-desktop dev",
     "build:desktop": "pnpm build:frontend && pnpm -F @dendro-x0/deco-desktop build",
+    "build:desktop:msi": "pnpm build:frontend && pnpm -F @dendro-x0/deco-desktop build:msi",
     "dev:frontend": "pnpm -F @dendro-x0/deco-frontend dev",
     "build:frontend": "pnpm -F @dendro-x0/deco-frontend build",
     "test": "pnpm test:cli",

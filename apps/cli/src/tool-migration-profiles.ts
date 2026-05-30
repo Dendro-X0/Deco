@@ -1,7 +1,14 @@
 import path from 'node:path';
 
 /** Canonical migration profiles — keep in sync with docs/product/tool-migration-profiles.md and Rust `ToolId`. */
-export type ToolMigrationCategory = 'agent' | 'ide' | 'container' | 'package-manager';
+export type ToolMigrationCategory =
+  | 'agent'
+  | 'ide'
+  | 'browser'
+  | 'utility'
+  | 'game'
+  | 'container'
+  | 'package-manager';
 
 export type ToolMigrationBundleLeg = {
   readonly leg: string;
@@ -21,6 +28,7 @@ export type ToolMigrationProfile = {
 };
 
 export const TOOL_MIGRATION_PROFILES: readonly ToolMigrationProfile[] = [
+  // --- Agents & IDEs ---
   {
     id: 'cursor',
     label: 'Cursor (Roaming + Local)',
@@ -80,6 +88,134 @@ export const TOOL_MIGRATION_PROFILES: readonly ToolMigrationProfile[] = [
     planOnly: true,
     docNote: 'MSIX installs may virtualize AppData; verify path before run.',
   },
+  // --- Browsers (AppData) ---
+  {
+    id: 'google-chrome',
+    label: 'Google Chrome (User Data)',
+    category: 'browser',
+    destLeaf: 'Google-Chrome',
+    planOnly: false,
+    docNote: 'Quit Chrome completely (Task Manager + tray). Profile path under LocalAppData.',
+  },
+  {
+    id: 'microsoft-edge',
+    label: 'Microsoft Edge (User Data)',
+    category: 'browser',
+    destLeaf: 'Microsoft-Edge',
+    planOnly: false,
+    docNote: 'Quit Edge completely before Run.',
+  },
+  {
+    id: 'brave',
+    label: 'Brave (User Data)',
+    category: 'browser',
+    destLeaf: 'Brave-Browser',
+    planOnly: false,
+    docNote: 'Quit Brave completely before Run.',
+  },
+  {
+    id: 'firefox',
+    label: 'Mozilla Firefox',
+    category: 'browser',
+    destLeaf: 'Firefox',
+    planOnly: true,
+    docNote: 'Profiles live under Roaming\\Mozilla\\Firefox; verify layout before run.',
+  },
+  // --- Utilities (AppData) ---
+  {
+    id: 'discord',
+    label: 'Discord (Roaming + Local)',
+    category: 'utility',
+    destLeaf: 'Discord',
+    planOnly: false,
+    docNote: 'Roaming\\discord + Local\\Discord. Quit Discord from tray first.',
+    bundleLegs: [
+      { leg: 'roaming', sourceProfileId: 'discord-roaming', destLeaf: 'Discord' },
+      { leg: 'local', sourceProfileId: 'discord-local', destLeaf: 'Discord-Local' },
+    ],
+  },
+  {
+    id: 'discord-roaming',
+    label: 'Discord (Roaming only)',
+    category: 'utility',
+    destLeaf: 'Discord',
+    planOnly: false,
+    hideFromUi: true,
+  },
+  {
+    id: 'discord-local',
+    label: 'Discord (Local only)',
+    category: 'utility',
+    destLeaf: 'Discord-Local',
+    planOnly: false,
+    hideFromUi: true,
+  },
+  {
+    id: 'spotify',
+    label: 'Spotify',
+    category: 'utility',
+    destLeaf: 'Spotify',
+    planOnly: false,
+    docNote: '%APPDATA%\\Spotify — quit Spotify before Run.',
+  },
+  {
+    id: 'slack',
+    label: 'Slack',
+    category: 'utility',
+    destLeaf: 'Slack',
+    planOnly: false,
+    docNote: '%APPDATA%\\Slack',
+  },
+  {
+    id: 'telegram',
+    label: 'Telegram Desktop',
+    category: 'utility',
+    destLeaf: 'Telegram',
+    planOnly: false,
+    docNote: '%APPDATA%\\Telegram Desktop',
+  },
+  {
+    id: 'notion',
+    label: 'Notion',
+    category: 'utility',
+    destLeaf: 'Notion',
+    planOnly: false,
+    docNote: '%APPDATA%\\Notion',
+  },
+  {
+    id: 'obs-studio',
+    label: 'OBS Studio',
+    category: 'utility',
+    destLeaf: 'OBS-Studio',
+    planOnly: false,
+    docNote: '%APPDATA%\\obs-studio — scenes and settings.',
+  },
+  // --- Games (AppData) ---
+  {
+    id: 'epic-games',
+    label: 'Epic Games Launcher',
+    category: 'game',
+    destLeaf: 'EpicGamesLauncher',
+    planOnly: true,
+    docNote: 'LocalAppData only; game installs may live elsewhere.',
+  },
+  {
+    id: 'steam-appdata',
+    label: 'Steam (AppData cache)',
+    category: 'game',
+    destLeaf: 'Steam-Local',
+    planOnly: true,
+    docNote: 'LocalAppData\\Steam — not the full Steam library under Program Files.',
+  },
+  {
+    id: 'battle-net',
+    label: 'Battle.net',
+    category: 'game',
+    destLeaf: 'Battle-net',
+    planOnly: true,
+    docNote: 'LocalAppData\\Battle.net — game files may be on other drives.',
+  },
+  // --- Containers & package managers ---
   {
     id: 'docker-desktop',
     label: 'Docker Desktop',
@@ -137,13 +273,27 @@ function userProfileDir(): string | null {
   return process.env.USERPROFILE ?? process.env.HOME ?? null;
 }
 
+function roamingAppDataDir(): string | null {
+  const fromEnv = process.env.APPDATA?.trim();
+  if (fromEnv) return fromEnv;
+  const profile = userProfileDir();
+  return profile ? path.join(profile, 'AppData', 'Roaming') : null;
+}
+
+function localAppDataDir(): string | null {
+  const fromEnv = process.env.LOCALAPPDATA?.trim();
+  if (fromEnv) return fromEnv;
+  const profile = userProfileDir();
+  return profile ? path.join(profile, 'AppData', 'Local') : null;
+}
+
 /** Primary default source path for a profile on Windows. */
 export function resolveToolDefaultSource(id: MigrateToolId): string | null {
   if (process.platform !== 'win32') return null;
   if (isToolMigrationBundle(id)) return null;
 
-  const appData = process.env.APPDATA;
-  const localAppData = process.env.LOCALAPPDATA;
+  const appData = roamingAppDataDir();
+  const localAppData = localAppDataDir();
   const profile = userProfileDir();
 
   switch (id) {
@@ -162,6 +312,40 @@ export function resolveToolDefaultSource(id: MigrateToolId): string | null {
     }
     case 'claude-desktop':
       return appData ? path.join(appData, 'Claude') : null;
+    case 'google-chrome':
+      return localAppData
+        ? path.join(localAppData, 'Google', 'Chrome', 'User Data')
+        : null;
+    case 'microsoft-edge':
+      return localAppData
+        ? path.join(localAppData, 'Microsoft', 'Edge', 'User Data')
+        : null;
+    case 'brave':
+      return localAppData
+        ? path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'User Data')
+        : null;
+    case 'firefox':
+      return appData ? path.join(appData, 'Mozilla', 'Firefox') : null;
+    case 'discord-roaming':
+      return appData ? path.join(appData, 'discord') : null;
+    case 'discord-local':
+      return localAppData ? path.join(localAppData, 'Discord') : null;
+    case 'spotify':
+      return appData ? path.join(appData, 'Spotify') : null;
+    case 'slack':
+      return appData ? path.join(appData, 'Slack') : null;
+    case 'telegram':
+      return appData ? path.join(appData, 'Telegram Desktop') : null;
+    case 'notion':
+      return appData ? path.join(appData, 'Notion') : null;
+    case 'obs-studio':
+      return appData ? path.join(appData, 'obs-studio') : null;
+    case 'epic-games':
+      return localAppData ? path.join(localAppData, 'EpicGamesLauncher') : null;
+    case 'steam-appdata':
+      return localAppData ? path.join(localAppData, 'Steam') : null;
+    case 'battle-net':
+      return localAppData ? path.join(localAppData, 'Battle.net') : null;
     case 'docker-desktop':
       return localAppData ? path.join(localAppData, 'Docker') : null;
     case 'npm-cache': {

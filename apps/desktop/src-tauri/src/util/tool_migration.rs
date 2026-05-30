@@ -16,6 +16,21 @@ pub enum ToolId {
     ClaudeCode,
     CodexCli,
     ClaudeDesktop,
+    GoogleChrome,
+    MicrosoftEdge,
+    Brave,
+    Firefox,
+    Discord,
+    DiscordRoaming,
+    DiscordLocal,
+    Spotify,
+    Slack,
+    Telegram,
+    Notion,
+    ObsStudio,
+    EpicGames,
+    SteamAppdata,
+    BattleNet,
     DockerDesktop,
     NpmCache,
     PnpmStore,
@@ -31,6 +46,21 @@ impl ToolId {
             "claude-code" => Ok(Self::ClaudeCode),
             "codex-cli" => Ok(Self::CodexCli),
             "claude-desktop" => Ok(Self::ClaudeDesktop),
+            "google-chrome" => Ok(Self::GoogleChrome),
+            "microsoft-edge" => Ok(Self::MicrosoftEdge),
+            "brave" => Ok(Self::Brave),
+            "firefox" => Ok(Self::Firefox),
+            "discord" => Ok(Self::Discord),
+            "discord-roaming" => Ok(Self::DiscordRoaming),
+            "discord-local" => Ok(Self::DiscordLocal),
+            "spotify" => Ok(Self::Spotify),
+            "slack" => Ok(Self::Slack),
+            "telegram" => Ok(Self::Telegram),
+            "notion" => Ok(Self::Notion),
+            "obs-studio" => Ok(Self::ObsStudio),
+            "epic-games" => Ok(Self::EpicGames),
+            "steam-appdata" => Ok(Self::SteamAppdata),
+            "battle-net" => Ok(Self::BattleNet),
             "docker-desktop" => Ok(Self::DockerDesktop),
             "npm-cache" => Ok(Self::NpmCache),
             "pnpm-store" => Ok(Self::PnpmStore),
@@ -47,6 +77,21 @@ impl ToolId {
             ToolId::ClaudeCode => "claude-code",
             ToolId::CodexCli => "codex-cli",
             ToolId::ClaudeDesktop => "claude-desktop",
+            ToolId::GoogleChrome => "google-chrome",
+            ToolId::MicrosoftEdge => "microsoft-edge",
+            ToolId::Brave => "brave",
+            ToolId::Firefox => "firefox",
+            ToolId::Discord => "discord",
+            ToolId::DiscordRoaming => "discord-roaming",
+            ToolId::DiscordLocal => "discord-local",
+            ToolId::Spotify => "spotify",
+            ToolId::Slack => "slack",
+            ToolId::Telegram => "telegram",
+            ToolId::Notion => "notion",
+            ToolId::ObsStudio => "obs-studio",
+            ToolId::EpicGames => "epic-games",
+            ToolId::SteamAppdata => "steam-appdata",
+            ToolId::BattleNet => "battle-net",
             ToolId::DockerDesktop => "docker-desktop",
             ToolId::NpmCache => "npm-cache",
             ToolId::PnpmStore => "pnpm-store",
@@ -57,6 +102,10 @@ impl ToolId {
         matches!(
             self,
             ToolId::ClaudeDesktop
+                | ToolId::Firefox
+                | ToolId::EpicGames
+                | ToolId::SteamAppdata
+                | ToolId::BattleNet
                 | ToolId::DockerDesktop
                 | ToolId::NpmCache
                 | ToolId::PnpmStore
@@ -64,12 +113,15 @@ impl ToolId {
     }
 
     pub fn is_bundle(self) -> bool {
-        matches!(self, ToolId::Cursor)
+        matches!(self, ToolId::Cursor | ToolId::Discord)
     }
 
     pub fn bundle_members(self) -> &'static [(&'static str, ToolId)] {
         match self {
             ToolId::Cursor => &[("roaming", ToolId::CursorRoaming), ("local", ToolId::CursorLocal)],
+            ToolId::Discord => {
+                &[("roaming", ToolId::DiscordRoaming), ("local", ToolId::DiscordLocal)]
+            }
             _ => &[],
         }
     }
@@ -153,20 +205,21 @@ fn user_profile_dir() -> Option<PathBuf> {
 
 #[cfg(windows)]
 fn default_source(tool: &ToolId) -> Result<PathBuf, String> {
-    let appdata = std::env::var("APPDATA").map_err(|_| "APPDATA is not set".to_string())?;
-    let local = std::env::var("LOCALAPPDATA").ok();
+    use crate::util::windows_profile_paths::{local_appdata_dir, roaming_appdata_dir};
+
+    let appdata = roaming_appdata_dir()?;
     let profile = user_profile_dir();
 
     let p = match tool {
-        ToolId::Cursor => {
-            return Err("cursor is a bundle profile; use plan(tool, dest_root) instead.".to_string());
+        ToolId::Cursor | ToolId::Discord => {
+            return Err(format!(
+                "{} is a bundle profile; use plan(tool, dest_root) instead.",
+                tool.wire()
+            ));
         }
-        ToolId::CursorRoaming => PathBuf::from(appdata).join("Cursor"),
-        ToolId::CursorLocal => {
-            let local = local.ok_or_else(|| "LOCALAPPDATA is not set".to_string())?;
-            PathBuf::from(local).join("Cursor")
-        }
-        ToolId::Vscode => PathBuf::from(appdata).join("Code"),
+        ToolId::CursorRoaming => appdata.join("Cursor"),
+        ToolId::CursorLocal => local_appdata_dir()?.join("Cursor"),
+        ToolId::Vscode => appdata.join("Code"),
         ToolId::ClaudeCode => {
             let profile = profile.ok_or_else(|| "USERPROFILE is not set".to_string())?;
             profile.join(".claude")
@@ -181,14 +234,34 @@ fn default_source(tool: &ToolId) -> Result<PathBuf, String> {
             let profile = profile.ok_or_else(|| "USERPROFILE is not set".to_string())?;
             profile.join(".codex")
         }
-        ToolId::ClaudeDesktop => PathBuf::from(appdata).join("Claude"),
-        ToolId::DockerDesktop => {
-            let local = local.ok_or_else(|| "LOCALAPPDATA is not set".to_string())?;
-            PathBuf::from(local).join("Docker")
-        }
+        ToolId::ClaudeDesktop => appdata.join("Claude"),
+        ToolId::GoogleChrome => local_appdata_dir()?
+            .join("Google")
+            .join("Chrome")
+            .join("User Data"),
+        ToolId::MicrosoftEdge => local_appdata_dir()?
+            .join("Microsoft")
+            .join("Edge")
+            .join("User Data"),
+        ToolId::Brave => local_appdata_dir()?
+            .join("BraveSoftware")
+            .join("Brave-Browser")
+            .join("User Data"),
+        ToolId::Firefox => appdata.join("Mozilla").join("Firefox"),
+        ToolId::DiscordRoaming => appdata.join("discord"),
+        ToolId::DiscordLocal => local_appdata_dir()?.join("Discord"),
+        ToolId::Spotify => appdata.join("Spotify"),
+        ToolId::Slack => appdata.join("Slack"),
+        ToolId::Telegram => appdata.join("Telegram Desktop"),
+        ToolId::Notion => appdata.join("Notion"),
+        ToolId::ObsStudio => appdata.join("obs-studio"),
+        ToolId::EpicGames => local_appdata_dir()?.join("EpicGamesLauncher"),
+        ToolId::SteamAppdata => local_appdata_dir()?.join("Steam"),
+        ToolId::BattleNet => local_appdata_dir()?.join("Battle.net"),
+        ToolId::DockerDesktop => local_appdata_dir()?.join("Docker"),
         ToolId::NpmCache => {
-            if let Some(ref local) = local {
-                PathBuf::from(local).join("npm-cache")
+            if let Ok(local) = local_appdata_dir() {
+                local.join("npm-cache")
             } else if let Some(ref profile) = profile {
                 profile.join("AppData").join("Local").join("npm-cache")
             } else {
@@ -196,8 +269,8 @@ fn default_source(tool: &ToolId) -> Result<PathBuf, String> {
             }
         }
         ToolId::PnpmStore => {
-            if let Some(ref local) = local {
-                PathBuf::from(local).join("pnpm").join("store")
+            if let Ok(local) = local_appdata_dir() {
+                local.join("pnpm").join("store")
             } else if let Some(ref profile) = profile {
                 profile.join("AppData").join("Local").join("pnpm").join("store")
             } else {
@@ -222,6 +295,21 @@ fn dest_leaf(tool: &ToolId) -> &'static str {
         ToolId::ClaudeCode => "claude-code",
         ToolId::CodexCli => "codex",
         ToolId::ClaudeDesktop => "Claude-Desktop",
+        ToolId::GoogleChrome => "Google-Chrome",
+        ToolId::MicrosoftEdge => "Microsoft-Edge",
+        ToolId::Brave => "Brave-Browser",
+        ToolId::Firefox => "Firefox",
+        ToolId::Discord => "Discord",
+        ToolId::DiscordRoaming => "Discord",
+        ToolId::DiscordLocal => "Discord-Local",
+        ToolId::Spotify => "Spotify",
+        ToolId::Slack => "Slack",
+        ToolId::Telegram => "Telegram",
+        ToolId::Notion => "Notion",
+        ToolId::ObsStudio => "OBS-Studio",
+        ToolId::EpicGames => "EpicGamesLauncher",
+        ToolId::SteamAppdata => "Steam-Local",
+        ToolId::BattleNet => "Battle-net",
         ToolId::DockerDesktop => "Docker",
         ToolId::NpmCache => "npm-cache",
         ToolId::PnpmStore => "pnpm-store",
@@ -361,7 +449,9 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
         };
         let dest = dest_root.join(dest_leaf(&member));
 
-        if !source.is_dir() {
+        let source_check = crate::util::windows_profile_paths::check_migrate_source_dir(&source);
+        if source_check != crate::util::windows_profile_paths::SourceDirCheck::Ready {
+            let msg = crate::util::windows_profile_paths::source_check_message(&source, source_check);
             plan_legs.push(MigrationPlanLeg {
                 leg: leg_name.to_string(),
                 source: source.to_string_lossy().to_string(),
@@ -369,7 +459,7 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
                 bytes: None,
                 file_count: None,
                 skipped: true,
-                skip_reason: Some("Source directory does not exist (nothing to migrate for this leg).".to_string()),
+                skip_reason: Some(msg),
             });
             continue;
         }
@@ -411,7 +501,14 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
     }
 
     if active_legs == 0 && errors.is_empty() {
-        errors.push("No bundle legs had an existing source directory to migrate.".to_string());
+        let profile_hint = user_profile_dir()
+            .map(|p| format!(" Profile: {}.", p.display()))
+            .unwrap_or_default();
+        errors.push(format!(
+            "No bundle legs had an existing source directory to migrate.{profile_hint} \
+             Close the tool (Task Manager + tray), confirm paths above, and use destination root \
+             like G:\\DevToolData (not G:\\DevToolData\\Cursor)."
+        ));
     }
 
     let ok = active_legs > 0 && errors.is_empty();
@@ -490,10 +587,11 @@ pub fn plan_paths(
     if let Some(msg) = dest_requires_ntfs_error(&dest) {
         errors.push(msg);
     }
-    if !source.is_dir() {
-        errors.push(format!(
-            "Source does not exist or is not a directory: {}",
-            source.display()
+    let source_check = crate::util::windows_profile_paths::check_migrate_source_dir(&source);
+    if source_check != crate::util::windows_profile_paths::SourceDirCheck::Ready {
+        errors.push(crate::util::windows_profile_paths::source_check_message(
+            &source,
+            source_check,
         ));
     }
     if is_under(&dest, &source) {
@@ -501,14 +599,6 @@ pub fn plan_paths(
     }
     if is_under(&source, &dest) {
         errors.push("Source is inside destination; refusing.".to_string());
-    }
-    if let Ok(meta) = fs::symlink_metadata(&source) {
-        if meta.file_type().is_symlink() {
-            errors.push(format!(
-                "Refusing to migrate a symlink/junction source without explicit override: {}",
-                source.display()
-            ));
-        }
     }
 
     let (bytes, file_count) = if include_size && errors.is_empty() {

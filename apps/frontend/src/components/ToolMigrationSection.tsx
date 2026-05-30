@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { FolderOpen } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -14,7 +17,12 @@ import { OperationBusyOverlay } from '@/components/OperationBusyOverlay';
 import { resolveAppPlatform } from '@/lib/app-update';
 import { formatBytes } from '@/lib/format';
 import { pickToolMigrationRoot } from '@/lib/pick-folders';
-import { TOOL_MIGRATION_UI_PROFILES, type ToolMigrationUiId } from '@/lib/tool-migration-profiles';
+import { revealPathInExplorer } from '@/lib/policy-pack';
+import {
+  toolMigrationProfilesByCategory,
+  type ToolMigrationCategory,
+  type ToolMigrationUiId,
+} from '@/lib/tool-migration-profiles';
 import type { ToolMigrationPlan, ToolMigrationResult } from '@/lib/tool-migration-types';
 import { useI18n } from '@/i18n';
 
@@ -35,6 +43,47 @@ function MigrationSettingsSection({ title, description, children }: SectionProps
       </div>
       {children ?? null}
     </section>
+  );
+}
+
+function MigrationPathLine({
+  label,
+  path,
+  openLabel,
+  onError,
+}: {
+  label: string;
+  path: string;
+  openLabel: string;
+  onError?: (message: string) => void;
+}) {
+  const open = async () => {
+    try {
+      await revealPathInExplorer(path);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      onError?.(msg);
+    }
+  };
+
+  return (
+    <div className="flex items-start gap-2">
+      <p className="min-w-0 flex-1">
+        <span className="text-muted-foreground">{label}</span>{' '}
+        <span className="font-mono break-all">{path}</span>
+      </p>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="shrink-0 h-7 gap-1 px-2 text-[11px]"
+        title={openLabel}
+        onClick={() => void open()}
+      >
+        <FolderOpen className="h-3.5 w-3.5" aria-hidden />
+        {openLabel}
+      </Button>
+    </div>
   );
 }
 
@@ -84,6 +133,11 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
     setBusyKind(null);
     setBusyStartedAt(null);
   };
+
+  const profileGroups = useMemo(() => toolMigrationProfilesByCategory(), []);
+
+  const categoryLabel = (category: ToolMigrationCategory) =>
+    t(`settings.toolMigration.categories.${category}` as 'settings.toolMigration.categories.agent');
 
   const planMigration = async () => {
     const dest = destRoot.trim();
@@ -216,10 +270,17 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TOOL_MIGRATION_UI_PROFILES.map((profile) => (
-                    <SelectItem key={profile.id} value={profile.id}>
-                      {profile.label}
-                    </SelectItem>
+                  {profileGroups.map(({ category, profiles }) => (
+                    <SelectGroup key={category}>
+                      <SelectLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {categoryLabel(category)}
+                      </SelectLabel>
+                      {profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>
@@ -258,6 +319,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                   {t('settings.safety.browse')}
                 </Button>
               </div>
+              <p className="text-[11px] text-muted-foreground">{t('settings.toolMigration.destRootHint')}</p>
             </div>
           </div>
 
@@ -290,19 +352,35 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                     <li key={leg.leg} className="rounded border border-border/40 p-2 space-y-1">
                       <p className="font-semibold capitalize">{leg.leg}</p>
                       {leg.skipped ? (
-                        <p className="text-muted-foreground">
-                          {leg.skip_reason ?? t('settings.toolMigration.legSkipped')}
-                        </p>
+                        <>
+                          <MigrationPathLine
+                            label={t('settings.toolMigration.source')}
+                            path={leg.source}
+                            openLabel={t('settings.toolMigration.openSource')}
+                            onError={onError}
+                          />
+                          <MigrationPathLine
+                            label={t('settings.toolMigration.dest')}
+                            path={leg.dest}
+                            openLabel={t('settings.toolMigration.openDest')}
+                            onError={onError}
+                          />
+                          <p className="text-muted-foreground">{leg.skip_reason ?? t('settings.toolMigration.legSkipped')}</p>
+                        </>
                       ) : (
                         <>
-                          <p>
-                            <span className="text-muted-foreground">{t('settings.toolMigration.source')}</span>{' '}
-                            <span className="font-mono break-all">{leg.source}</span>
-                          </p>
-                          <p>
-                            <span className="text-muted-foreground">{t('settings.toolMigration.dest')}</span>{' '}
-                            <span className="font-mono break-all">{leg.dest}</span>
-                          </p>
+                          <MigrationPathLine
+                            label={t('settings.toolMigration.source')}
+                            path={leg.source}
+                            openLabel={t('settings.toolMigration.openSource')}
+                            onError={onError}
+                          />
+                          <MigrationPathLine
+                            label={t('settings.toolMigration.dest')}
+                            path={leg.dest}
+                            openLabel={t('settings.toolMigration.openDest')}
+                            onError={onError}
+                          />
                           {leg.bytes != null ? (
                             <p>
                               <span className="text-muted-foreground">{t('settings.toolMigration.size')}</span>{' '}
@@ -316,14 +394,18 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                 </ul>
               ) : (
                 <>
-                  <p>
-                    <span className="text-muted-foreground">{t('settings.toolMigration.source')}</span>{' '}
-                    <span className="font-mono break-all">{plan.source}</span>
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">{t('settings.toolMigration.dest')}</span>{' '}
-                    <span className="font-mono break-all">{plan.dest}</span>
-                  </p>
+                  <MigrationPathLine
+                    label={t('settings.toolMigration.source')}
+                    path={plan.source}
+                    openLabel={t('settings.toolMigration.openSource')}
+                    onError={onError}
+                  />
+                  <MigrationPathLine
+                    label={t('settings.toolMigration.dest')}
+                    path={plan.dest}
+                    openLabel={t('settings.toolMigration.openDest')}
+                    onError={onError}
+                  />
                 </>
               )}
               {plan.bytes != null ? (
@@ -357,10 +439,17 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                   </ul>
                 </div>
               ) : null}
-              {plan.errors?.length ? (
-                <p className="text-destructive">
-                  {t('settings.toolMigration.errors', { count: plan.errors.length })}
+              {plan.ok && !plan.plan_only ? (
+                <p className="text-muted-foreground border-t border-border/40 pt-2">
+                  {t('settings.toolMigration.verifyHint')}
                 </p>
+              ) : null}
+              {plan?.errors?.length ? (
+                <ul className="list-disc pl-4 space-y-0.5 text-destructive">
+                  {plan.errors.map((err, index) => (
+                    <li key={`${index}-${err.slice(0, 24)}`}>{err}</li>
+                  ))}
+                </ul>
               ) : null}
             </div>
           ) : null}

@@ -6,6 +6,7 @@ import {
   TOOL_MIGRATION_PROFILES,
   isToolMigrationPlanOnly,
   resolveToolBundleLegs,
+  resolveToolDefaultSource,
 } from '../src/tool-migration-profiles.js';
 
 describe('tool-migration-profiles', () => {
@@ -36,11 +37,21 @@ describe('tool-migration-profiles', () => {
     expect(legs[1]?.dest).toMatch(/Cursor-Local$/);
   });
 
-  it('marks package managers and docker as plan-only', () => {
+  it('marks package managers, games, and docker as plan-only', () => {
     expect(isToolMigrationPlanOnly('docker-desktop')).toBe(true);
     expect(isToolMigrationPlanOnly('npm-cache')).toBe(true);
     expect(isToolMigrationPlanOnly('pnpm-store')).toBe(true);
+    expect(isToolMigrationPlanOnly('firefox')).toBe(true);
+    expect(isToolMigrationPlanOnly('epic-games')).toBe(true);
+    expect(isToolMigrationPlanOnly('steam-appdata')).toBe(true);
+    expect(isToolMigrationPlanOnly('battle-net')).toBe(true);
     expect(isToolMigrationPlanOnly('claude-code')).toBe(false);
-    expect(isToolMigrationPlanOnly('codex-cli')).toBe(false);
+    expect(isToolMigrationPlanOnly('google-chrome')).toBe(false);
+    expect(isToolMigrationPlanOnly('discord')).toBe(false);
+  });
+
+  it.skipIf(process.platform !== 'win32')('google-chrome resolves User Data path', () => {
+    const source = resolveToolDefaultSource('google-chrome');
+    expect(source).toMatch(/Google[\\/]Chrome[\\/]User Data$/i);
   });
 });

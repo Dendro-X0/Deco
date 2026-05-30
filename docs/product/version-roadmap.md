@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.3` · **In development:** `v0.9.4` — [v0.9.4-manifest.md](v0.9.4-manifest.md)
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.5` · **In development:** `v0.9.6+` (managed migrations M3)
 
 **Release model:** One feature set per version, in roadmap order. Desktop installers target **Windows, macOS, and Linux** from **`v0.8.0`** onward (see [v0.8.0-manifest.md](v0.8.0-manifest.md)).
 
@@ -246,8 +246,9 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 | `v0.9.1` | Profile registry; Claude Code, Codex CLI, cursor-local; npm/pnpm plan-only; installer version fix | Shipped — [v0.9.1-manifest.md](v0.9.1-manifest.md) |
 | `v0.9.2` | Process detection before Run; migration busy overlay groundwork | Shipped |
 | `v0.9.3` | Remove desktop Run; manual IDE storage guide | Shipped |
-| `v0.9.4` | Desktop migration wizard relaunch — Plan + Run with confirm modal | Ready to tag — [v0.9.4-manifest.md](v0.9.4-manifest.md) |
-| `v0.9.5+` | Managed migrations registry; scan handoff; config-redirect wizards | Planned |
+| `v0.9.4` | Desktop migration wizard relaunch — Plan + Run with confirm modal | Shipped in **v0.9.5** |
+| `v0.9.5` | AppData profiles (browsers, utilities, games); path fixes; Open in Explorer | Shipped |
+| `v0.9.6+` | Managed migrations registry (M3) | Planned |
 
 | Item | Version | Notes |
 |------|---------|--------|

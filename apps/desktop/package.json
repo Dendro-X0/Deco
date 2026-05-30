@@ -1,11 +1,12 @@
 {
   "name": "@dendro-x0/deco-desktop",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "private": true,
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tauri build",
+    "build:msi": "tauri build --bundles msi"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0"

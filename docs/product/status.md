@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.3` · **Ready to tag:** `v0.9.4` — [v0.9.4-manifest.md](v0.9.4-manifest.md)
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.5` (tag pending CI) · Previous: `v0.9.3`
 
 ---
 
@@ -16,45 +16,20 @@
 
 | Item | Location |
 |------|----------|
-| **Tag** | `v0.9.4` after `pnpm check` + CI green — desktop migration wizard (Plan + Run) |
-| **QA** | Install `Deco_0.9.4_*` from GitHub Release; quit Cursor; run migration checklist in manifest T1 |
-| **Queue** | `v0.9.5` M3 managed migrations registry; Docker run research |
+| **Shipped** | `v0.9.5` — migration wizard + AppData profiles + Explorer verify buttons |
+| **QA** | Cursor bundle on production installer (Roaming may already be junction); use dest `G:\DevToolData` not `G:\DevToolData\Cursor` |
+| **Queue** | M3 managed migrations registry; dest-root validation warning |
 
-### v0.9.4 progress
+### v0.9.5 highlights
 
-| Gate | State |
-|------|--------|
-| Manifest + phased plan (M1–M2) | Done |
-| `ToolMigrationSection` Plan + Run + confirm | Done |
-| Version bump → `0.9.4` | Done |
-| Docs + CHANGELOG | Done |
-| `pnpm check` | Run before tag |
-| Manual QA on production installer (T1) | **Deferred** — maintainer tests after install, with Cursor quit |
-
-### Version queue (summary)
-
-| Version | Feature set |
-|---------|-------------|
-| `v0.9.3` | Manual IDE storage guide; automated Run removed from Settings |
-| `v0.9.4` | Desktop migration wizard relaunch — Plan + Run with confirm modal |
-| `v0.9.5` | Managed migrations registry (M3) |
+- Settings → **Tool storage migration** — Plan + Run, browsers/utilities/games profiles
+- **Open source** / **Open destination** on plan paths
+- `pnpm build:desktop:msi` for Windows when NSIS times out
 
 ## Quick commands
 
 ```bash
-pnpm install     # required after clone or `pnpm clean`
+pnpm install
 pnpm check
-pnpm build:desktop   # local installer smoke; production QA uses Release artifacts
+pnpm build:desktop:msi   # Windows MSI only
 ```
-
-### Tag v0.9.4 (maintainer)
-
-```bash
-pnpm check
-git commit -m "Prepare v0.9.4"
-git tag -a v0.9.4 -m "v0.9.4"
-git push origin main
-git push origin v0.9.4
-```
-
-After CI uploads `Deco_0.9.4_*`, run manifest **Manual QA** on the installed app.
