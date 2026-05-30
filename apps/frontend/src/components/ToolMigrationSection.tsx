@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { FolderOpen } from 'lucide-react';
+import { FolderOpen, Trash2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,11 @@ import {
   type ToolMigrationCategory,
   type ToolMigrationUiId,
 } from '@/lib/tool-migration-profiles';
-import type { ToolMigrationPlan, ToolMigrationResult } from '@/lib/tool-migration-types';
+import type {
+  ToolMigrationBackupEntry,
+  ToolMigrationPlan,
+  ToolMigrationResult,
+} from '@/lib/tool-migration-types';
 import { useI18n } from '@/i18n';
 
 type SectionProps = {
@@ -87,6 +91,107 @@ function MigrationPathLine({
   );
 }
 
+function MigrationBackupPanel({
+  backups,
+  disabled,
+  onError,
+  onDeleted,
+}: {
+  backups: ToolMigrationBackupEntry[];
+  disabled?: boolean;
+  onError?: (message: string) => void;
+  onDeleted: (path: string) => void;
+}) {
+  const { t } = useI18n();
+  const [deleteTarget, setDeleteTarget] = useState<ToolMigrationBackupEntry | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  if (backups.length === 0) return null;
+
+  const deleteBackup = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const bytesFreed = (await invoke('migrate_tool_dir_delete_backup', {
+        path: deleteTarget.path,
+      })) as number;
+      onDeleted(deleteTarget.path);
+      setDeleteTarget(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      onError?.(msg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 space-y-2 text-xs">
+        <p className="font-semibold text-amber-800 dark:text-amber-300">
+          {t('settings.toolMigration.backupCleanupTitle')}
+        </p>
+        <p className="text-muted-foreground leading-relaxed">{t('settings.toolMigration.backupCleanupHint')}</p>
+        <ul className="space-y-2 list-none pl-0">
+          {backups.map((backup) => (
+            <li key={backup.path} className="rounded border border-border/40 bg-background/60 p-2 space-y-1">
+              {backup.leg ? <p className="font-semibold capitalize">{backup.leg}</p> : null}
+              <p className="font-mono break-all">{backup.path}</p>
+              {backup.bytes != null ? (
+                <p>
+                  <span className="text-muted-foreground">{t('settings.toolMigration.size')}</span>{' '}
+                  <span className="font-mono">{formatBytes(backup.bytes)}</span>
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  disabled={disabled || deleting}
+                  onClick={() => void revealPathInExplorer(backup.path).catch((err: unknown) => {
+                    onError?.(err instanceof Error ? err.message : String(err));
+                  })}
+                >
+                  <FolderOpen className="h-3.5 w-3.5" aria-hidden />
+                  {t('settings.toolMigration.openBackup')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-[11px]"
+                  disabled={disabled || deleting}
+                  onClick={() => setDeleteTarget(backup)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  {t('settings.toolMigration.deleteBackup')}
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title={t('settings.toolMigration.deleteBackupConfirmTitle')}
+        description={t('settings.toolMigration.deleteBackupConfirmDescription', {
+          path: deleteTarget?.path ?? '',
+        })}
+        confirmLabel={t('settings.toolMigration.deleteBackup')}
+        cancelLabel={t('common.cancel')}
+        destructive
+        busy={deleting}
+        onConfirm={() => void deleteBackup()}
+        onCancel={() => {
+          if (!deleting) setDeleteTarget(null);
+        }}
+      />
+    </>
+  );
+}
+
 type BusyKind = 'plan' | 'run';
 
 type Props = {
@@ -105,6 +210,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
   const [plan, setPlan] = useState<ToolMigrationPlan | null>(null);
   const [result, setResult] = useState<ToolMigrationResult | null>(null);
   const [runConfirmOpen, setRunConfirmOpen] = useState(false);
+  const [removedBackupPaths, setRemovedBackupPaths] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     void resolveAppPlatform().then((p) => setSupported(p.os === 'windows'));
@@ -121,6 +227,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
   const clearPlanState = () => {
     setPlan(null);
     setResult(null);
+    setRemovedBackupPaths(new Set());
   };
 
   const beginBusy = (kind: BusyKind) => {
@@ -202,6 +309,11 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
     return `${base}${bundle}`;
   }, [plan?.legs, t]);
 
+  const visibleBackups = useMemo(() => {
+    const source = result?.pending_backups ?? plan?.pending_backups ?? [];
+    return source.filter((backup) => !removedBackupPaths.has(backup.path));
+  }, [plan, result, removedBackupPaths]);
+
   if (supported === false) {
     return (
       <MigrationSettingsSection
@@ -217,6 +329,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
   const canRun =
     plan?.ok &&
     !plan.plan_only &&
+    !plan.already_complete &&
     (plan.running_processes?.length ?? 0) === 0 &&
     destRoot.trim().length > 0;
 
@@ -366,6 +479,12 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                             onError={onError}
                           />
                           <p className="text-muted-foreground">{leg.skip_reason ?? t('settings.toolMigration.legSkipped')}</p>
+                          {leg.bytes != null ? (
+                            <p>
+                              <span className="text-muted-foreground">{t('settings.toolMigration.destVerifiedSize')}</span>{' '}
+                              <span className="font-mono">{formatBytes(leg.bytes)}</span>
+                            </p>
+                          ) : null}
                         </>
                       ) : (
                         <>
@@ -413,6 +532,22 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
                   <span className="text-muted-foreground">{t('settings.toolMigration.totalSize')}</span>{' '}
                   <span className="font-mono">{formatBytes(plan.bytes)}</span>
                 </p>
+              ) : null}
+              {plan.already_complete ? (
+                <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-2 space-y-1 text-emerald-700 dark:text-emerald-400">
+                  <p className="font-semibold">{t('settings.toolMigration.alreadyCompleteTitle')}</p>
+                  <p>{t('settings.toolMigration.alreadyCompleteHint')}</p>
+                </div>
+              ) : null}
+              {visibleBackups.length > 0 ? (
+                <MigrationBackupPanel
+                  backups={visibleBackups}
+                  disabled={busy}
+                  onError={onError}
+                  onDeleted={(path) => {
+                    setRemovedBackupPaths((prev) => new Set(prev).add(path));
+                  }}
+                />
               ) : null}
               {plan.plan_only ? (
                 <p className="text-amber-600/90">{t('settings.toolMigration.planOnly')}</p>

@@ -4,6 +4,22 @@
 
 Maintenance and future milestones — see [version-roadmap.md](docs/product/version-roadmap.md).
 
+## [0.9.7] - 2026-05-29
+
+### Added
+
+- **Migration backup cleanup** — Plan scans for `*.deco-backup-*` folders; **Open backup** and **Delete backup** (with confirm) after verifying the tool works through the junction.
+- **Destination verification on re-plan** — when a junction or missing source is detected, Deco scans the target path and reports verified size instead of a generic failure.
+
+### Changed
+
+- **Already-migrated UX** — bundle/single plans show “Migration already complete” when the junction and destination data match; optional Local legs and “app not installed” cases get distinct messages.
+- **Backup retention** — successful Run keeps the on-disk backup until the user deletes it from Settings (was auto-deleted immediately).
+
+### Fixed
+
+- **React hooks crash** — `ToolMigrationSection` no longer calls hooks after platform early-return.
+
 ## [0.9.6] - 2026-05-29
 
 Supersedes the **`v0.9.5` tag**, which never published installers (Release workflow failed on macOS/Ubuntu Rust compile).

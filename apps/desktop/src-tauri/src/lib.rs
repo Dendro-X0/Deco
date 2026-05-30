@@ -89,6 +89,7 @@ pub fn run() {
             commands::policy_pack::apply_policy_pack,
             commands::tool_migration::migrate_tool_dir_plan,
             commands::tool_migration::migrate_tool_dir_run,
+            commands::tool_migration::migrate_tool_dir_delete_backup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

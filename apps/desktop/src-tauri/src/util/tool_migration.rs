@@ -152,10 +152,25 @@ pub struct MigrationPlan {
     pub warnings: Vec<String>,
     pub errors: Vec<String>,
     pub plan_only: bool,
+    #[serde(default)]
+    pub already_complete: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub legs: Option<Vec<MigrationPlanLeg>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub running_processes: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pending_backups: Option<Vec<MigrationBackupEntry>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MigrationBackupEntry {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub leg: Option<String>,
+    pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bytes: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_count: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -182,11 +197,56 @@ pub struct MigrationResult {
     pub errors: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub legs: Option<Vec<MigrationResultLeg>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pending_backups: Option<Vec<MigrationBackupEntry>>,
 }
 
 fn now_stamp() -> String {
     let dt = chrono::Local::now();
     dt.format("%Y%m%d-%H%M%S").to_string()
+}
+
+const DECO_BACKUP_MARKER: &str = ".deco-backup-";
+
+/// Folder names like `Cursor.deco-backup-20260525-194813`.
+pub fn is_deco_backup_dir_name(name: &str) -> bool {
+    let Some(idx) = name.find(DECO_BACKUP_MARKER) else {
+        return false;
+    };
+    let suffix = &name[idx + DECO_BACKUP_MARKER.len()..];
+    !suffix.is_empty()
+        && suffix
+            .chars()
+            .all(|c| c.is_ascii_digit() || c == '-')
+}
+
+/// `{source_parent}/{source_name}.deco-backup-*` directories left after migration.
+pub fn find_deco_backups_for_source(source: &Path) -> Vec<PathBuf> {
+    let Some(parent) = source.parent() else {
+        return Vec::new();
+    };
+    let Some(stem) = source.file_name().and_then(|n| n.to_str()) else {
+        return Vec::new();
+    };
+    let prefix = format!("{stem}{DECO_BACKUP_MARKER}");
+    let mut found = Vec::new();
+    let Ok(read) = fs::read_dir(parent) else {
+        return found;
+    };
+    for entry in read.flatten() {
+        let path = entry.path();
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if !name.starts_with(&prefix) || !is_deco_backup_dir_name(name) {
+            continue;
+        }
+        if path.is_dir() {
+            found.push(path);
+        }
+    }
+    found.sort_by(|a, b| a.to_string_lossy().cmp(&b.to_string_lossy()));
+    found
 }
 
 fn is_under(child: &Path, parent: &Path) -> bool {
@@ -412,6 +472,77 @@ fn estimate_tree(source: &Path) -> (Option<u64>, Option<u64>, Vec<String>) {
     (Some(bytes), Some(files), warnings)
 }
 
+fn migration_backup_entry(path: PathBuf, leg: Option<String>, include_size: bool) -> MigrationBackupEntry {
+    let (bytes, file_count) = if include_size {
+        let (b, f, _) = estimate_tree(&path);
+        (b, f)
+    } else {
+        (None, None)
+    };
+    MigrationBackupEntry {
+        leg,
+        path: path.to_string_lossy().to_string(),
+        bytes,
+        file_count,
+    }
+}
+
+fn attach_pending_backups(plan: &mut MigrationPlan, include_size: bool) {
+    use std::collections::HashSet;
+
+    let sources: Vec<(Option<String>, String)> = if let Some(legs) = &plan.legs {
+        legs.iter()
+            .map(|l| (Some(l.leg.clone()), l.source.clone()))
+            .collect()
+    } else if !plan.source.is_empty() {
+        vec![(None, plan.source.clone())]
+    } else {
+        Vec::new()
+    };
+
+    let mut seen = HashSet::new();
+    let mut entries = Vec::new();
+    for (leg, source) in sources {
+        for path in find_deco_backups_for_source(Path::new(&source)) {
+            let key = path.to_string_lossy().to_lowercase();
+            if seen.insert(key) {
+                entries.push(migration_backup_entry(path, leg.clone(), include_size));
+            }
+        }
+    }
+    plan.pending_backups = if entries.is_empty() {
+        None
+    } else {
+        Some(entries)
+    };
+}
+
+/// Delete a Deco migration backup folder after user confirmation in the UI.
+pub fn delete_migration_backup(path: &Path) -> Result<u64, String> {
+    let name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "Invalid backup path.".to_string())?;
+    if !is_deco_backup_dir_name(name) {
+        return Err("Path is not a Deco migration backup folder.".to_string());
+    }
+    if !path.is_dir() {
+        return Err(format!("Backup path is not a directory: {}", path.display()));
+    }
+    if fs::symlink_metadata(path)
+        .map(|m| m.file_type().is_symlink())
+        .unwrap_or(false)
+    {
+        return Err("Refusing to delete a junction or symlink.".to_string());
+    }
+    if let Some(msg) = blocked_source(path) {
+        return Err(msg);
+    }
+    let (bytes, _, _) = estimate_tree(path);
+    fs::remove_dir_all(path).map_err(|e| format!("Failed deleting backup: {} ({e})", path.display()))?;
+    Ok(bytes.unwrap_or(0))
+}
+
 fn attach_running_process_warning(plan: &mut MigrationPlan, tool: ToolId) {
     let running = crate::util::tool_migration_processes::detect_running_processes(tool);
     if running.is_empty() {
@@ -423,6 +554,253 @@ fn attach_running_process_warning(plan: &mut MigrationPlan, tool: ToolId) {
         if !plan.warnings.iter().any(|w| w.contains("Close these processes")) {
             plan.warnings.push(msg);
         }
+    }
+}
+
+fn format_bytes_hint(bytes: u64) -> String {
+    const GB: f64 = 1024.0 * 1024.0 * 1024.0;
+    const MB: f64 = 1024.0 * 1024.0;
+    if bytes as f64 >= GB {
+        format!("{:.1} GB", bytes as f64 / GB)
+    } else if bytes as f64 >= MB {
+        format!("{:.0} MB", bytes as f64 / MB)
+    } else {
+        format!("{bytes} bytes")
+    }
+}
+
+fn dest_size_suffix(dest: &Path, include_size: bool) -> String {
+    use crate::util::windows_profile_paths::{check_migration_dest_dir, DestDirCheck};
+    if !include_size || check_migration_dest_dir(dest) != DestDirCheck::HasData {
+        return String::new();
+    }
+    let (bytes, _, _) = estimate_tree(dest);
+    bytes
+        .map(|b| format!(" ({format} verified on destination)", format = format_bytes_hint(b)))
+        .unwrap_or_default()
+}
+
+fn is_optional_bundle_leg(member: ToolId) -> bool {
+    matches!(member, ToolId::CursorLocal | ToolId::DiscordLocal)
+}
+
+fn leg_indicates_already_complete(
+    member: ToolId,
+    source: &Path,
+    dest: &Path,
+    source_check: crate::util::windows_profile_paths::SourceDirCheck,
+) -> bool {
+    use crate::util::windows_profile_paths::{
+        check_migration_dest_dir, junction_points_to, DestDirCheck, SourceDirCheck,
+    };
+
+    match source_check {
+        SourceDirCheck::AlreadyLink => {
+            junction_points_to(source, dest) && check_migration_dest_dir(dest) == DestDirCheck::HasData
+        }
+        SourceDirCheck::NotFound if is_optional_bundle_leg(member) => {
+            check_migration_dest_dir(dest) == DestDirCheck::HasData
+        }
+        SourceDirCheck::NotFound => check_migration_dest_dir(dest) == DestDirCheck::HasData,
+        _ => false,
+    }
+}
+
+fn bundle_leg_skip_reason_with_dest(
+    member: ToolId,
+    source: &Path,
+    dest: &Path,
+    source_check: crate::util::windows_profile_paths::SourceDirCheck,
+    include_size: bool,
+) -> String {
+    use crate::util::windows_profile_paths::{
+        check_migration_dest_dir, junction_points_to, junction_target, source_check_message,
+        DestDirCheck, SourceDirCheck,
+    };
+
+    let size = dest_size_suffix(dest, include_size);
+
+    match source_check {
+        SourceDirCheck::AlreadyLink => {
+            if junction_points_to(source, dest) {
+                return match check_migration_dest_dir(dest) {
+                    DestDirCheck::HasData => format!(
+                        "Migration already complete — {} is a junction to {}{size}. No action needed.",
+                        source.display(),
+                        dest.display()
+                    ),
+                    DestDirCheck::Empty => format!(
+                        "Junction at {} points to {} but the destination folder is empty — verify with Open destination or restore from a *.deco-backup-* folder.",
+                        source.display(),
+                        dest.display()
+                    ),
+                    DestDirCheck::NotFound => format!(
+                        "Junction at {} points to {} but the destination folder is missing — check that the target drive is connected.",
+                        source.display(),
+                        dest.display()
+                    ),
+                    DestDirCheck::NotDirectory => format!(
+                        "Junction at {} points to {} but the destination is not a folder.",
+                        source.display(),
+                        dest.display()
+                    ),
+                    DestDirCheck::Inaccessible => format!(
+                        "Junction at {} points to {} but the destination cannot be read — check drive permissions.",
+                        source.display(),
+                        dest.display()
+                    ),
+                };
+            }
+            if let Some(target) = junction_target(source) {
+                if check_migration_dest_dir(dest) == DestDirCheck::HasData {
+                    return format!(
+                        "Junction at {} -> {} (not the planned {}). {} already has migrated data{size} — verify with Open destination.",
+                        source.display(),
+                        target.display(),
+                        dest.display(),
+                        dest.display()
+                    );
+                }
+                return format!(
+                    "Junction at {} -> {} (expected {}). Adjust destination root or remove the existing link.",
+                    source.display(),
+                    target.display(),
+                    dest.display()
+                );
+            }
+            source_check_message(source, SourceDirCheck::AlreadyLink)
+        }
+        SourceDirCheck::NotFound => {
+            if is_optional_bundle_leg(member) {
+                if check_migration_dest_dir(dest) == DestDirCheck::HasData {
+                    return format!(
+                        "Optional leg — {} was not found (many installs skip Local). {} already has data{size}.",
+                        source.display(),
+                        dest.display()
+                    );
+                }
+                return format!(
+                    "Optional leg — {} was not found. Many installs have no Local cache folder.",
+                    source.display()
+                );
+            }
+            match check_migration_dest_dir(dest) {
+                DestDirCheck::HasData => format!(
+                    "Source {} not found; {} already contains migrated data{size}. Migration may have completed previously.",
+                    source.display(),
+                    dest.display()
+                ),
+                _ => format!(
+                    "Source not found: {} — the application may not be installed, or it has never stored data under this Windows user.",
+                    source.display()
+                ),
+            }
+        }
+        other => source_check_message(source, other),
+    }
+}
+
+enum IdleBundleOutcome {
+    AlreadyComplete { message: String },
+    NothingToMigrate { message: String },
+    Problems(Vec<String>),
+}
+
+fn evaluate_idle_bundle(legs: &[MigrationPlanLeg]) -> IdleBundleOutcome {
+    use crate::util::windows_profile_paths::{
+        check_migrate_source_dir, check_migration_dest_dir, junction_points_to, junction_target,
+        source_check_message, DestDirCheck, SourceDirCheck,
+    };
+
+    let mut migrated_legs: Vec<String> = Vec::new();
+    let mut missing_legs: Vec<String> = Vec::new();
+    let mut problems: Vec<String> = Vec::new();
+
+    for leg in legs {
+        if !leg.skipped {
+            continue;
+        }
+        let source = Path::new(&leg.source);
+        let dest = Path::new(&leg.dest);
+        match check_migrate_source_dir(source) {
+            SourceDirCheck::AlreadyLink => {
+                if junction_points_to(source, dest) {
+                    if check_migration_dest_dir(dest) == DestDirCheck::HasData {
+                        migrated_legs.push(leg.leg.clone());
+                    } else {
+                        problems.push(format!(
+                            "[{}] Junction at {} points to {} but destination data could not be verified — use Open destination.",
+                            leg.leg,
+                            source.display(),
+                            dest.display()
+                        ));
+                    }
+                } else if let Some(target) = junction_target(source) {
+                    if check_migration_dest_dir(dest) == DestDirCheck::HasData {
+                        migrated_legs.push(leg.leg.clone());
+                    } else {
+                        problems.push(format!(
+                            "[{}] Junction {} -> {} (expected {}). Adjust destination root or remove the existing link.",
+                            leg.leg,
+                            source.display(),
+                            target.display(),
+                            dest.display()
+                        ));
+                    }
+                } else {
+                    problems.push(format!("[{}] {}", leg.leg, source_check_message(source, SourceDirCheck::AlreadyLink)));
+                }
+            }
+            SourceDirCheck::NotFound => missing_legs.push(leg.leg.clone()),
+            check => problems.push(format!("[{}] {}", leg.leg, source_check_message(source, check))),
+        }
+    }
+
+    if !problems.is_empty() {
+        return IdleBundleOutcome::Problems(problems);
+    }
+
+    if !migrated_legs.is_empty() {
+        let mut parts = vec![format!(
+            "{} verified on destination",
+            migrated_legs.join(", ")
+        )];
+        if !missing_legs.is_empty() {
+            parts.push(format!(
+                "{} had no source folder (optional or not installed on this machine)",
+                missing_legs.join(", ")
+            ));
+        }
+        parts.push(
+            "Migration already complete — Open source to follow the junction; Open destination to confirm data. \
+             Remove leftover *.deco-backup-* folders below when the tool runs normally."
+                .to_string(),
+        );
+        return IdleBundleOutcome::AlreadyComplete {
+            message: parts.join(". "),
+        };
+    }
+
+    let dest_with_data: Vec<&MigrationPlanLeg> = legs
+        .iter()
+        .filter(|leg| check_migration_dest_dir(Path::new(&leg.dest)) == DestDirCheck::HasData)
+        .collect();
+    if !dest_with_data.is_empty() && missing_legs.len() == legs.iter().filter(|l| l.skipped).count() {
+        return IdleBundleOutcome::AlreadyComplete {
+            message: format!(
+                "Destination already contains migrated data ({}), but no source folders are ready to migrate. \
+                 The tool may not be installed, or migration completed in a prior session — use Open destination to verify.",
+                dest_with_data
+                    .iter()
+                    .map(|l| l.dest.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+        };
+    }
+
+    IdleBundleOutcome::NothingToMigrate {
+        message: "No source folders were found to migrate — install the application, launch it once under this Windows user, then Plan again.".to_string(),
     }
 }
 
@@ -448,13 +826,22 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
 
         let source_check = crate::util::windows_profile_paths::check_migrate_source_dir(&source);
         if source_check != crate::util::windows_profile_paths::SourceDirCheck::Ready {
-            let msg = crate::util::windows_profile_paths::source_check_message(&source, source_check);
+            let msg = bundle_leg_skip_reason_with_dest(*member, &source, &dest, source_check, include_size);
+            let (dest_bytes, dest_files) =
+                if include_size && crate::util::windows_profile_paths::check_migration_dest_dir(&dest)
+                    == crate::util::windows_profile_paths::DestDirCheck::HasData
+                {
+                    let (b, f, _) = estimate_tree(&dest);
+                    (b, f)
+                } else {
+                    (None, None)
+                };
             plan_legs.push(MigrationPlanLeg {
                 leg: leg_name.to_string(),
                 source: source.to_string_lossy().to_string(),
                 dest: dest.to_string_lossy().to_string(),
-                bytes: None,
-                file_count: None,
+                bytes: dest_bytes,
+                file_count: dest_files,
                 skipped: true,
                 skip_reason: Some(msg),
             });
@@ -497,18 +884,27 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
         });
     }
 
+    let mut already_complete = false;
+
     if active_legs == 0 && errors.is_empty() {
-        let profile_hint = user_profile_dir()
-            .map(|p| format!(" Profile: {}.", p.display()))
-            .unwrap_or_default();
-        errors.push(format!(
-            "No bundle legs had an existing source directory to migrate.{profile_hint} \
-             Close the tool (Task Manager + tray), confirm paths above, and use destination root \
-             like G:\\DevToolData (not G:\\DevToolData\\Cursor)."
-        ));
+        match evaluate_idle_bundle(&plan_legs) {
+            IdleBundleOutcome::AlreadyComplete { message } => {
+                warnings.push(message);
+                already_complete = true;
+            }
+            IdleBundleOutcome::NothingToMigrate { message } => {
+                let profile_hint = user_profile_dir()
+                    .map(|p| format!(" Profile: {}.", p.display()))
+                    .unwrap_or_default();
+                errors.push(format!(
+                    "{message}{profile_hint} Use destination root like G:\\DevToolData (not G:\\DevToolData\\Cursor)."
+                ));
+            }
+            IdleBundleOutcome::Problems(problems) => errors.extend(problems),
+        }
     }
 
-    let ok = active_legs > 0 && errors.is_empty();
+    let ok = (active_legs > 0 || already_complete) && errors.is_empty();
     let first_active = plan_legs.iter().find(|l| !l.skipped);
 
     let mut plan = MigrationPlan {
@@ -525,10 +921,13 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
         warnings,
         errors,
         plan_only: false,
+        already_complete,
         legs: Some(plan_legs),
         running_processes: None,
+        pending_backups: None,
     };
     attach_running_process_warning(&mut plan, tool);
+    attach_pending_backups(&mut plan, include_size);
     plan
 }
 
@@ -551,8 +950,10 @@ pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan
                 warnings: vec![],
                 errors: vec![e],
                 plan_only,
+                already_complete: false,
                 legs: None,
                 running_processes: None,
+                pending_backups: None,
             };
         }
     };
@@ -585,11 +986,22 @@ pub fn plan_paths(
         errors.push(msg);
     }
     let source_check = crate::util::windows_profile_paths::check_migrate_source_dir(&source);
+    let mut already_complete = false;
     if source_check != crate::util::windows_profile_paths::SourceDirCheck::Ready {
-        errors.push(crate::util::windows_profile_paths::source_check_message(
-            &source,
-            source_check,
-        ));
+        if let Ok(id) = ToolId::parse(tool_wire) {
+            let msg = bundle_leg_skip_reason_with_dest(id, &source, &dest, source_check, include_size);
+            if leg_indicates_already_complete(id, &source, &dest, source_check) {
+                warnings.push(msg);
+                already_complete = true;
+            } else {
+                errors.push(msg);
+            }
+        } else {
+            errors.push(crate::util::windows_profile_paths::source_check_message(
+                &source,
+                source_check,
+            ));
+        }
     }
     if is_under(&dest, &source) {
         errors.push("Destination is inside source; refusing.".to_string());
@@ -598,8 +1010,12 @@ pub fn plan_paths(
         errors.push("Source is inside destination; refusing.".to_string());
     }
 
-    let (bytes, file_count) = if include_size && errors.is_empty() {
+    let (bytes, file_count) = if include_size && errors.is_empty() && !already_complete {
         let (b, f, w) = estimate_tree(&source);
+        warnings.extend(w.into_iter().take(8));
+        (b, f)
+    } else if include_size && already_complete {
+        let (b, f, w) = estimate_tree(&dest);
         warnings.extend(w.into_iter().take(8));
         (b, f)
     } else {
@@ -607,7 +1023,7 @@ pub fn plan_paths(
     };
 
     let mut plan = MigrationPlan {
-        ok: errors.is_empty(),
+        ok: errors.is_empty() || already_complete,
         tool: tool_wire.to_string(),
         source: source.to_string_lossy().to_string(),
         dest: dest.to_string_lossy().to_string(),
@@ -616,12 +1032,15 @@ pub fn plan_paths(
         warnings,
         errors,
         plan_only,
+        already_complete,
         legs: None,
         running_processes: None,
+        pending_backups: None,
     };
     if let Ok(id) = ToolId::parse(tool_wire) {
         attach_running_process_warning(&mut plan, id);
     }
+    attach_pending_backups(&mut plan, include_size);
     plan
 }
 
@@ -758,15 +1177,14 @@ fn execute_migration_leg(
         return Err(e);
     }
 
-    fs::remove_dir_all(&backup)
-        .map_err(|e| format!("failed removing backup: {} ({e})", backup.display()))?;
-    Ok(None)
+    // Keep backup on disk until the user removes it from Settings after verifying the tool.
+    Ok(Some(backup))
 }
 
 fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> MigrationResult {
     let warnings = plan.warnings.clone();
     let mut errors = plan.errors.clone();
-    let legs = plan.legs.unwrap_or_default();
+    let legs = plan.legs.clone().unwrap_or_default();
     let mut result_legs: Vec<MigrationResultLeg> = Vec::new();
     let mut all_ok = true;
 
@@ -834,6 +1252,12 @@ fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) 
         None
     };
 
+    let pending_backups = {
+        let mut refreshed = plan.clone();
+        attach_pending_backups(&mut refreshed, true);
+        refreshed.pending_backups
+    };
+
     MigrationResult {
         ok: all_ok,
         tool: plan.tool,
@@ -844,6 +1268,7 @@ fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) 
         warnings,
         errors,
         legs: Some(result_legs),
+        pending_backups,
     }
 }
 
@@ -862,6 +1287,7 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
             warnings,
             errors,
             legs: None,
+            pending_backups: None,
         };
     }
     if plan.plan_only {
@@ -876,6 +1302,7 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
             warnings,
             errors,
             legs: None,
+            pending_backups: None,
         };
     }
 
@@ -896,6 +1323,7 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
                 warnings,
                 errors,
                 legs: None,
+                pending_backups: None,
             };
         }
     }
@@ -910,7 +1338,7 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
     let stamp = now_stamp();
     let audit_path = audit_dir.join(format!("migration-{}.json", stamp));
 
-    let backup_path_out: Option<String> = None;
+    let backup_path_out: Option<String>;
 
     let write_audit = |payload: &serde_json::Value| -> Option<String> {
         if fs::create_dir_all(audit_dir).is_err() {
@@ -924,10 +1352,15 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
 
     let mut ok = false;
 
-    let result = execute_migration_leg(&source, &dest, copy_only).map(|_| ());
+    let exec = execute_migration_leg(&source, &dest, copy_only);
+    backup_path_out = exec
+        .as_ref()
+        .ok()
+        .and_then(|b| b.as_ref())
+        .map(|p| p.to_string_lossy().to_string());
 
-    match result {
-        Ok(()) => {
+    match exec {
+        Ok(_) => {
             ok = true;
         }
         Err(e) => {
@@ -947,6 +1380,14 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
     });
     let audit_log_out = write_audit(&audit_payload);
 
+    let pending_backups = if ok {
+        let mut refreshed = plan.clone();
+        attach_pending_backups(&mut refreshed, true);
+        refreshed.pending_backups
+    } else {
+        None
+    };
+
     MigrationResult {
         ok,
         tool: plan.tool,
@@ -957,6 +1398,7 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
         warnings,
         errors,
         legs: None,
+        pending_backups,
     }
 }
 
@@ -985,6 +1427,13 @@ mod tests {
         // CI/dev machines usually have NTFS on C:.
         let dest = PathBuf::from(r"C:\Temp\deco-migrate-test-dest");
         assert!(dest_requires_ntfs_error(&dest).is_none());
+    }
+
+    #[test]
+    fn is_deco_backup_dir_name_accepts_migration_backups() {
+        assert!(is_deco_backup_dir_name("Cursor.deco-backup-20260525-194813"));
+        assert!(!is_deco_backup_dir_name("Cursor"));
+        assert!(!is_deco_backup_dir_name("Cursor.deco-backup-evil"));
     }
 }
 

@@ -80,3 +80,12 @@ pub async fn migrate_tool_dir_run(
     .await
     .map_err(|e| format!("migration run task failed: {e}"))?
 }
+
+#[tauri::command]
+pub async fn migrate_tool_dir_delete_backup(path: String) -> Result<u64, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        tool_migration::delete_migration_backup(PathBuf::from(path.trim()).as_path())
+    })
+    .await
+    .map_err(|e| format!("delete backup task failed: {e}"))?
+}

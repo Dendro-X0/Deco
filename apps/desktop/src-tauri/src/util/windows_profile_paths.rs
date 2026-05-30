@@ -66,7 +66,7 @@ pub fn source_check_message(path: &Path, check: SourceDirCheck) -> String {
     match check {
         SourceDirCheck::Ready => format!("{display}"),
         SourceDirCheck::NotFound => format!(
-            "Source not found: {display} — confirm Cursor/VS Code has been launched at least once under this Windows user."
+            "Source not found: {display} — confirm the tool has been launched at least once under this Windows user."
         ),
         SourceDirCheck::NotDirectory => format!("Source is not a directory: {display}"),
         SourceDirCheck::AlreadyLink => format!(
@@ -75,6 +75,59 @@ pub fn source_check_message(path: &Path, check: SourceDirCheck) -> String {
         SourceDirCheck::Inaccessible => format!(
             "Cannot read source: {display} — close the tool, check permissions, or run Deco as the same user (avoid mismatched Administrator vs normal account)."
         ),
+    }
+}
+
+pub fn path_equal_ignore_case(a: &Path, b: &Path) -> bool {
+    a.to_string_lossy()
+        .eq_ignore_ascii_case(&b.to_string_lossy().to_string())
+}
+
+/// Resolved junction target when `source` is a symlink/junction; `None` otherwise.
+pub fn junction_target(source: &Path) -> Option<PathBuf> {
+    if check_migrate_source_dir(source) != SourceDirCheck::AlreadyLink {
+        return None;
+    }
+    let link_target = std::fs::read_link(source).ok()?;
+    Some(std::fs::canonicalize(&link_target).unwrap_or(link_target))
+}
+
+/// Whether an existing junction at `source` points at `dest` (case-insensitive).
+pub fn junction_points_to(source: &Path, dest: &Path) -> bool {
+    let Some(target) = junction_target(source) else {
+        return false;
+    };
+    if path_equal_ignore_case(&target, dest) {
+        return true;
+    }
+    std::fs::canonicalize(dest)
+        .ok()
+        .is_some_and(|canonical| path_equal_ignore_case(&target, &canonical))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DestDirCheck {
+    HasData,
+    Empty,
+    NotFound,
+    NotDirectory,
+    Inaccessible,
+}
+
+/// Whether a migration destination folder exists and contains at least one entry.
+pub fn check_migration_dest_dir(path: &Path) -> DestDirCheck {
+    let meta = match std::fs::metadata(path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return DestDirCheck::NotFound,
+        Err(_) => return DestDirCheck::Inaccessible,
+        Ok(m) => m,
+    };
+    if !meta.is_dir() {
+        return DestDirCheck::NotDirectory;
+    }
+    match std::fs::read_dir(path).ok().and_then(|mut d| d.next()) {
+        None => DestDirCheck::Empty,
+        Some(Err(_)) => DestDirCheck::Inaccessible,
+        Some(Ok(_)) => DestDirCheck::HasData,
     }
 }
 

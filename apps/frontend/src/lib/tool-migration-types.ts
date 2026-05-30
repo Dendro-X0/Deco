@@ -1,5 +1,12 @@
 /** Wire shapes from `migrate_tool_dir_plan` / `migrate_tool_dir_run` (Rust DTOs). */
 
+export type ToolMigrationBackupEntry = {
+  leg?: string;
+  path: string;
+  bytes?: number;
+  file_count?: number;
+};
+
 export type ToolMigrationPlanLeg = {
   leg: string;
   source: string;
@@ -20,8 +27,10 @@ export type ToolMigrationPlan = {
   warnings: string[];
   errors: string[];
   plan_only: boolean;
+  already_complete?: boolean;
   legs?: ToolMigrationPlanLeg[];
   running_processes?: string[];
+  pending_backups?: ToolMigrationBackupEntry[];
 };
 
 export type ToolMigrationResultLeg = {
@@ -43,4 +52,5 @@ export type ToolMigrationResult = {
   warnings: string[];
   errors: string[];
   legs?: ToolMigrationResultLeg[];
+  pending_backups?: ToolMigrationBackupEntry[];
 };
