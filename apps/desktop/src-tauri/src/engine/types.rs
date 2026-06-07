@@ -168,6 +168,14 @@ fn default_true() -> bool {
     true
 }
 
+fn default_migration_handoff_min_free_pct() -> u32 {
+    15
+}
+
+fn default_migration_handoff_min_free_gb() -> u32 {
+    20
+}
+
 fn default_scan_scope() -> String {
     "projects".to_string()
 }
@@ -666,6 +674,15 @@ pub struct Settings {
     /// When true, probe NTFS USN journal on drive-letter volumes at scan start (Windows only; experimental v0.8.5). Discovery still uses the legacy walk.
     #[serde(default)]
     pub experimental_windows_ntfs_usn_inventory: bool,
+    /// When true, suggest tool storage migration when the OS volume is low on space (v0.9.10).
+    #[serde(default = "default_true")]
+    pub migration_handoff_enabled: bool,
+    /// Low-space handoff when free % is below this (default 15).
+    #[serde(default = "default_migration_handoff_min_free_pct")]
+    pub migration_handoff_min_free_pct: u32,
+    /// Low-space handoff when available bytes are below this many GB (default 20).
+    #[serde(default = "default_migration_handoff_min_free_gb")]
+    pub migration_handoff_min_free_gb: u32,
 }
 
 impl Default for Settings {
@@ -723,6 +740,9 @@ impl Default for Settings {
             extra_protected_path_contains: vec![],
             allow_path_contains: vec![],
             experimental_windows_ntfs_usn_inventory: false,
+            migration_handoff_enabled: true,
+            migration_handoff_min_free_pct: default_migration_handoff_min_free_pct(),
+            migration_handoff_min_free_gb: default_migration_handoff_min_free_gb(),
         }
     }
 }

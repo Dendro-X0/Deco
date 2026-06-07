@@ -4,7 +4,7 @@ Forward-looking plan for **Deco (Developer Compact)** after milestones **M0–M8
 
 For delivery history, see [milestones](../milestones/README.md). For principles and safety, see [PROJECT.md](../../PROJECT.md) and [ROADMAP.md](../../ROADMAP.md).
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.9` · **In development:** `v0.9.10+` (scan handoff)
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.10` · **In development:** `v0.9.11` · **Target:** [v1.0.0](v1.0.0-manifest.md) via [v1.0-roadmap.md](v1.0-roadmap.md)
 
 **Release model:** One feature set per version, in roadmap order. Desktop installers target **Windows, macOS, and Linux** from **`v0.8.0`** onward (see [v0.8.0-manifest.md](v0.8.0-manifest.md)).
 
@@ -252,19 +252,36 @@ Full sequence: [v0.8.x-roadmap.md](v0.8.x-roadmap.md). One feature set per versi
 | `v0.9.7` | Backup cleanup UI; destination verification; already-migrated messaging | Shipped |
 | `v0.9.8` | Custom folder migration + path blocklist; custom mode toggle | Shipped — [v0.9.8-manifest.md](v0.9.8-manifest.md) |
 | `v0.9.9` | Managed migrations registry (M3); dest-root validation warning | Shipped — [v0.9.9-manifest.md](v0.9.9-manifest.md) |
-| `v0.9.10+` | Scan handoff — low free-space → migration candidates (M4) | Planned |
+| `v0.9.10` | Scan handoff (M4) + scan-root guardrails | Shipped — [v0.9.10-manifest.md](v0.9.10-manifest.md) |
+| `v0.9.11` | SECURITY.md + parity hardening + 1.0 QA prep | Planned — [v1.0.0-manifest.md](v1.0.0-manifest.md) § prep |
+| `v1.0.0` | GA developer cleanup (three OS) | Planned — [v1.0.0-manifest.md](v1.0.0-manifest.md) |
+| `v1.1+` | Migration depth (rollback helper, M5 wizards) | Planned — [v1.0-roadmap.md](v1.0-roadmap.md) |
+
+---
+
+## Phase G — `v0.9.10` → `v1.0.0` · Trust & GA
+
+**Goal:** Connect cleanup to migration where it helps; harden trust; tag **1.0** for the core scan/quarantine product.
+
+| Doc | Role |
+|-----|------|
+| [v1.0-roadmap.md](v1.0-roadmap.md) | Release train overview |
+| [v0.9.10-manifest.md](v0.9.10-manifest.md) | Next ship |
+| [v1.0.0-manifest.md](v1.0.0-manifest.md) | 1.0 exit checklist |
+
+**1.0 positioning:** Cleanup GA on Win/macOS/Linux; Windows migration remains Settings feature with platform badge.
 
 | Item | Version | Notes |
 |------|---------|--------|
 | **Plugin boundary (research)** | Pre-`1.0.0` | Research doc only; not a product ship in 0.8.x |
-| **SECURITY.md** | Pre-`1.0.0` | Required before [1.0.0 criteria](#phase-e--v08x--platform-reach) below |
+| **SECURITY.md** | `v0.9.11` / `v1.0.0` | Required — [v1.0.0-manifest.md](v1.0.0-manifest.md) |
 
-**1.0.0 criteria (draft):**
+**1.0.0 criteria (draft):** See [v1.0.0-manifest.md](v1.0.0-manifest.md) for the actionable checklist. Summary:
 
-- Windows + at least one additional OS GA.
+- Windows + at least one additional OS GA (cleanup core loop).
 - Scan contract stable for ≥2 minor versions.
-- Rust engine is source of truth for classification; CLI uses contract tests against fixtures.
-- Security review checklist for destructive paths published.
+- Classification parity on fixture trees; drift documented.
+- `SECURITY.md` + destructive-path checklist published.
 
 ---
 

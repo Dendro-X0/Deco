@@ -1,6 +1,6 @@
 [package]
 name = "deco-desktop"
-version = "0.9.9"
+version = "0.9.10"
 description = "Deco desktop app with native Rust cleanup engine"
 authors = ["Dendro-X0"]
 license = "MIT"

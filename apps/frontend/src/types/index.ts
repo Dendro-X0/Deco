@@ -141,6 +141,10 @@ export interface Settings {
   allow_path_contains?: string[];
   /** Windows: probe NTFS USN journal at scan start (v0.8.5 experimental). */
   experimental_windows_ntfs_usn_inventory?: boolean;
+  /** Suggest migration when OS volume is low (v0.9.10). */
+  migration_handoff_enabled?: boolean;
+  migration_handoff_min_free_pct?: number;
+  migration_handoff_min_free_gb?: number;
 }
 
 export interface ExecutePreviewResponse {

@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.9` · Previous: `v0.9.8`
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.10` · **Next:** `v0.9.11` ([v1.0.0-manifest.md](v1.0.0-manifest.md))
 
 ---
 
@@ -16,20 +16,24 @@
 
 | Item | Location |
 |------|----------|
-| **Shipped** | `v0.9.9` — managed migrations registry, dest-root warning |
-| **In dev** | `v0.9.10+` — scan handoff (M4) |
-| **QA** | Low free-space → migration candidate suggestion |
+| **Roadmap to 1.0** | [v1.0-roadmap.md](v1.0-roadmap.md) |
+| **Shipped** | `v0.9.10` — [manifest](v0.9.10-manifest.md): M4 scan handoff + scan-root guardrails |
+| **Next** | [v1.0.0-manifest.md](v1.0.0-manifest.md) — SECURITY.md + 1.0 QA prep (`v0.9.11`) |
 
-### v0.9.5 highlights
-
-- Settings → **Tool storage migration** — Plan + Run, browsers/utilities/games profiles
-- **Open source** / **Open destination** on plan paths
-- `pnpm build:desktop:msi` for Windows when NSIS times out
-
-## Quick commands
+### Quick commands
 
 ```bash
 pnpm install
 pnpm check
+pnpm dev:desktop
 pnpm build:desktop:msi   # Windows MSI only
 ```
+
+### Shipped recently
+
+| Version | Highlights |
+|---------|------------|
+| **v0.9.10** | Migration handoff banner; scan-root guardrails |
+| **v0.9.9** | Managed migrations registry; dest-root warning |
+| **v0.9.8** | Custom folder migration; path blocklist; custom toggle |
+| **v0.9.7** | Backup cleanup; destination verification |

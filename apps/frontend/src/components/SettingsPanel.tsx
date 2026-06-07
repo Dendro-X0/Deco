@@ -49,6 +49,7 @@ import { CheckForUpdatesSection } from '@/components/CheckForUpdatesSection';
 import { PolicyPackSection } from '@/components/PolicyPackSection';
 import { UiLocaleSection } from '@/components/UiLocaleSection';
 import { ToolMigrationSection } from '@/components/ToolMigrationSection';
+import { isToolMigrationUiId } from '@/lib/migration-handoff-types';
 import { useI18n } from '@/i18n';
 import {
   cleanupProfileDescription,
@@ -63,6 +64,8 @@ type Props = {
   onSave: (settings: Settings) => Promise<void>;
   onDiscard: () => void;
   onError?: (message: string) => void;
+  migrationFocusTool?: string | null;
+  migrationFocusKey?: number;
 };
 
 function SettingsSection({
@@ -120,7 +123,7 @@ function ToggleRow({
   );
 }
 
-export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }: Props) {
+export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError, migrationFocusTool, migrationFocusKey = 0 }: Props) {
   const { t } = useI18n();
   const [draft, setDraft] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
@@ -643,6 +646,12 @@ export function SettingsPanel({ settings, scanning, onSave, onDiscard, onError }
         <ToolMigrationSection
           disabled={scanning || saving}
           onError={onError}
+          initialTool={
+            migrationFocusTool && isToolMigrationUiId(migrationFocusTool)
+              ? migrationFocusTool
+              : undefined
+          }
+          focusKey={migrationFocusKey}
         />
 
         <div className="flex flex-wrap justify-end gap-3 pt-2 border-t border-border/40">

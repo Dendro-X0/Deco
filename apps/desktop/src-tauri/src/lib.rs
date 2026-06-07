@@ -87,6 +87,8 @@ pub fn run() {
             commands::policy_pack::read_policy_pack_contents,
             commands::policy_pack::preview_policy_pack,
             commands::policy_pack::apply_policy_pack,
+            commands::migration_handoff::migration_handoff_status,
+            commands::migration_handoff::scan_roots_warnings,
             commands::tool_migration::migrate_tool_dir_plan,
             commands::tool_migration::migrate_tool_dir_run,
             commands::tool_migration::migrate_tool_dir_delete_backup,

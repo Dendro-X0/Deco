@@ -122,6 +122,17 @@ export function normalizeSettings(raw: unknown): Settings {
       'experimentalWindowsNtfsUsnInventory',
       false,
     ),
+    migration_handoff_enabled: bool('migration_handoff_enabled', 'migrationHandoffEnabled', true),
+    migration_handoff_min_free_pct: num(
+      'migration_handoff_min_free_pct',
+      'migrationHandoffMinFreePct',
+      15,
+    ),
+    migration_handoff_min_free_gb: num(
+      'migration_handoff_min_free_gb',
+      'migrationHandoffMinFreeGb',
+      20,
+    ),
   };
 
   return {

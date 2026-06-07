@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.9.10] - 2026-05-29
+
+### Added
+
+- **Migration handoff banner (Windows)** — Dashboard suggests tool storage migration when the OS volume is low on space; deep link to Settings with tool pre-select.
+- **Scan-root guardrails** — warns before scanning global toolchain caches (`.cargo`, npm/pnpm stores) in custom scan mode; Remove or Scan anyway.
+
+See [v0.9.10-manifest.md](docs/product/v0.9.10-manifest.md).
+
 ## [0.9.9] - 2026-05-29
 
 ### Added

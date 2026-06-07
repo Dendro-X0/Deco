@@ -69,6 +69,7 @@ Implementation: `apps/cli/src/tool-migration-profiles.ts` and `apps/desktop/src-
 | **v0.9.7** | Backup cleanup; destination verification on re-plan | Shipped |
 | **v0.9.8** | Custom folder migration + path blocklist; custom mode toggle | Shipped — [v0.9.8-manifest.md](v0.9.8-manifest.md) |
 | **v0.9.9** | Managed migrations registry; dest-root validation warning | Shipped — [v0.9.9-manifest.md](v0.9.9-manifest.md) |
+| **v0.9.10** | Migration handoff banner (low OS volume → Settings link) | Shipped — [v0.9.10-manifest.md](v0.9.10-manifest.md) |
 
 ---
 

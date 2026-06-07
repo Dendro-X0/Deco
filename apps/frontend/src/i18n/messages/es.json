@@ -54,6 +54,8 @@
     "anyTime": "Cualquier momento",
     "localDisk": "Disco local",
     "cancel": "Cancelar",
+    "dismiss": "Descartar",
+    "unknown": "Desconocido",
     "clearAll": "Borrar todo",
     "remove": "Quitar",
     "close": "Cerrar",
@@ -231,6 +233,23 @@
       "showInExplorer": "Mostrar en el Explorador",
       "foldersReady": "{{count}} carpeta lista para escanear",
       "foldersReadyPlural": "{{count}} carpetas listas para escanear"
+    },
+    "migrationHandoff": {
+      "title": "{{mount}} tiene {{freePct}} libre ({{freeBytes}} restantes)",
+      "description": "Datos de herramientas en esta unidad ({{tools}}) suman ~{{size}}. Mígrelos con uniones en lugar de borrarlos.",
+      "openSettings": "Abrir migración de almacenamiento"
+    },
+    "scanRootWarnings": {
+      "blocked": "Resuelva las advertencias de escaneo de toolchain abajo (elimine la carpeta o elija Escanear de todos modos) antes de iniciar.",
+      "removeFromScan": "Quitar del escaneo",
+      "scanAnyway": "Escanear de todos modos",
+      "cargo_home": "{{path}} es la caché de Cargo/Rust. Deco apunta a artefactos de proyecto — escanear aquí puede marcar crates del registro como eliminables.",
+      "rustup_home": "{{path}} es un directorio de toolchain Rustup. No se recomienda escanearlo.",
+      "npm_cache": "{{path}} es la caché global de npm. Use la configuración de npm en lugar de escanearla como árbol de proyecto.",
+      "pnpm_store": "{{path}} es el almacén/caché de pnpm. No se recomienda escanearlo.",
+      "yarn_cache": "{{path}} es la caché de Yarn. No se recomienda escanearla.",
+      "go_mod_cache": "{{path}} es la caché de módulos Go. Active la caché Go en opciones de descubrimiento en lugar de escanearla directamente.",
+      "go_build_cache": "{{path}} parece una caché de compilación Go. No se recomienda escanearla."
     },
     "scanModeSelector": {
       "label": "Modo de escaneo",

@@ -54,6 +54,10 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 | NTFS USN journal probe (Experimental, Windows) | Off by default. When on, scans prepend warnings about USN journal visibility on drive-letter volumes; discovery is still a full walk |
 | IDE data on the OS drive | **Tool storage migration** (Windows): Plan + Run with confirm modal; manual guide below as fallback |
 
+### Custom scan folders
+
+When **Custom folders** mode is on, adding paths like `%USERPROFILE%\.cargo` or global npm/pnpm caches triggers a **toolchain cache warning** on the Dashboard before you can start a scan. Remove the path or choose **Scan anyway** after reading the warning — Deco is meant for project artifacts, not global stores. See [safety.md](../product/safety.md).
+
 ### Policy pack gallery (Settings)
 
 1. Open **Settings** → **Policy pack**.
@@ -69,11 +73,12 @@ Validate from CLI: `deco validate-policy examples/deco-policies/python-data-scie
 
 When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small **C:** volume:
 
-1. Open **Settings → Tool storage migration (Windows)**.
-2. Pick a **tool** profile (e.g. Cursor Roaming + Local) and a **destination root** on NTFS (e.g. `D:\DevToolData`).
-3. Click **Plan** — review source/dest paths, estimated size, and warnings. Close the tool if running processes are reported.
-4. Click **Run migration** — read the confirm dialog, then wait for the busy overlay to finish.
-5. Restart the tool; confirm settings and history. The audit log path is shown in Settings.
+1. On the **Dashboard**, if the OS drive is low on space, a **migration handoff** banner may suggest tools with data on that drive — click **Open Tool storage migration**.
+2. Open **Settings → Tool storage migration (Windows)** (or use the banner link).
+3. Pick a **tool** profile (e.g. Cursor Roaming + Local) and a **destination root** on NTFS (e.g. `D:\DevToolData`).
+4. Click **Plan** — review source/dest paths, estimated size, and warnings. Close the tool if running processes are reported.
+5. Click **Run migration** — read the confirm dialog, then wait for the busy overlay to finish.
+6. Restart the tool; confirm settings and history. The audit log path is shown in Settings.
 
 Plan-only profiles (Docker Desktop, npm cache, etc.) show sizing and guidance only — use their settings or the manual guide.
 

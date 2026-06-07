@@ -2,6 +2,7 @@ pub mod classify;
 pub mod dormancy;
 pub mod execute;
 pub mod explorer;
+pub mod migration_handoff;
 pub mod policy_pack;
 pub mod quarantine;
 pub mod release;

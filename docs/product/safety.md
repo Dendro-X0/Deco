@@ -29,6 +29,10 @@ Deco is **safety-first**: it prefers under-detection with clear explanations ove
 
 Execute refuses global/venv targets if the matching setting was off at scan time.
 
+## Scan-root guardrails (v0.9.10)
+
+In **custom scan** mode, Deco warns before scanning paths that look like **global toolchain caches** (e.g. `%USERPROFILE%\.cargo`, `%LOCALAPPDATA%\npm-cache`). Scanning those trees can surface registry or store files as deletable candidates. Remove the path or explicitly choose **Scan anyway** after reading the warning.
+
 ## CLI parity
 
 - `--delete` requires `--yes`.

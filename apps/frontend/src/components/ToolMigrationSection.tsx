@@ -199,9 +199,11 @@ type BusyKind = 'plan' | 'run';
 type Props = {
   disabled?: boolean;
   onError?: (message: string) => void;
+  initialTool?: ToolMigrationUiId;
+  focusKey?: number;
 };
 
-export function ToolMigrationSection({ disabled, onError }: Props) {
+export function ToolMigrationSection({ disabled, onError, initialTool, focusKey = 0 }: Props) {
   const { t } = useI18n();
   const [supported, setSupported] = useState<boolean | null>(null);
   const [tool, setTool] = useState<ToolMigrationUiId>('cursor');
@@ -235,6 +237,19 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
     setResult(null);
     setRemovedBackupPaths(new Set());
   };
+
+  useEffect(() => {
+    if (!initialTool) return;
+    setCustomMode(false);
+    setTool(initialTool);
+    clearPlanState();
+    requestAnimationFrame(() => {
+      document.getElementById('tool-storage-migration')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    });
+  }, [initialTool, focusKey]);
 
   const beginBusy = (kind: BusyKind) => {
     setBusyKind(kind);
@@ -418,6 +433,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
         onCancel={() => busyKind !== 'run' && setRunConfirmOpen(false)}
       />
 
+      <div id="tool-storage-migration">
       <MigrationSettingsSection
         title={t('settings.toolMigration.title')}
         description={t('settings.toolMigration.description')}
@@ -793,6 +809,7 @@ export function ToolMigrationSection({ disabled, onError }: Props) {
           <ManagedMigrationsPanel disabled={busy} refreshKey={managedRefreshKey} onError={onError} />
         </div>
       </MigrationSettingsSection>
+      </div>
     </>
   );
 }

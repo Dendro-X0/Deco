@@ -54,6 +54,8 @@
     "anyTime": "任何时间",
     "localDisk": "本地磁盘",
     "cancel": "取消",
+    "dismiss": "关闭",
+    "unknown": "未知",
     "clearAll": "全部清除",
     "remove": "移除",
     "close": "关闭",
@@ -231,6 +233,23 @@
       "showInExplorer": "在文件资源管理器中显示",
       "foldersReady": "{{count}} 个文件夹已就绪",
       "foldersReadyPlural": "{{count}} 个文件夹已就绪"
+    },
+    "migrationHandoff": {
+      "title": "{{mount}} 仅剩 {{freePct}} 可用空间（{{freeBytes}}）",
+      "description": "此驱动器上的工具数据（{{tools}}）合计约 {{size}}。可用联接迁离系统盘，而非直接删除。",
+      "openSettings": "打开工具存储迁移"
+    },
+    "scanRootWarnings": {
+      "blocked": "开始扫描前请先处理下方工具链扫描警告（移除该文件夹或选择仍要扫描）。",
+      "removeFromScan": "从扫描中移除",
+      "scanAnyway": "仍要扫描",
+      "cargo_home": "{{path}} 是 Rust/Cargo 主目录缓存。Deco 针对项目产物 — 扫描此处可能将 registry 中的 crate 标记为可删除。",
+      "rustup_home": "{{path}} 是 Rustup 工具链目录。不建议扫描。",
+      "npm_cache": "{{path}} 是全局 npm 缓存。请通过 npm 缓存设置管理，不要作为项目树扫描。",
+      "pnpm_store": "{{path}} 是 pnpm 存储/缓存。不建议扫描。",
+      "yarn_cache": "{{path}} 是 Yarn 缓存目录。不建议扫描。",
+      "go_mod_cache": "{{path}} 是 Go 模块缓存。请在发现选项中启用 Go 缓存，不要直接扫描。",
+      "go_build_cache": "{{path}} 像是 Go 构建缓存。不建议扫描。"
     },
     "scanModeSelector": {
       "label": "扫描模式",

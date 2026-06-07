@@ -20,7 +20,10 @@ import { useDeco } from './hooks/use-deco';
 import { useGitDormancy } from './hooks/use-git-dormancy';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
+import { MigrationHandoffBanner } from './components/MigrationHandoffBanner';
+import { ScanRootWarningsPanel } from './components/ScanRootWarningsPanel';
 import { ScanTargetsDashboardCard } from './components/ScanTargetsDashboardCard';
+import type { ScanMode } from './components/ScanModeSelector';
 import { DisabledActionHint } from './components/DisabledActionHint';
 import { cleanSelectedDisabledReason } from './lib/disabled-reasons';
 import {
@@ -46,7 +49,8 @@ import {
   sortProjectGroups,
   visibleProjectGroupSlice,
 } from './lib/project-grouping';
-import type { ScanMode } from './components/ScanModeSelector';
+import { isToolMigrationUiId } from './lib/migration-handoff-types';
+import { scanRootsWarnings } from './lib/scan-root-warnings';
 import { volumeMountsFromPaths } from './lib/volume-from-path';
 import { ScanTargetsModal } from './components/ScanTargetsModal';
 import { QuarantinePanel } from './components/QuarantinePanel';
@@ -172,6 +176,9 @@ export default function App() {
   } = useDeco();
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [migrationFocusTool, setMigrationFocusTool] = useState<string | null>(null);
+  const [migrationFocusKey, setMigrationFocusKey] = useState(0);
+  const [scanRootsAcknowledgedKey, setScanRootsAcknowledgedKey] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [riskFilter, setRiskFilter] = useState('all');
   const [kindFilter, setKindFilter] = useState('all');
@@ -204,7 +211,20 @@ export default function App() {
 
   const customScanRoots = settings?.roots ?? [];
   const useCustomScanRoots = settings?.use_custom_scan_roots ?? false;
+  const customScanRootsKey = useMemo(() => customScanRoots.join('\0'), [customScanRoots]);
   const scanMode: ScanMode = useCustomScanRoots ? 'custom' : 'partition';
+  const customScanRootWarnings = useMemo(
+    () => (scanMode === 'custom' ? scanRootsWarnings(customScanRoots) : []),
+    [scanMode, customScanRoots],
+  );
+  const scanRootsAcknowledged = scanRootsAcknowledgedKey === customScanRootsKey;
+
+  const openMigrationSettings = (toolId?: string) => {
+    setMigrationFocusTool(toolId && isToolMigrationUiId(toolId) ? toolId : null);
+    setMigrationFocusKey((k) => k + 1);
+    setActiveTab('settings');
+  };
+
   const hasScanTargetsReady = useCustomScanRoots
     ? customScanRoots.length > 0
     : selectedVolumes.length > 0;
@@ -323,6 +343,14 @@ export default function App() {
 
   const requestScan = (opts?: { wizard?: boolean; mode?: 'full' | 'quick' }) => {
     if (scanning) return;
+    if (
+      scanMode === 'custom' &&
+      customScanRootWarnings.length > 0 &&
+      !scanRootsAcknowledged
+    ) {
+      setError(t('dashboard.scanRootWarnings.blocked'));
+      return;
+    }
     if (!hasScanTargetsReady) {
       setScanTargetsAfterWizard(!!opts?.wizard);
       if (opts?.wizard) setWizardOpen(true);
@@ -719,6 +747,29 @@ export default function App() {
                   onError={setError}
                   storageRefreshToken={storageRefreshToken}
                 />
+
+                <MigrationHandoffBanner
+                  storageRefreshToken={storageRefreshToken}
+                  disabled={scanning || busy}
+                  onOpenMigration={openMigrationSettings}
+                />
+
+                {scanMode === 'custom' && customScanRootWarnings.length > 0 ? (
+                  <ScanRootWarningsPanel
+                    warnings={customScanRootWarnings}
+                    disabled={scanning}
+                    showScanAnyway
+                    onAcknowledge={() => {
+                      setScanRootsAcknowledgedKey(customScanRootsKey);
+                      setError(null);
+                    }}
+                    onRemove={(path) => {
+                      persistScanTargets({
+                        roots: customScanRoots.filter((r) => r !== path),
+                      });
+                    }}
+                  />
+                ) : null}
 
                 {!summary && !scanning ? (
                   <Card className="border-primary/20 bg-primary/5">
@@ -1239,6 +1290,8 @@ export default function App() {
                 <SettingsPanel
                   settings={settings}
                   scanning={scanning}
+                  migrationFocusTool={migrationFocusTool}
+                  migrationFocusKey={migrationFocusKey}
                   onSave={async (next) => {
                     await tauriInvoke('save_settings', { settings: next });
                     await loadSettings();

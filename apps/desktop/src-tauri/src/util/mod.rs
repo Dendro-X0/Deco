@@ -1,6 +1,8 @@
+pub mod migration_handoff;
 pub mod migration_path_policy;
 pub mod native_path;
 pub mod ntfs_usn;
+pub mod scan_root_warnings;
 pub mod tool_migration;
 pub mod tool_migration_processes;
 pub mod windows_profile_paths;

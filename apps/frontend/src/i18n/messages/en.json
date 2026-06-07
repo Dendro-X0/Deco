@@ -54,6 +54,8 @@
     "anyTime": "Any time",
     "localDisk": "Local Disk",
     "cancel": "Cancel",
+    "dismiss": "Dismiss",
+    "unknown": "Unknown",
     "clearAll": "Clear all",
     "remove": "Remove",
     "close": "Close",
@@ -231,6 +233,23 @@
       "showInExplorer": "Show in File Explorer",
       "foldersReady": "{{count}} folder ready to scan",
       "foldersReadyPlural": "{{count}} folders ready to scan"
+    },
+    "migrationHandoff": {
+      "title": "{{mount}} is {{freePct}} free ({{freeBytes}} left)",
+      "description": "Tool data on this drive ({{tools}}) may total ~{{size}}. Move folders off the OS drive with junctions instead of deleting them.",
+      "openSettings": "Open Tool storage migration"
+    },
+    "scanRootWarnings": {
+      "blocked": "Resolve toolchain scan warnings below (remove the folder or choose Scan anyway) before starting.",
+      "removeFromScan": "Remove from scan",
+      "scanAnyway": "Scan anyway",
+      "cargo_home": "{{path}} is a Rust/Cargo home cache. Deco targets project artifacts — scanning here can mark registry crates as deletable.",
+      "rustup_home": "{{path}} is a Rustup toolchain directory. Scanning here is not recommended.",
+      "npm_cache": "{{path}} is the global npm cache. Use npm cache settings instead of scanning it as a project tree.",
+      "pnpm_store": "{{path}} is the pnpm store/cache. Scanning here is not recommended.",
+      "yarn_cache": "{{path}} is the Yarn cache directory. Scanning here is not recommended.",
+      "go_mod_cache": "{{path}} is the Go module cache. Enable Go cache in Discovery options instead of scanning it directly.",
+      "go_build_cache": "{{path}} looks like a Go build cache. Scanning here is not recommended."
     },
     "scanModeSelector": {
       "label": "Scanning mode",
