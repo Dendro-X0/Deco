@@ -250,6 +250,70 @@
           "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
         }
       ]
+    },
+    {
+      "id": "yarn_pip_uv_global_caches",
+      "setup": [],
+      "targets": [
+        { "kind": "yarn-global-cache", "rel_path": "yarn/cache", "age_days": 0 },
+        { "kind": "pip-global-cache", "rel_path": "pip/cache", "age_days": 0 },
+        { "kind": "uv-global-cache", "rel_path": "uv/cache", "age_days": 0 }
+      ],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        },
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        },
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
+    },
+    {
+      "id": "nuget_bun_global_caches",
+      "setup": [],
+      "targets": [
+        { "kind": "nuget-global-cache", "rel_path": ".nuget/packages", "age_days": 0 },
+        { "kind": "bun-global-cache", "rel_path": ".bun/install/cache", "age_days": 0 }
+      ],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        },
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
+    },
+    {
+      "id": "playwright_artifact_in_js_project",
+      "setup": [
+        { "path": "package.json", "content": "{}" },
+        { "path": "pnpm-lock.yaml", "content": "lockfileVersion: 9" },
+        { "path": "playwright-report", "type": "dir" }
+      ],
+      "targets": [
+        { "kind": "playwright-artifact", "rel_path": "playwright-report", "age_days": 14 }
+      ],
+      "expect": [
+        {
+          "risk": "safe",
+          "safety_class": "project_artifact",
+          "reason_codes": ["PROJECT_MARKERS_PRESENT"]
+        }
+      ]
     }
   ]
 }

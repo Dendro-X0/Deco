@@ -23,6 +23,7 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 | [v0.7.x roadmap](product/v0.7.x-roadmap.md) | Phase D version queue (`v0.7.5`–`v0.7.7`) |
 | [v0.8.x roadmap](product/v0.8.x-roadmap.md) | Phase E — Win/macOS/Linux releases, winget, i18n, demos |
 | [Safety model](product/safety.md) | Risk tiers, quarantine, review confirmation |
+| [Security policy](../../SECURITY.md) | Supported versions, vulnerability reporting |
 | [Roadmap](../ROADMAP.md) | Milestone archive M0–M8 + links to version roadmap |
 | [PROJECT.md](../PROJECT.md) | North star, goals, non-goals (repo root) |
 

@@ -33,6 +33,19 @@ Execute refuses global/venv targets if the matching setting was off at scan time
 
 In **custom scan** mode, Deco warns before scanning paths that look like **global toolchain caches** (e.g. `%USERPROFILE%\.cargo`, `%LOCALAPPDATA%\npm-cache`). Scanning those trees can surface registry or store files as deletable candidates. Remove the path or explicitly choose **Scan anyway** after reading the warning.
 
+## Destructive-path checklist (v0.9.11)
+
+Use before cleanup on a new machine or when recommending Deco to others:
+
+1. **Scan roots** — project folders or chosen volumes only; avoid scanning `%USERPROFILE%`, `%APPDATA%`, or drive roots unless you mean to.
+2. **Custom scan warnings** — remove `.cargo`, npm/pnpm global stores, or similar from roots unless you accept re-download cost.
+3. **Review tier** — inspect global cache and venv rows; enable **Include review-tier** only with intent; type `DELETE REVIEW` deliberately.
+4. **Hard delete** — keep **Advanced mode** off unless permanent deletion is required.
+5. **Migration (Windows)** — read Plan output; close running apps; verify junction + destination before deleting `*.deco-backup-*` folders.
+6. **Quarantine purge** — purge only after restore checks succeed.
+
+Security disclosure: [SECURITY.md](../../SECURITY.md).
+
 ## CLI parity
 
 - `--delete` requires `--yes`.

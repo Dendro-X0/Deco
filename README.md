@@ -25,7 +25,7 @@ Deco is built for developers who need to trust what runs on their machine:
 - **Open and auditable** — source is available in this repository. There are no hidden scripts, telemetry bundles, or bundled third-party “phone home” components in the desktop installer or CLI package.
 - **Safety-first deletes** — quarantine-first defaults, blocked system paths, and review-tier confirmations; see [Safety model](docs/product/safety.md) and [PROJECT.md](PROJECT.md).
 
-If you find a security issue, please report it via a [private security advisory](https://github.com/Dendro-X0/Deco/security/advisories/new) on GitHub.
+If you find a security issue, please report it via a [private security advisory](https://github.com/Dendro-X0/Deco/security/advisories/new) on GitHub. See [SECURITY.md](SECURITY.md) for supported versions and the full disclosure process.
 
 ## Repository layout
 

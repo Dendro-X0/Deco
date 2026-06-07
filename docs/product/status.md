@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.10` · **Next:** `v0.9.11` ([v1.0.0-manifest.md](v1.0.0-manifest.md))
+**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.11` · **Next:** `v1.0.0` ([manifest](v1.0.0-manifest.md))
 
 ---
 
@@ -17,8 +17,15 @@
 | Item | Location |
 |------|----------|
 | **Roadmap to 1.0** | [v1.0-roadmap.md](v1.0-roadmap.md) |
-| **Shipped** | `v0.9.10` — [manifest](v0.9.10-manifest.md): M4 scan handoff + scan-root guardrails |
-| **Next** | [v1.0.0-manifest.md](v1.0.0-manifest.md) — SECURITY.md + 1.0 QA prep (`v0.9.11`) |
+| **Shipped** | `v0.9.11` — [manifest](v0.9.11-manifest.md): SECURITY.md + parity + 1.0 QA prep |
+| **Next** | [v1.0.0-manifest.md](v1.0.0-manifest.md) — GA cleanup tag |
+
+### Shipped recently
+
+| Version | Highlights |
+|---------|------------|
+| **v0.9.11** | SECURITY.md; parity fixtures; v1.0 manual QA script |
+| **v0.9.10** | Migration handoff banner; scan-root guardrails |
 
 ### Quick commands
 
@@ -28,12 +35,3 @@ pnpm check
 pnpm dev:desktop
 pnpm build:desktop:msi   # Windows MSI only
 ```
-
-### Shipped recently
-
-| Version | Highlights |
-|---------|------------|
-| **v0.9.10** | Migration handoff banner; scan-root guardrails |
-| **v0.9.9** | Managed migrations registry; dest-root warning |
-| **v0.9.8** | Custom folder migration; path blocklist; custom toggle |
-| **v0.9.7** | Backup cleanup; destination verification |

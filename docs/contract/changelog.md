@@ -9,6 +9,12 @@ Bump **`SCAN_REPORT_SCHEMA_VERSION`** in both:
 
 Update this file and `docs/schemas/scan-report.schema.json` in the same change.
 
+## 1.0 stability policy (2026-05-29)
+
+From **`v0.9.11`** through **`v1.0.0`**, keep **`schema_version` at `2.8.0`** unless a **breaking** wire change is unavoidable (field rename/removal, semantic change to existing fields). Additive, backward-compatible fields may ship in a minor contract bump with a changelog entry.
+
+Non-breaking work (classification parity, docs, SECURITY.md) does **not** require a schema bump.
+
 ## 2.8.0 — 2026-05-17
 
 - **Added** candidate kind: `bazel_disk_cache` (Bazel `--disk_cache` tree when **`BAZEL_DISK_CACHE`** points at an existing directory with `cas` and/or `ac` subdirectories; review tier + execute guard).

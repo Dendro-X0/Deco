@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.9.11] - 2026-05-29
+
+### Added
+
+- **`SECURITY.md`** — supported versions, private vulnerability reporting, destructive-path summary.
+- **Classification parity fixtures** — yarn, pip, uv, nuget, bun global caches; Playwright project artifact; [fixture README](tests/fixtures/classification/README.md).
+- **v1.0 manual QA script** — [v1.0-manual-qa.md](docs/product/v1.0-manual-qa.md) for Win + non-Win installed builds.
+
+### Changed
+
+- **Scan contract** — 1.0 stability policy in [contract/changelog.md](docs/contract/changelog.md) (`schema_version` 2.8.0 freeze through 1.0).
+- **Safety model** — destructive-path checklist for pre-cleanup review.
+
+See [v0.9.11-manifest.md](docs/product/v0.9.11-manifest.md).
+
 ## [0.9.10] - 2026-05-29
 
 ### Added
