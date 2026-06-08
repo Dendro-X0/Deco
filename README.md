@@ -4,6 +4,8 @@ Deco is a **desktop-first** cleanup app for developer machines, with a **CLI** f
 
 Goals: **safe defaults** (scan → review → quarantine-first cleanup → restore/purge), **low learning curve**, and **broad dev-artifact** coverage—not a general-purpose “every file” browser.
 
+**v1.0 (shipped)** — GA cleanup on Windows, macOS, and Linux. Windows **tool storage migration** remains a labeled Settings feature — see [v1.0 roadmap](docs/product/v1.0-roadmap.md).
+
 **v0.8.5 (Windows):** Optional **NTFS USN journal probe** in Settings → Experimental adds informational scan warnings on drive-letter volumes; candidate discovery remains a full directory walk ([details](docs/experiments/windows-ntfs-usn-inventory.md)).
 
 ## Demo
@@ -96,7 +98,7 @@ Full guide: [`docs/distribution/github-releases.md`](docs/distribution/github-re
 | Category | Entry |
 |----------|--------|
 | Getting started | [Overview](docs/getting-started/overview.md) · [Install](docs/getting-started/install.md) · [Quickstart](docs/getting-started/quickstart.md) |
-| Product | [Features](docs/product/features.md) · [Status](docs/product/status.md) · [Safety](docs/product/safety.md) |
+| Product | [Features](docs/product/features.md) · [Status](docs/product/status.md) · [Safety](docs/product/safety.md) · [1.0 manifest](docs/product/v1.0.0-manifest.md) |
 | Desktop / CLI | [User guide](docs/desktop/user-guide.md) · [CLI usage](docs/cli/usage.md) |
 | Distribution | [GitHub Releases](docs/distribution/github-releases.md) · [Release process](docs/distribution/release-process.md) |
 | Contract | [Scan contract](docs/contract/scan-contract.md) · [Changelog](docs/contract/changelog.md) |

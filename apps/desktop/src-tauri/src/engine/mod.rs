@@ -6,6 +6,8 @@ pub mod cleanup_disk_mode;
 pub mod classifier;
 #[cfg(test)]
 mod classification_parity;
+#[cfg(test)]
+mod schema_audit;
 pub mod delete_parallel;
 pub mod discovery_patterns;
 pub mod disk_cleanup_config;

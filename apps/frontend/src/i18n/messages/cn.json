@@ -570,7 +570,8 @@
       "readFullGuide": "在 GitHub 打开完整指南"
     },
     "toolMigration": {
-      "title": "工具存储迁移（Windows）",
+      "title": "工具存储迁移",
+      "platformBadge": "Windows · NTFS",
       "description": "将 AppData 文件夹（IDE、浏览器、实用工具、游戏）移出 C:，并在原路径保留目录联接。先「计划」，审阅后再「执行迁移」。",
       "planFirstNote": "选择工具与目标根目录，然后「计划」。在执行迁移前请核对路径、大小与警告。",
       "runConfirmTitle": "执行迁移？",

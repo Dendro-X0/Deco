@@ -25,6 +25,7 @@ import {
   type ToolMigrationUiId,
 } from '@/lib/tool-migration-profiles';
 import { ManagedMigrationsPanel } from '@/components/ManagedMigrationsPanel';
+import { Badge } from '@/components/ui/badge';
 import type {
   ToolMigrationBackupEntry,
   ToolMigrationPlan,
@@ -35,14 +36,22 @@ import { useI18n } from '@/i18n';
 type SectionProps = {
   title: string;
   description?: string;
+  badge?: string;
   children?: ReactNode;
 };
 
-function MigrationSettingsSection({ title, description, children }: SectionProps) {
+function MigrationSettingsSection({ title, description, badge, children }: SectionProps) {
   return (
     <section className="space-y-4">
       <div>
-        <h3 className="text-sm font-bold tracking-tight">{title}</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-sm font-bold tracking-tight">{title}</h3>
+          {badge ? (
+            <Badge variant="secondary" className="font-normal text-[10px] uppercase tracking-wide">
+              {badge}
+            </Badge>
+          ) : null}
+        </div>
         {description ? (
           <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">{description}</p>
         ) : null}
@@ -437,6 +446,7 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
       <MigrationSettingsSection
         title={t('settings.toolMigration.title')}
         description={t('settings.toolMigration.description')}
+        badge={t('settings.toolMigration.platformBadge')}
       >
         <div className="space-y-3 rounded-lg border border-border/40 bg-muted/10 p-4 max-w-2xl">
           <p className="text-xs text-muted-foreground leading-relaxed">{t('settings.toolMigration.planFirstNote')}</p>

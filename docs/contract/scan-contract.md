@@ -16,6 +16,19 @@ Deco exposes a **versioned** scan payload so the desktop app and CLI can share t
 - **Desktop**: `scan_roots` Tauri command returns `ScanResponse` JSON (includes `schema_version`).
 - **CLI**: `deco --json …` prints the same envelope, plus optional **`scan_options`** (roots, profile, flags used) for reproducibility.
 
+## Desktop extensions (optional on wire)
+
+The desktop `ScanResponse` may also include timing and quick-update fields not present in CLI output:
+
+| Field | Since | Meaning |
+|-------|-------|---------|
+| `inventory_reused` | v0.6.1 | Candidates reused from path inventory on quick update |
+| `discover_ms` | v0.6.4 | Discovery phase wall time (ms) |
+| `classify_ms` | v0.6.4 | Classification phase wall time (ms) |
+| `size_ms` | v0.6.4 | Sizing phase wall time (ms) |
+
+All are optional in [scan-report.schema.json](../schemas/scan-report.schema.json). Schema parity is checked in [schema-audit.md](schema-audit.md).
+
 ## Risk tiers (`risk` field)
 
 | Value | Meaning | Execute / delete policy |

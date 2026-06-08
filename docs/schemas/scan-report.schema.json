@@ -47,6 +47,18 @@
       "type": "array",
       "items": { "$ref": "#/$defs/candidate" }
     },
+    "inventory_reused": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Desktop quick-update: candidates reused from path inventory (v0.6.1). CLI omits."
+    },
+    "discover_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Desktop phase timing in ms (v0.6.4). CLI omits."
+    },
+    "classify_ms": { "type": "integer", "minimum": 0 },
+    "size_ms": { "type": "integer", "minimum": 0 },
     "scan_options": {
       "type": "object",
       "description": "Optional; CLI includes by default",
@@ -93,7 +105,6 @@
         "risk",
         "safety_class",
         "reason_codes",
-        "display_reason_summary",
         "can_delete",
         "project_root",
         "stale_days"
@@ -142,7 +153,10 @@
           "enum": ["project_artifact", "global_cache", "app_runtime", "system", "unknown"]
         },
         "reason_codes": { "type": "array", "items": { "type": "string" } },
-        "display_reason_summary": { "type": "string" },
+        "display_reason_summary": {
+          "type": ["string", "null"],
+          "description": "Human-readable reasons; desktop classifier sets when available; may be omitted when reused from inventory."
+        },
         "can_delete": { "type": "boolean" },
         "project_root": { "type": ["string", "null"] },
         "stale_days": { "type": ["integer", "null"], "minimum": 0 }

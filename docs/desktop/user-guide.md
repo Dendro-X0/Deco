@@ -1,5 +1,7 @@
 # Desktop user guide
 
+Deco **1.0** focuses on the **cleanup core loop**: scan developer artifact folders → review risk tiers → quarantine-first cleanup → restore or purge. **Tool storage migration** (Windows · NTFS junctions) is a separate Settings feature — see below.
+
 ## Main areas
 
 | Tab | Purpose |
@@ -52,7 +54,7 @@ After a scan, when Deco finds **two or more projects** and enough candidates, a 
 | Include Python venv | High-risk; review tier |
 | Advanced Mode | Required for hard-delete (if exposed in your build) |
 | NTFS USN journal probe (Experimental, Windows) | Off by default. When on, scans prepend warnings about USN journal visibility on drive-letter volumes; discovery is still a full walk |
-| IDE data on the OS drive | **Tool storage migration** (Windows): Plan + Run with confirm modal; manual guide below as fallback |
+| IDE data on the OS drive | **Tool storage migration** (Windows · NTFS): Plan + Run with confirm modal; **Your migrations** registry lists completed junctions |
 
 ### Custom scan folders
 
@@ -79,6 +81,8 @@ When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small
 4. Click **Plan** — review source/dest paths, estimated size, and warnings. Close the tool if running processes are reported.
 5. Click **Run migration** — read the confirm dialog, then wait for the busy overlay to finish.
 6. Restart the tool; confirm settings and history. The audit log path is shown in Settings.
+
+**Your migrations** (below the tool picker) lists junctions Deco recorded or detected — use **Open source** / **Open destination** to verify, or follow rollback steps linked from each row.
 
 Plan-only profiles (Docker Desktop, npm cache, etc.) show sizing and guidance only — use their settings or the manual guide.
 

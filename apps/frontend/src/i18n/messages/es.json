@@ -570,7 +570,8 @@
       "readFullGuide": "Abrir guía completa en GitHub"
     },
     "toolMigration": {
-      "title": "Migración de almacenamiento de herramientas (Windows)",
+      "title": "Migración de almacenamiento de herramientas",
+      "platformBadge": "Windows · NTFS",
       "description": "Mueva carpetas de AppData (IDE, navegadores, utilidades, juegos) fuera de C: con un junction en la ruta original. Planifique, revise y luego Ejecute.",
       "planFirstNote": "Elija herramienta y destino, luego Planifique. Revise rutas, tamaño y advertencias antes de Ejecutar migración.",
       "runConfirmTitle": "¿Ejecutar migración?",

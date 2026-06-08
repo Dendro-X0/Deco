@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v0.9.11` · **Next:** `v1.0.0` ([manifest](v1.0.0-manifest.md))
+**Last updated:** 2026-06-07 · **Latest shipped:** `v1.0.0` · **Next:** `v1.1+` ([v1.0-roadmap.md](v1.0-roadmap.md))
 
 ---
 
@@ -16,22 +16,26 @@
 
 | Item | Location |
 |------|----------|
-| **Roadmap to 1.0** | [v1.0-roadmap.md](v1.0-roadmap.md) |
-| **Shipped** | `v0.9.11` — [manifest](v0.9.11-manifest.md): SECURITY.md + parity + 1.0 QA prep |
-| **Next** | [v1.0.0-manifest.md](v1.0.0-manifest.md) — GA cleanup tag |
+| **Shipped** | `v1.0.0` — [manifest](v1.0.0-manifest.md): GA developer cleanup |
+| **Post-1.0** | [v1.0-roadmap.md](v1.0-roadmap.md) § v1.1+ (migration depth, rollback helper) |
 
-### Shipped recently
+### v1.0.0 highlights
 
-| Version | Highlights |
-|---------|------------|
-| **v0.9.11** | SECURITY.md; parity fixtures; v1.0 manual QA script |
-| **v0.9.10** | Migration handoff banner; scan-root guardrails |
+- Scan → quarantine → restore GA on Win/macOS/Linux (Windows manually QA'd; other OS via Release CI).
+- Stable scan contract `2.8.0`; SECURITY.md; migration handoff + scan-root guardrails from v0.9.10.
 
 ### Quick commands
 
 ```bash
 pnpm install
 pnpm check
-pnpm dev:desktop
-pnpm build:desktop:msi   # Windows MSI only
+node scripts/sync-package-manifests.mjs v1.0.0   # after Release assets publish
 ```
+
+### Shipped recently
+
+| Version | Highlights |
+|---------|------------|
+| **v1.0.0** | GA cleanup; platform badge; schema audit |
+| **v0.9.11** | SECURITY.md; parity fixtures; manual QA script |
+| **v0.9.10** | Migration handoff; scan-root guardrails |

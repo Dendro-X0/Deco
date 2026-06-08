@@ -1,0 +1,21 @@
+PackageIdentifier: Dendro-X0.Deco
+PackageVersion: 0.9.10
+PackageLocale: en-US
+Publisher: Dendro-X0
+PublisherUrl: https://github.com/Dendro-X0
+PublisherSupportUrl: https://github.com/Dendro-X0/Deco/issues
+PackageName: Deco
+PackageUrl: https://github.com/Dendro-X0/Deco
+License: MIT
+LicenseUrl: https://github.com/Dendro-X0/Deco/blob/main/LICENSE
+ShortDescription: Disk cleanup for developer machines
+Description: |-
+  Deco scans developer workspaces for reclaimable build artifacts and caches,
+  with a safety-first review workflow and quarantine-first cleanup.
+Moniker: deco
+Tags:
+- developer
+- cleanup
+- disk
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

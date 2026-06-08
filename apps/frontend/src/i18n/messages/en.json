@@ -570,7 +570,8 @@
       "readFullGuide": "Open full guide on GitHub"
     },
     "toolMigration": {
-      "title": "Tool storage migration (Windows)",
+      "title": "Tool storage migration",
+      "platformBadge": "Windows · NTFS",
       "description": "Move AppData folders (IDEs, browsers, utilities, games) off C: with a directory junction at the original path. Plan, review, then Run.",
       "planFirstNote": "Pick a tool and destination, then Plan. Review paths, size, and warnings before Run migration.",
       "runConfirmTitle": "Run migration?",

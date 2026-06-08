@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-07
+
+### Added
+
+- **Deco 1.0 — GA developer cleanup** on Windows, macOS, and Linux (scan → review → quarantine → restore).
+- **Windows · NTFS platform badge** on Settings → Tool storage migration.
+- **Schema audit** — JSON Schema aligned with desktop `ScanResponse`; automated parity tests ([schema-audit.md](docs/contract/schema-audit.md)).
+
+### Changed
+
+- **User guide** — 1.0 cleanup positioning; managed migrations registry documented.
+- **Manual QA** — Windows core loop verified; macOS/Linux desktop validated via Release CI ([v1.0-manual-qa.md](docs/product/v1.0-manual-qa.md)).
+
+See [v1.0.0-manifest.md](docs/product/v1.0.0-manifest.md).
+
 ## [0.9.11] - 2026-05-29
 
 ### Added

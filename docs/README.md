@@ -57,6 +57,7 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 | [Scan contract](contract/scan-contract.md) | Wire JSON, risk semantics, versioning |
 | [Contract changelog](contract/changelog.md) | `schema_version` history |
 | [JSON Schema](schemas/scan-report.schema.json) | Machine-readable report shape |
+| [Schema audit](contract/schema-audit.md) | JSON Schema ↔ Rust/CLI parity (v1.0) |
 
 ### Development
 
