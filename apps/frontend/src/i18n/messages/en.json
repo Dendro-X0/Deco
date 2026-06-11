@@ -245,6 +245,11 @@
       "readLimits": "Capabilities and limits",
       "openMigration": "Tool storage migration"
     },
+    "profileSuggestion": {
+      "title": "Cleanup profile may need a refresh",
+      "description": "Settings show “{{stored}}” but your toggles now match “{{derived}}”. Open Settings to re-apply the preset or keep your custom mix.",
+      "openSettings": "Open Settings"
+    },
     "scanRootWarnings": {
       "blocked": "Resolve toolchain scan warnings below (remove the folder or choose Scan anyway) before starting.",
       "removeFromScan": "Remove from scan",
@@ -658,7 +663,27 @@
       "managedLoading": "Loading migration history…",
       "managedDiscovered": "detected",
       "managedDismiss": "Remove from list",
-      "managedRollback": "Rollback steps"
+      "managedRollback": "Rollback steps",
+      "rollbackGuide": "Full guide",
+      "rollbackSteps": {
+        "title": "Guided rollback (manual)",
+        "hint": "Quit the app first. These steps undo a junction migration — Deco does not run them for you.",
+        "quit": "Quit the app that uses {{source}} (Task Manager + system tray).",
+        "removeJunction": "Remove the junction at the original path (does not delete data on {{dest}}):",
+        "restoreBackup": "If a *.deco-backup-* folder exists beside the junction path, rename it back to restore the original folder name.",
+        "verify": "Start the app and confirm settings/data work. Optionally list the junction path:",
+        "optionalCleanup": "After several days of stable use, you may delete old backup folders on C: and reclaim space on {{dest}} if duplicated.",
+        "dismissRegistry": "Remove this row from Deco when rollback is complete (list only — does not undo the migration)."
+      },
+      "configWizard": {
+        "npmTitle": "npm cache — config redirect",
+        "pnpmTitle": "pnpm store — config redirect",
+        "hint": "Official npm/pnpm settings move future cache writes — no junction. Run these in a terminal after picking a folder on another drive.",
+        "destLabel": "New cache path",
+        "setupTitle": "Setup commands",
+        "verifyTitle": "Verify",
+        "copy": "Copy command"
+      }
     },
     "presets": {
       "cleanup": {
@@ -783,8 +808,18 @@
     "welcome": "Welcome to Deco",
     "subtitle": "Developer Compact helps you reclaim disk space from project caches and build output — safely.",
     "skip": "Skip for now",
+    "continue": "Continue",
+    "back": "Back",
     "getStarted": "Get started",
     "closeAria": "Close",
+    "projects": {
+      "title": "Where do your projects live?",
+      "subtitle": "Select drives where your repos and dev folders are. Deco skips the OS-only volume by default."
+    },
+    "profile": {
+      "title": "How will you use Deco?",
+      "subtitle": "Pick a cleanup profile — you can change this anytime in Settings."
+    },
     "steps": {
       "scan": {
         "title": "Scan your workspace",

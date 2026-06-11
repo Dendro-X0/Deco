@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-29
+
+### Added
+
+- **Persona onboarding (U2)** — optional first-launch flow: pick project drives + cleanup profile (First scan / Monorepo / CI agent); returning users get a one-time volumes/profile step.
+- **Profile alignment banner** — after scan, nudge when stored cleanup profile diverges from current settings.
+- **Migration rollback helper (M6)** — expandable guided steps per managed migration row with copyable `rmdir` commands.
+- **npm / pnpm config wizard (M5)** — copy-paste setup and verify commands for plan-only package-manager profiles (no junction claims).
+- **Classification parity** — four new global-cache fixture cases (ccache, sccache, Bazel disk, Composer).
+
+See [v1.1-manifest.md](docs/product/v1.1-manifest.md).
+
 ## [1.0.2] - 2026-06-11
 
 ### Added

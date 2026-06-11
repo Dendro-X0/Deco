@@ -314,6 +314,54 @@
           "reason_codes": ["PROJECT_MARKERS_PRESENT"]
         }
       ]
+    },
+    {
+      "id": "ccache_global_cache_opt_in",
+      "setup": [],
+      "targets": [{ "kind": "ccache-global-cache", "rel_path": ".cache/ccache", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
+    },
+    {
+      "id": "sccache_global_cache_opt_in",
+      "setup": [],
+      "targets": [{ "kind": "sccache-global-cache", "rel_path": ".cache/sccache", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
+    },
+    {
+      "id": "bazel_disk_cache_opt_in",
+      "setup": [],
+      "targets": [{ "kind": "bazel-disk-cache", "rel_path": ".cache/bazel-disk", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
+    },
+    {
+      "id": "composer_global_cache_opt_in",
+      "setup": [],
+      "targets": [{ "kind": "composer-global-cache", "rel_path": ".composer/cache", "age_days": 0 }],
+      "expect": [
+        {
+          "risk": "review",
+          "safety_class": "global_cache",
+          "reason_codes": ["GLOBAL_CACHE_REQUIRES_OPT_IN", "GLOBAL_CACHE_TARGET"]
+        }
+      ]
     }
   ]
 }

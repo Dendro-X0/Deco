@@ -245,6 +245,11 @@
       "readLimits": "Capacidades y límites",
       "openMigration": "Migración de almacenamiento"
     },
+    "profileSuggestion": {
+      "title": "El perfil de limpieza puede necesitar actualizarse",
+      "description": "Ajustes muestra «{{stored}}» pero tus opciones coinciden con «{{derived}}». Abre Ajustes para reaplicar el preset o mantener tu mezcla personalizada.",
+      "openSettings": "Abrir ajustes"
+    },
     "scanRootWarnings": {
       "blocked": "Resuelva las advertencias de escaneo de toolchain abajo (elimine la carpeta o elija Escanear de todos modos) antes de iniciar.",
       "removeFromScan": "Quitar del escaneo",
@@ -658,7 +663,27 @@
       "managedLoading": "Cargando historial de migraciones…",
       "managedDiscovered": "detectada",
       "managedDismiss": "Quitar de la lista",
-      "managedRollback": "Pasos de reversión"
+      "managedRollback": "Pasos de reversión",
+      "rollbackGuide": "Guía completa",
+      "rollbackSteps": {
+        "title": "Reversión guiada (manual)",
+        "hint": "Cierra la aplicación primero. Estos pasos deshacen una migración por unión — Deco no los ejecuta por ti.",
+        "quit": "Cierra la app que usa {{source}} (Administrador de tareas + bandeja).",
+        "removeJunction": "Elimina la unión en la ruta original (no borra datos en {{dest}}):",
+        "restoreBackup": "Si existe una carpeta *.deco-backup-* junto a la unión, renómbrala para restaurar el nombre original.",
+        "verify": "Inicia la app y confirma que ajustes/datos funcionan. Opcional: listar la ruta de la unión:",
+        "optionalCleanup": "Tras varios días de uso estable, puedes borrar copias de seguridad antiguas en C: y espacio duplicado en {{dest}} si aplica.",
+        "dismissRegistry": "Quita esta fila de Deco cuando termines (solo lista — no deshace la migración)."
+      },
+      "configWizard": {
+        "npmTitle": "Caché npm — redirección por configuración",
+        "pnpmTitle": "Almacén pnpm — redirección por configuración",
+        "hint": "La configuración oficial de npm/pnpm mueve futuras escrituras de caché — sin unión. Ejecuta en una terminal tras elegir una carpeta en otra unidad.",
+        "destLabel": "Nueva ruta de caché",
+        "setupTitle": "Comandos de configuración",
+        "verifyTitle": "Verificar",
+        "copy": "Copiar comando"
+      }
     },
     "presets": {
       "cleanup": {
@@ -783,8 +808,18 @@
     "welcome": "Bienvenido a Deco",
     "subtitle": "Developer Compact le ayuda a recuperar espacio en disco de cachés y artefactos de compilación — con seguridad.",
     "skip": "Omitir por ahora",
+    "continue": "Continuar",
+    "back": "Atrás",
     "getStarted": "Empezar",
     "closeAria": "Cerrar",
+    "projects": {
+      "title": "¿Dónde están tus proyectos?",
+      "subtitle": "Selecciona unidades donde tengas repos y carpetas de desarrollo. Por defecto se omite el volumen solo del SO."
+    },
+    "profile": {
+      "title": "¿Cómo usarás Deco?",
+      "subtitle": "Elige un perfil de limpieza — puedes cambiarlo en Ajustes cuando quieras."
+    },
     "steps": {
       "scan": {
         "title": "Escanee su espacio de trabajo",

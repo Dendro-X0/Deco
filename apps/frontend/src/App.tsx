@@ -21,6 +21,7 @@ import { useGitDormancy } from './hooks/use-git-dormancy';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
 import { LowYieldScanInsightBanner } from './components/LowYieldScanInsightBanner';
+import { ProfileSuggestionBanner } from './components/ProfileSuggestionBanner';
 import { MigrationHandoffBanner } from './components/MigrationHandoffBanner';
 import { ScanRootWarningsPanel } from './components/ScanRootWarningsPanel';
 import { ScanTargetsDashboardCard } from './components/ScanTargetsDashboardCard';
@@ -112,9 +113,16 @@ import { CandidateFilterBar } from '@/components/CandidateFilterBar';
 import { StatusFooter } from '@/components/StatusFooter';
 import { FreeSpacePlannerCard } from '@/components/FreeSpacePlannerCard';
 import { KeyboardShortcutsDialog } from '@/components/KeyboardShortcutsDialog';
-import { OnboardingDialog } from '@/components/OnboardingDialog';
+import { OnboardingDialog, type PersonaOnboardingResult } from '@/components/OnboardingDialog';
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import { hasCompletedOnboarding, markOnboardingCompleted } from '@/lib/client-prefs';
+import { applyCleanupProfilePreset } from '@/lib/cleanup-profiles';
+import {
+  hasCompletedOnboarding,
+  hasCompletedPersonaSetup,
+  markOnboardingCompleted,
+  markPersonaSetupCompleted,
+  needsPersonaSetup,
+} from '@/lib/client-prefs';
 import {
   Table,
   TableBody,
@@ -202,12 +210,36 @@ export default function App() {
   const [groupByProjectPreference, setGroupByProjectPreference] = useState<boolean | null>(null);
   const [expandedGroupKeys, setExpandedGroupKeys] = useState<Set<string>>(() => new Set());
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
-  const [onboardingOpen, setOnboardingOpen] = useState(() => !hasCompletedOnboarding());
+  const [onboardingOpen, setOnboardingOpen] = useState(
+    () => !hasCompletedOnboarding() || needsPersonaSetup(),
+  );
+  const onboardingInitialStep =
+    hasCompletedOnboarding() && !hasCompletedPersonaSetup() ? 'projects' : 'welcome';
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const dismissOnboarding = () => {
     markOnboardingCompleted();
+    markPersonaSetupCompleted();
     setOnboardingOpen(false);
+  };
+
+  const completePersonaOnboarding = async (result: PersonaOnboardingResult | null) => {
+    markOnboardingCompleted();
+    markPersonaSetupCompleted();
+    setOnboardingOpen(false);
+    if (result && settings) {
+      const next = {
+        ...normalizeSettings(settings),
+        ...applyCleanupProfilePreset(result.profile),
+        selected_volumes: result.selectedVolumes,
+        use_custom_scan_roots: false,
+      };
+      setSelectedVolumes(result.selectedVolumes);
+      await tauriInvoke('save_settings', { settings: next });
+      await loadSettings();
+    }
+    setWizardOpen(true);
+    setWizardStep('intro');
   };
 
   const customScanRoots = settings?.roots ?? [];
@@ -763,6 +795,14 @@ export default function App() {
                   customScanRoots={customScanRoots}
                   disabled={scanning || busy}
                   onOpenMigration={() => openMigrationSettings()}
+                />
+
+                <ProfileSuggestionBanner
+                  settings={settings}
+                  scanId={summary?.scan_id}
+                  scanning={scanning}
+                  disabled={scanning || busy}
+                  onOpenSettings={() => setActiveTab('settings')}
                 />
 
                 {scanMode === 'custom' && customScanRootWarnings.length > 0 ? (
@@ -1432,12 +1472,9 @@ export default function App() {
 
       <OnboardingDialog
         open={onboardingOpen}
+        initialStep={onboardingInitialStep}
         onDismiss={dismissOnboarding}
-        onGetStarted={() => {
-          dismissOnboarding();
-          setWizardOpen(true);
-          setWizardStep('intro');
-        }}
+        onComplete={(result) => void completePersonaOnboarding(result)}
       />
 
       <CleanupBusyOverlay

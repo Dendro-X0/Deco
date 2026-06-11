@@ -24,7 +24,9 @@ import {
   type ToolMigrationCategory,
   type ToolMigrationUiId,
 } from '@/lib/tool-migration-profiles';
+import { ConfigRedirectWizard } from '@/components/ConfigRedirectWizard';
 import { ManagedMigrationsPanel } from '@/components/ManagedMigrationsPanel';
+import { isConfigRedirectTool } from '@/lib/config-redirect-wizards';
 import { Badge } from '@/components/ui/badge';
 import type {
   ToolMigrationBackupEntry,
@@ -578,6 +580,10 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
             </div>
             ) : null}
           </div>
+
+          {!isCustom && isConfigRedirectTool(tool) ? (
+            <ConfigRedirectWizard toolId={tool} disabled={busy} />
+          ) : null}
 
           {isCustom ? (
               <div className="space-y-4">

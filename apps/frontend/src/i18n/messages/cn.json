@@ -245,6 +245,11 @@
       "readLimits": "功能与限制",
       "openMigration": "工具存储迁移"
     },
+    "profileSuggestion": {
+      "title": "清理配置文件可能需要更新",
+      "description": "设置显示「{{stored}}」，但当前开关已更接近「{{derived}}」。请打开设置重新应用预设，或保留自定义组合。",
+      "openSettings": "打开设置"
+    },
     "scanRootWarnings": {
       "blocked": "开始扫描前请先处理下方工具链扫描警告（移除该文件夹或选择仍要扫描）。",
       "removeFromScan": "从扫描中移除",
@@ -658,7 +663,27 @@
       "managedLoading": "正在加载迁移记录…",
       "managedDiscovered": "已检测",
       "managedDismiss": "从列表移除",
-      "managedRollback": "回滚步骤"
+      "managedRollback": "回滚步骤",
+      "rollbackGuide": "完整指南",
+      "rollbackSteps": {
+        "title": "引导式回滚（手动）",
+        "hint": "请先退出应用。以下步骤用于撤销联接迁移 — Deco 不会自动执行。",
+        "quit": "退出使用 {{source}} 的应用（任务管理器 + 系统托盘）。",
+        "removeJunction": "删除原路径上的联接（不会删除 {{dest}} 上的数据）：",
+        "restoreBackup": "若联接旁存在 *.deco-backup-* 文件夹，请将其重命名回原文件夹名。",
+        "verify": "重新启动应用并确认设置/数据正常。可选：列出联接路径：",
+        "optionalCleanup": "稳定使用数天后，可删除 C: 上的旧备份文件夹；若数据重复，也可清理 {{dest}}。",
+        "dismissRegistry": "回滚完成后可从 Deco 移除此记录（仅列表，不会撤销迁移）。"
+      },
+      "configWizard": {
+        "npmTitle": "npm 缓存 — 配置重定向",
+        "pnpmTitle": "pnpm 存储 — 配置重定向",
+        "hint": "使用 npm/pnpm 官方设置将未来缓存写入新路径 — 无需联接。请在另一驱动器上选好文件夹后在终端运行。",
+        "destLabel": "新缓存路径",
+        "setupTitle": "设置命令",
+        "verifyTitle": "验证",
+        "copy": "复制命令"
+      }
     },
     "presets": {
       "cleanup": {
@@ -783,8 +808,18 @@
     "welcome": "欢迎使用 Deco",
     "subtitle": "Developer Compact 帮助您安全地从项目缓存和构建输出中回收磁盘空间。",
     "skip": "暂时跳过",
+    "continue": "继续",
+    "back": "返回",
     "getStarted": "开始使用",
     "closeAria": "关闭",
+    "projects": {
+      "title": "您的项目在哪里？",
+      "subtitle": "选择存放代码库和开发文件夹的驱动器。默认会跳过仅作系统盘的卷。"
+    },
+    "profile": {
+      "title": "您将如何使用 Deco？",
+      "subtitle": "选择清理配置文件 — 可随时在设置中更改。"
+    },
     "steps": {
       "scan": {
         "title": "扫描工作区",
