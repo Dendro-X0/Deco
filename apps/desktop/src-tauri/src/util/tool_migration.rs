@@ -1070,6 +1070,11 @@ pub fn plan_paths(
              not entire Documents, AppData, or your user profile."
                 .to_string(),
         );
+        warnings.push(
+            "Quit the app or game that uses this folder before Run migration. Windows blocks the final step \
+             if any file inside is still open (check Task Manager and tray icons)."
+                .to_string(),
+        );
     }
 
     if let Some(msg) = blocked_source(&source) {
@@ -1234,6 +1239,20 @@ pub fn run(
     run_from_plan(plan, copy_only, audit_dir)
 }
 
+fn rename_source_to_backup_error(source: &Path, err: &std::io::Error) -> String {
+    #[cfg(windows)]
+    if err.raw_os_error() == Some(5) {
+        return format!(
+            "Could not rename {} to a backup folder (Access is denied). \
+             A file in this folder is still open — quit the game or app completely (Task Manager and tray), \
+             close File Explorer on this path, then Plan and Run again. \
+             If a copy was written to the destination, Deco removed it so you can retry safely.",
+            source.display()
+        );
+    }
+    format!("failed renaming source to backup: {err}")
+}
+
 fn execute_migration_leg(
     source: &Path,
     dest: &Path,
@@ -1265,7 +1284,10 @@ fn execute_migration_leg(
 
     let stamp = now_stamp();
     let backup = PathBuf::from(format!("{}.deco-backup-{}", source.display(), stamp));
-    fs::rename(source, &backup).map_err(|e| format!("failed renaming source to backup: {e}"))?;
+    if let Err(e) = fs::rename(source, &backup) {
+        let _ = fs::remove_dir_all(dest);
+        return Err(rename_source_to_backup_error(source, &e));
+    }
 
     let rollback = || {
         let _ = fs::remove_dir_all(source);

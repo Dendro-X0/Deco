@@ -544,7 +544,7 @@ dependencies = [
 
 [[package]]
 name = "dbus"
-version = "1.0.0"
+version = "0.9.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b942602992bb7acfd1f51c49811c58a610ef9181b6e66f3e519d79b540a3bf73"
 dependencies = [
@@ -555,7 +555,7 @@ dependencies = [
 
 [[package]]
 name = "deco-desktop"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "chrono",
  "libc",

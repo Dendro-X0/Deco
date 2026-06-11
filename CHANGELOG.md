@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-06-11
+
+### Fixed
+
+- **Custom folder migration** — clearer error when Windows blocks renaming the source (Access denied / files in use); removes partial destination copy on failure so retries stay safe.
+- **Custom migration Plan** — warns to quit the app or game using the folder before Run.
+
 ## [1.0.0] - 2026-06-07
 
 ### Added

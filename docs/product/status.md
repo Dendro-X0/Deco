@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-06-07 · **Latest shipped:** `v1.0.0` · **Next:** `v1.1+` ([v1.0-roadmap.md](v1.0-roadmap.md))
+**Last updated:** 2026-06-11 · **Latest shipped:** `v1.0.1` · **Next:** `v1.1+` ([v1.0-roadmap.md](v1.0-roadmap.md))
 
 ---
 
@@ -16,7 +16,8 @@
 
 | Item | Location |
 |------|----------|
-| **Shipped** | `v1.0.0` — [manifest](v1.0.0-manifest.md): GA developer cleanup |
+| **Shipped** | `v1.0.1` — custom migration Access denied handling |
+| **Prior** | `v1.0.0` — [manifest](v1.0.0-manifest.md): GA developer cleanup |
 | **Post-1.0** | [v1.0-roadmap.md](v1.0-roadmap.md) § v1.1+ (migration depth, rollback helper) |
 
 ### v1.0.0 highlights
@@ -36,6 +37,7 @@ node scripts/sync-package-manifests.mjs v1.0.0   # after Release assets publish
 
 | Version | Highlights |
 |---------|------------|
+| **v1.0.1** | Custom migration lock-file fix | Shipped |
 | **v1.0.0** | GA cleanup; platform badge; schema audit |
 | **v0.9.11** | SECURITY.md; parity fixtures; manual QA script |
 | **v0.9.10** | Migration handoff; scan-root guardrails |
