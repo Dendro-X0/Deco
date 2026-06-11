@@ -3,6 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 #[cfg(windows)]
 use std::process::Command;
+#[cfg(windows)]
+use std::time::Duration;
 use walkdir::WalkDir;
 
 use crate::util::windows_profile_paths::user_profile_dir;
@@ -201,6 +203,11 @@ pub struct MigrationResult {
     pub legs: Option<Vec<MigrationResultLeg>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pending_backups: Option<Vec<MigrationBackupEntry>>,
+    /// True when data was copied to dest but rename/junction steps did not complete.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copy_completed: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub manual_finish_steps: Option<Vec<String>>,
 }
 
 fn now_stamp() -> String {
@@ -1066,13 +1073,25 @@ pub fn plan_paths(
     let custom_mode = tool_wire == "custom";
     if custom_mode {
         warnings.push(
-            "Custom folder migration — pick a specific subfolder (e.g. Documents\\Electronic Arts\\The Sims 4\\Mods), \
+            "Pick a specific subfolder (e.g. Documents\\Electronic Arts\\The Sims 4\\Mods), \
              not entire Documents, AppData, or your user profile."
                 .to_string(),
         );
         warnings.push(
-            "Quit the app or game that uses this folder before Run migration. Windows blocks the final step \
-             if any file inside is still open (check Task Manager and tray icons)."
+            "EXPERIMENTAL · COPY ASSIST ONLY: Run copies data to your destination. Deco does not rename \
+             the source or create junctions for custom paths — Windows file locks, elevation, and background \
+             services are not reliably controllable from a normal app session."
+                .to_string(),
+        );
+        warnings.push(
+            "You must finish rename + mklink /J manually in an elevated Command Prompt (see manual steps after Run). \
+             Until the junction exists, apps may still write new files to the original path on C:, causing \
+             split data. There is no perfect guarantee for arbitrary folders."
+                .to_string(),
+        );
+        warnings.push(
+            "When a listed tool profile matches (Cursor, Discord, browsers, …), use that instead — \
+             it follows a tested migration path."
                 .to_string(),
         );
     }
@@ -1239,55 +1258,194 @@ pub fn run(
     run_from_plan(plan, copy_only, audit_dir)
 }
 
-fn rename_source_to_backup_error(source: &Path, err: &std::io::Error) -> String {
+#[derive(Debug)]
+struct MigrationLegError {
+    message: String,
+    copy_completed_at_dest: bool,
+    manual_finish_steps: Vec<String>,
+}
+
+#[cfg(windows)]
+fn win_long_path(p: &Path) -> String {
+    let s = p.to_string_lossy();
+    if s.starts_with(r"\\?\") {
+        return s.into_owned();
+    }
+    if s.starts_with(r"\\") {
+        return format!(r"\\?\UNC\{}", &s[2..]);
+    }
+    format!(r"\\?\{}", s)
+}
+
+#[cfg(windows)]
+fn rename_via_cmd_move(source: &Path, dest: &Path) -> Result<(), std::io::Error> {
+    let status = Command::new("cmd")
+        .args([
+            "/C",
+            "move",
+            "/Y",
+            &win_long_path(source),
+            &win_long_path(dest),
+        ])
+        .status()
+        .map_err(|e| std::io::Error::other(e))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            format!("cmd move exited with {status}"),
+        ))
+    }
+}
+
+fn rename_source_to_backup(source: &Path) -> Result<PathBuf, std::io::Error> {
+    let stamp = now_stamp();
+    let backup = PathBuf::from(format!("{}.deco-backup-{}", source.display(), stamp));
+
+    #[cfg(windows)]
+    {
+        const MAX_ATTEMPTS: u32 = 10;
+        const DELAY_MS: u64 = 1000;
+        let mut last_err: Option<std::io::Error> = None;
+        for attempt in 1..=MAX_ATTEMPTS {
+            match fs::rename(source, &backup) {
+                Ok(()) => return Ok(backup),
+                Err(e) => {
+                    last_err = Some(e);
+                    if attempt < MAX_ATTEMPTS {
+                        std::thread::sleep(Duration::from_millis(DELAY_MS));
+                    }
+                }
+            }
+        }
+        if rename_via_cmd_move(source, &backup).is_ok() {
+            return Ok(backup);
+        }
+        return Err(last_err.unwrap_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "rename failed")
+        }));
+    }
+
+    #[cfg(not(windows))]
+    {
+        fs::rename(source, &backup)?;
+        Ok(backup)
+    }
+}
+
+fn build_manual_finish_steps(source: &Path, dest: &Path, backup: &Path) -> Vec<String> {
+    let backup_name = backup
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| backup.display().to_string());
+    vec![
+        format!(
+            "Close File Explorer windows showing {} or any parent folder.",
+            source.display()
+        ),
+        "Optional: open Resource Monitor (resmon) → CPU → Associated Handles → search for the folder name; close holders if listed.".to_string(),
+        format!(
+            r#"Rename the original folder (Command Prompt as admin if needed): ren "{}" "{}""#,
+            source.display(),
+            backup_name
+        ),
+        format!(
+            r#"Create the junction: mklink /J "{}" "{}""#,
+            source.display(),
+            dest.display()
+        ),
+        format!(
+            "Launch the app/game and confirm it reads from {} via the junction.",
+            dest.display()
+        ),
+        format!(
+            "When satisfied, delete the backup folder to reclaim space: {}",
+            backup.display()
+        ),
+    ]
+}
+
+fn rename_source_to_backup_error(source: &Path, dest: &Path, err: &std::io::Error) -> String {
     #[cfg(windows)]
     if err.raw_os_error() == Some(5) {
         return format!(
             "Could not rename {} to a backup folder (Access is denied). \
-             A file in this folder is still open — quit the game or app completely (Task Manager and tray), \
-             close File Explorer on this path, then Plan and Run again. \
-             If a copy was written to the destination, Deco removed it so you can retry safely.",
-            source.display()
+             Windows blocks directory rename while any handle is open inside — often File Explorer, \
+             Search Indexer, antivirus, or a background service, not necessarily the game executable. \
+             Your copy at {} was kept on disk.",
+            source.display(),
+            dest.display()
         );
     }
-    format!("failed renaming source to backup: {err}")
+    format!(
+        "failed renaming source to backup (copy at {} was kept): {err}",
+        dest.display()
+    )
 }
 
 fn execute_migration_leg(
     source: &Path,
     dest: &Path,
     copy_only: bool,
-) -> Result<Option<PathBuf>, String> {
+) -> Result<Option<PathBuf>, MigrationLegError> {
     if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| format!("failed creating dest parent: {} ({e})", parent.display()))?;
+        fs::create_dir_all(parent).map_err(|e| MigrationLegError {
+            message: format!("failed creating dest parent: {} ({e})", parent.display()),
+            copy_completed_at_dest: false,
+            manual_finish_steps: Vec::new(),
+        })?;
     }
     if dest.exists() {
         let empty = fs::read_dir(dest)
-            .map_err(|e| format!("failed reading dest: {} ({e})", dest.display()))?
+            .map_err(|e| MigrationLegError {
+                message: format!("failed reading dest: {} ({e})", dest.display()),
+                copy_completed_at_dest: false,
+                manual_finish_steps: Vec::new(),
+            })?
             .next()
             .is_none();
         if !empty {
-            return Err(format!("Destination exists and is not empty: {}", dest.display()));
+            return Err(MigrationLegError {
+                message: format!("Destination exists and is not empty: {}", dest.display()),
+                copy_completed_at_dest: false,
+                manual_finish_steps: Vec::new(),
+            });
         }
     } else {
-        fs::create_dir_all(dest)
-            .map_err(|e| format!("failed creating dest: {} ({e})", dest.display()))?;
+        fs::create_dir_all(dest).map_err(|e| MigrationLegError {
+            message: format!("failed creating dest: {} ({e})", dest.display()),
+            copy_completed_at_dest: false,
+            manual_finish_steps: Vec::new(),
+        })?;
     }
 
-    let copy_warnings = copy_tree(source, dest)?;
+    let copy_warnings = copy_tree(source, dest).map_err(|e| MigrationLegError {
+        message: e,
+        copy_completed_at_dest: false,
+        manual_finish_steps: Vec::new(),
+    })?;
     let _ = copy_warnings;
 
     if copy_only {
         return Ok(None);
     }
 
-    let stamp = now_stamp();
-    let backup = PathBuf::from(format!("{}.deco-backup-{}", source.display(), stamp));
-    if let Err(e) = fs::rename(source, &backup) {
-        let _ = fs::remove_dir_all(dest);
-        return Err(rename_source_to_backup_error(source, &e));
-    }
+    let backup = match rename_source_to_backup(source) {
+        Ok(backup) => backup,
+        Err(e) => {
+            let backup = PathBuf::from(format!(
+                "{}.deco-backup-{}",
+                source.display(),
+                now_stamp()
+            ));
+            return Err(MigrationLegError {
+                message: rename_source_to_backup_error(source, dest, &e),
+                copy_completed_at_dest: true,
+                manual_finish_steps: build_manual_finish_steps(source, dest, &backup),
+            });
+        }
+    };
 
     let rollback = || {
         let _ = fs::remove_dir_all(source);
@@ -1296,24 +1454,82 @@ fn execute_migration_leg(
 
     if let Err(e) = mklink_junction(source, dest) {
         rollback();
-        return Err(e);
+        return Err(MigrationLegError {
+            message: e,
+            copy_completed_at_dest: true,
+            manual_finish_steps: build_manual_finish_steps(source, dest, &backup),
+        });
     }
 
     if let Err(e) = verify_junction_target(source, dest) {
         rollback();
-        return Err(e);
+        return Err(MigrationLegError {
+            message: e,
+            copy_completed_at_dest: true,
+            manual_finish_steps: build_manual_finish_steps(source, dest, &backup),
+        });
     }
 
     // Keep backup on disk until the user removes it from Settings after verifying the tool.
     Ok(Some(backup))
 }
 
+fn effective_copy_only(plan: &MigrationPlan, requested: bool) -> bool {
+    requested || plan.custom_mode
+}
+
+fn finish_custom_copy_assist(
+    source: &Path,
+    dest: &Path,
+    warnings: &mut Vec<String>,
+    copy_completed: &mut Option<bool>,
+    manual_finish_steps: &mut Option<Vec<String>>,
+) {
+    *copy_completed = Some(true);
+    let backup = PathBuf::from(format!("{}.deco-backup-{}", source.display(), now_stamp()));
+    *manual_finish_steps = Some(build_manual_finish_steps(source, dest, &backup));
+    warnings.push(
+        "Custom folder assist: copy finished. Deco did not rename the source or create a junction."
+            .to_string(),
+    );
+    warnings.push(
+        "Complete the manual steps below in an elevated Command Prompt. Until the junction exists, \
+         new files may land on C: at the original path."
+            .to_string(),
+    );
+}
+
+fn apply_leg_error(
+    leg_err: MigrationLegError,
+    errors: &mut Vec<String>,
+    warnings: &mut Vec<String>,
+    copy_completed: &mut Option<bool>,
+    manual_finish_steps: &mut Option<Vec<String>>,
+) {
+    errors.push(leg_err.message);
+    if leg_err.copy_completed_at_dest {
+        *copy_completed = Some(true);
+        warnings.push(
+            "Copy completed at destination. Junction was not created — finish manually below."
+                .to_string(),
+        );
+    }
+    if !leg_err.manual_finish_steps.is_empty() {
+        manual_finish_steps
+            .get_or_insert_with(Vec::new)
+            .extend(leg_err.manual_finish_steps);
+    }
+}
+
 fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> MigrationResult {
-    let warnings = plan.warnings.clone();
+    let copy_only = effective_copy_only(&plan, copy_only);
+    let mut warnings = plan.warnings.clone();
     let mut errors = plan.errors.clone();
     let legs = plan.legs.clone().unwrap_or_default();
     let mut result_legs: Vec<MigrationResultLeg> = Vec::new();
     let mut all_ok = true;
+    let mut copy_completed = None;
+    let mut manual_finish_steps = None;
 
     for leg in legs {
         if leg.skipped {
@@ -1342,9 +1558,20 @@ fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) 
                     skipped: Some(false),
                 });
             }
-            Err(e) => {
+            Err(leg_err) => {
                 all_ok = false;
-                errors.push(format!("[{}] {e}", leg.leg));
+                let leg_name = leg.leg.clone();
+                apply_leg_error(
+                    MigrationLegError {
+                        message: format!("[{leg_name}] {}", leg_err.message),
+                        copy_completed_at_dest: leg_err.copy_completed_at_dest,
+                        manual_finish_steps: leg_err.manual_finish_steps,
+                    },
+                    &mut errors,
+                    &mut warnings,
+                    &mut copy_completed,
+                    &mut manual_finish_steps,
+                );
                 result_legs.push(MigrationResultLeg {
                     leg: leg.leg,
                     ok: false,
@@ -1396,11 +1623,13 @@ fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) 
         errors,
         legs: Some(result_legs),
         pending_backups,
+        copy_completed,
+        manual_finish_steps,
     }
 }
 
 pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> MigrationResult {
-    let warnings = plan.warnings.clone();
+    let mut warnings = plan.warnings.clone();
     let mut errors = plan.errors.clone();
 
     if !plan.ok {
@@ -1415,6 +1644,8 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
             errors,
             legs: None,
             pending_backups: None,
+            copy_completed: None,
+            manual_finish_steps: None,
         };
     }
     if plan.plan_only {
@@ -1430,6 +1661,8 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
             errors,
             legs: None,
             pending_backups: None,
+            copy_completed: None,
+            manual_finish_steps: None,
         };
     }
 
@@ -1451,6 +1684,8 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
                 errors,
                 legs: None,
                 pending_backups: None,
+                copy_completed: None,
+                manual_finish_steps: None,
             };
         }
     }
@@ -1458,6 +1693,8 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
     if plan.legs.is_some() {
         return run_bundle_from_plan(plan, copy_only, audit_dir);
     }
+
+    let copy_only = effective_copy_only(&plan, copy_only);
 
     let source = PathBuf::from(&plan.source);
     let dest = PathBuf::from(&plan.dest);
@@ -1478,6 +1715,8 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
     };
 
     let mut ok = false;
+    let mut copy_completed = None;
+    let mut manual_finish_steps = None;
 
     let exec = execute_migration_leg(&source, &dest, copy_only);
     backup_path_out = exec
@@ -1488,10 +1727,27 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
 
     match exec {
         Ok(_) => {
-            ok = true;
+            if plan.custom_mode {
+                finish_custom_copy_assist(
+                    &source,
+                    &dest,
+                    &mut warnings,
+                    &mut copy_completed,
+                    &mut manual_finish_steps,
+                );
+                ok = false;
+            } else {
+                ok = true;
+            }
         }
-        Err(e) => {
-            errors.push(e);
+        Err(leg_err) => {
+            apply_leg_error(
+                leg_err,
+                &mut errors,
+                &mut warnings,
+                &mut copy_completed,
+                &mut manual_finish_steps,
+            );
         }
     }
 
@@ -1501,7 +1757,10 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
         "source": plan.source,
         "dest": plan.dest,
         "copy_only": copy_only,
+        "custom_copy_assist": plan.custom_mode,
         "ok": ok,
+        "copy_completed": copy_completed,
+        "manual_finish_steps": manual_finish_steps,
         "warnings": warnings,
         "errors": errors,
     });
@@ -1526,6 +1785,8 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
         errors,
         legs: None,
         pending_backups,
+        copy_completed,
+        manual_finish_steps,
     }
 }
 
@@ -1546,6 +1807,16 @@ mod tests {
     fn blocked_source_rejects_drive_root() {
         let root = PathBuf::from(r"C:\");
         assert!(blocked_source(&root).is_some());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn win_long_path_prefixes_drive_letter() {
+        let p = PathBuf::from(r"C:\Users\me\AppData\Local\Game");
+        assert_eq!(
+            win_long_path(&p),
+            r"\\?\C:\Users\me\AppData\Local\Game"
+        );
     }
 
     #[cfg(windows)]
@@ -1574,6 +1845,30 @@ mod tests {
     fn dest_root_leaf_warning_allows_parent_root() {
         let root = PathBuf::from(r"G:\DevToolData");
         assert!(dest_root_leaf_warning(&root, ToolId::Cursor).is_none());
+    }
+
+    #[test]
+    fn effective_copy_only_forces_custom_mode() {
+        let mut plan = MigrationPlan {
+            ok: true,
+            tool: "custom".to_string(),
+            source: r"C:\Users\me\game".to_string(),
+            dest: r"G:\game".to_string(),
+            bytes: None,
+            file_count: None,
+            warnings: vec![],
+            errors: vec![],
+            plan_only: false,
+            already_complete: false,
+            custom_mode: true,
+            legs: None,
+            running_processes: None,
+            pending_backups: None,
+        };
+        assert!(effective_copy_only(&plan, false));
+        assert!(effective_copy_only(&plan, true));
+        plan.custom_mode = false;
+        assert!(!effective_copy_only(&plan, false));
     }
 }
 

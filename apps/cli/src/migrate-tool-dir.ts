@@ -31,6 +31,8 @@ export type MigrationPlanLeg = {
 export type MigrationPlan = {
   readonly ok: boolean;
   readonly tool?: MigrateToolId;
+  /** True for `--source`/`--dest` without a listed profile — copy-assist only. */
+  readonly customMode?: boolean;
   readonly source: string;
   readonly dest: string;
   readonly destRoot?: string;
@@ -390,6 +392,13 @@ export async function planToolDirMigration(args: {
     return enrichPlanWithRunningProcesses(tool, await planToolBundle(tool, args.destRoot, args.includeSize ?? false));
   }
 
+  const customMode = !tool && Boolean(args.source && args.dest);
+  if (customMode) {
+    warnings.push(
+      'EXPERIMENTAL · COPY ASSIST ONLY: Run copies data only; finish rename + mklink /J manually. No perfect guarantee for arbitrary folders.',
+    );
+  }
+
   const planOnly = tool ? isToolMigrationPlanOnly(tool) : false;
   const single = await planSinglePath({
     source: source!,
@@ -402,6 +411,7 @@ export async function planToolDirMigration(args: {
   return enrichPlanWithRunningProcesses(tool, {
     ok: single.ok,
     tool,
+    customMode,
     source: path.resolve(source!),
     dest: path.resolve(dest!),
     destRoot: args.destRoot,
@@ -429,6 +439,7 @@ async function runSinglePath(
   destAbs: string,
   copyOnly: boolean,
   legLabel?: string,
+  customCopyAssist = false,
 ): Promise<MigrationResultLeg & { readonly warnings: string[]; readonly errors: string[]; readonly auditLogPath?: string }> {
   const warnings: string[] = [];
   const errors: string[] = [];
@@ -460,10 +471,15 @@ async function runSinglePath(
 
     if (copyOnly) {
       warnings.push(`${prefix}Copy-only: source was not replaced by a junction.`);
+      if (customCopyAssist) {
+        warnings.push(
+          `${prefix}Finish manually: rename source to .deco-backup-* then mklink /J at the original path (elevated cmd).`,
+        );
+      }
       const auditLogPath = await writeAuditLog({ ...audit, result: 'copied' });
       return {
         leg: legLabel ?? 'single',
-        ok: true,
+        ok: !customCopyAssist,
         source: sourceAbs,
         dest: destAbs,
         warnings,
@@ -566,7 +582,8 @@ export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly
     return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: [msg] };
   }
 
-  const copyOnly = Boolean(opts?.copyOnly);
+  const customCopyAssist = Boolean(plan.customMode);
+  const copyOnly = Boolean(opts?.copyOnly) || customCopyAssist;
 
   if (plan.legs && plan.legs.length > 0) {
     const resultLegs: MigrationResultLeg[] = [];
@@ -624,7 +641,7 @@ export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly
     };
   }
 
-  const run = await runSinglePath(plan.source, plan.dest, copyOnly);
+  const run = await runSinglePath(plan.source, plan.dest, copyOnly, undefined, customCopyAssist);
   return {
     ok: run.ok,
     source: plan.source,

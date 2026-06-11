@@ -20,6 +20,7 @@ import { useDeco } from './hooks/use-deco';
 import { useGitDormancy } from './hooks/use-git-dormancy';
 import { CleanupPreviewModal } from './components/CleanupPreviewModal';
 import { CleanupWizard } from './components/CleanupWizard';
+import { LowYieldScanInsightBanner } from './components/LowYieldScanInsightBanner';
 import { MigrationHandoffBanner } from './components/MigrationHandoffBanner';
 import { ScanRootWarningsPanel } from './components/ScanRootWarningsPanel';
 import { ScanTargetsDashboardCard } from './components/ScanTargetsDashboardCard';
@@ -752,6 +753,16 @@ export default function App() {
                   storageRefreshToken={storageRefreshToken}
                   disabled={scanning || busy}
                   onOpenMigration={openMigrationSettings}
+                />
+
+                <LowYieldScanInsightBanner
+                  report={summary}
+                  scanning={scanning}
+                  scanMode={scanMode}
+                  selectedVolumes={selectedVolumes}
+                  customScanRoots={customScanRoots}
+                  disabled={scanning || busy}
+                  onOpenMigration={() => openMigrationSettings()}
                 />
 
                 {scanMode === 'custom' && customScanRootWarnings.length > 0 ? (

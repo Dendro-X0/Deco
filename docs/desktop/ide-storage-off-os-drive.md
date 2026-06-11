@@ -10,8 +10,21 @@ Use this when `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, JetBrains
 
 - **Scan** developer-regenerable waste (`node_modules`, build outputs, caches) on roots **you** choose—including profile paths if you add them as scan targets.
 - **Quarantine / delete** only classified artifact kinds, with reasons and restore where supported.
+- **Listed tool profiles** (Settings → Tool storage migration) — best-effort copy + junction for known AppData paths on Windows NTFS.
+- **Custom folder** — **copy-assist only**; junction steps are manual. See [custom-folder-migration-policy.md](../product/custom-folder-migration-policy.md).
 - **Does not** replace CCleaner-style temp cleanup on `C:`.
-- **Does not** reliably relocate entire IDE profiles. Prefer the manual flow below.
+- **Does not** guarantee relocation of arbitrary folders without elevated manual steps.
+
+---
+
+## Games and Documents (often manual, no game-specific tool)
+
+Many games store mods and saves under **`Documents`** (e.g. `Documents\Electronic Arts\The Sims 4`), not under `AppData`. A generic approach works well:
+
+1. **Whole Documents folder** — Right-click **Documents** → **Properties** → **Location** → point to `D:\Documents` or `G:\Documents`. Windows redirects new files there ([Folder Redirection](https://learn.microsoft.com/en-us/windows-server/storage/folder-redirection/folder-redirection-rup-overview)).
+2. **One heavy subfolder** — `robocopy` the folder to another drive, `ren` the original, `mklink /J` back at the old path (procedure below). The same tutorial applies to many games; no EA- or Steam-specific migrator is required for Documents trees.
+
+Deco **listed migration** covers known **AppData** tools (Chrome, Discord, …). Game **Documents** trees are outside that list — use Windows Location or manual junction. Deco **Custom folder** can copy a subfolder only; junction steps remain manual.
 
 ---
 

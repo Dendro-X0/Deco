@@ -85,7 +85,8 @@ pub async fn migrate_tool_dir_run(
     tauri::async_runtime::spawn_blocking(move || -> Result<MigrationResult, String> {
         let plan = resolve_plan(tool, dest_root, source, dest, false)?;
         let result = tool_migration::run_from_plan(plan, copy_only, &audit_dir);
-        if result.ok {
+        // Custom folder assist only copies — junction is manual; do not register as managed migration.
+        if result.ok && result.tool != "custom" {
             let conn = state
                 .db
                 .lock()

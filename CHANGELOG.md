@@ -2,12 +2,34 @@
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-06-11
+
+### Added
+
+- **Capabilities and limits** — honest OSS commitments doc; Settings migration banner + link ([capabilities-and-limits.md](docs/product/capabilities-and-limits.md), [positioning.md](docs/product/positioning.md)).
+- **Low-yield scan insight (U1)** — Dashboard explains when a system-volume-only scan finds little reclaimable space; points to listed migration and limits doc.
+- **Custom migration partial success** — numbered manual `mklink` steps when copy completes; rename retries and `cmd move` fallback for listed profiles.
+
+### Changed
+
+- **Custom folder migration** — **copy-assist only**; Deco does not rename the source or create junctions for arbitrary paths.
+- **Listed migration failure** — keeps destination copy on rename failure (no wipe-and-retry).
+- **CLI** `--source`/`--dest` — same copy-assist policy as desktop custom mode.
+
+### Fixed
+
+- Misleading errors that assumed a game process was still running when Windows blocked rename (Explorer, indexer, services).
+
+See [v1.0.2-manifest.md](docs/product/v1.0.2-manifest.md).
+
 ## [1.0.1] - 2026-06-11
 
 ### Fixed
 
 - **Custom folder migration** — clearer error when Windows blocks renaming the source (Access denied / files in use); removes partial destination copy on failure so retries stay safe.
 - **Custom migration Plan** — warns to quit the app or game using the folder before Run.
+
+**Superseded in 1.0.2:** destination copy is kept on listed-profile rename failure; custom mode no longer attempts junction automation.
 
 ## [1.0.0] - 2026-06-07
 

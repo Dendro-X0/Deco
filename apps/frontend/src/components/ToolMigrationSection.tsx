@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { FolderOpen, Trash2 } from 'lucide-react';
+import { ExternalLink, FolderOpen, Trash2 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,9 @@ import type {
   ToolMigrationResult,
 } from '@/lib/tool-migration-types';
 import { useI18n } from '@/i18n';
+
+const CAPABILITIES_URL =
+  'https://github.com/Dendro-X0/Deco/blob/main/docs/product/capabilities-and-limits.md';
 
 type SectionProps = {
   title: string;
@@ -368,11 +371,13 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
         ...(isCustom
           ? { source: customSource.trim(), dest }
           : { destRoot: dest }),
-        copyOnly: false,
+        copyOnly: isCustom,
       })) as ToolMigrationResult;
       setResult(next);
       if (next.ok) setManagedRefreshKey((k) => k + 1);
-      if (!next.ok) onError?.(next.errors?.[0] ?? 'Migration failed.');
+      if (!next.ok && !next.copy_completed) {
+        onError?.(next.errors?.[0] ?? 'Migration failed.');
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       onError?.(msg);
@@ -382,11 +387,12 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
   };
 
   const runConfirmDescription = useMemo(() => {
+    if (isCustom) return t('settings.toolMigration.runConfirmCustomDescription');
     const base = t('settings.toolMigration.runConfirmDescription');
     const bundle =
       plan?.legs && plan.legs.length > 1 ? `\n\n${t('settings.toolMigration.runConfirmBundleNote')}` : '';
     return `${base}${bundle}`;
-  }, [plan?.legs, t]);
+  }, [isCustom, plan?.legs, t]);
 
   const visibleBackups = useMemo(() => {
     const source = result?.pending_backups ?? plan?.pending_backups ?? [];
@@ -418,7 +424,9 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
 
   const overlayDetail =
     busyKind === 'run'
-      ? t('settings.toolMigration.runOverlayDetail')
+      ? isCustom
+        ? t('settings.toolMigration.runCustomOverlayDetail')
+        : t('settings.toolMigration.runOverlayDetail')
       : t('settings.toolMigration.planOverlayDetail');
 
   return (
@@ -434,7 +442,9 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
         open={runConfirmOpen}
         title={t('settings.toolMigration.runConfirmTitle')}
         description={runConfirmDescription}
-        confirmLabel={t('settings.toolMigration.run')}
+        confirmLabel={
+          isCustom ? t('settings.toolMigration.runCustomCopy') : t('settings.toolMigration.run')
+        }
         cancelLabel={t('common.cancel')}
         destructive
         busy={busyKind === 'run'}
@@ -448,6 +458,22 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
         description={t('settings.toolMigration.description')}
         badge={t('settings.toolMigration.platformBadge')}
       >
+        <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 max-w-2xl">
+          <p className="text-xs font-medium text-amber-800/90 dark:text-amber-200/90 leading-relaxed">
+            {t('settings.toolMigration.capabilitiesCommitment')}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-[11px]"
+            onClick={() => void invoke('open_url', { url: CAPABILITIES_URL })}
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            {t('settings.toolMigration.readCapabilitiesLimits')}
+          </Button>
+        </div>
+
         <div className="space-y-3 rounded-lg border border-border/40 bg-muted/10 p-4 max-w-2xl">
           <p className="text-xs text-muted-foreground leading-relaxed">{t('settings.toolMigration.planFirstNote')}</p>
 
@@ -457,7 +483,12 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
             }`}
           >
             <div className="space-y-0.5 min-w-0">
-              <p className="text-sm font-semibold">{t('settings.toolMigration.customModeLabel')}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold">{t('settings.toolMigration.customModeLabel')}</p>
+                <Badge variant="outline" className="font-normal text-[9px] uppercase tracking-wide border-amber-500/50 text-amber-600/90">
+                  {t('settings.toolMigration.customExperimentalBadge')}
+                </Badge>
+              </div>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
                 {t('settings.toolMigration.customModeDescription')}
               </p>
@@ -550,6 +581,10 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
 
           {isCustom ? (
               <div className="space-y-4">
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2 text-[11px] leading-relaxed text-amber-900/90 dark:text-amber-200/90">
+                  <p className="font-semibold">{t('settings.toolMigration.customPolicyTitle')}</p>
+                  <p>{t('settings.toolMigration.customPolicyBody')}</p>
+                </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
                   {t('settings.toolMigration.customModeHint')}
                 </p>
@@ -642,7 +677,11 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
               disabled={busy || !canRun}
               onClick={() => setRunConfirmOpen(true)}
             >
-              {busyKind === 'run' ? t('common.loading') : t('settings.toolMigration.run')}
+              {busyKind === 'run'
+                ? t('common.loading')
+                : isCustom
+                  ? t('settings.toolMigration.runCustomCopy')
+                  : t('settings.toolMigration.run')}
             </Button>
           </div>
 
@@ -782,8 +821,29 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
           {result ? (
             <div className="space-y-2 text-xs border-t border-border/40 pt-2">
               <p className="font-semibold">
-                {result.ok ? t('settings.toolMigration.doneOk') : t('settings.toolMigration.doneFail')}
+                {result.ok
+                  ? t('settings.toolMigration.doneOk')
+                  : result.copy_completed
+                    ? t('settings.toolMigration.donePartial')
+                    : t('settings.toolMigration.doneFail')}
               </p>
+              {result.copy_completed ? (
+                <p className="text-amber-600/90 leading-relaxed">
+                  {t('settings.toolMigration.copyCompletedHint')}
+                </p>
+              ) : null}
+              {result.manual_finish_steps?.length ? (
+                <div className="space-y-1">
+                  <p className="font-semibold text-amber-600/90">
+                    {t('settings.toolMigration.manualFinishTitle')}
+                  </p>
+                  <ol className="list-decimal pl-4 space-y-1 font-mono text-[11px] break-all">
+                    {result.manual_finish_steps.map((step, index) => (
+                      <li key={`${index}-${step.slice(0, 24)}`}>{step}</li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
               {result.audit_log_path ? (
                 <p>
                   <span className="text-muted-foreground">{t('settings.toolMigration.audit')}</span>{' '}

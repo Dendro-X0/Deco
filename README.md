@@ -4,6 +4,10 @@ Deco is a **desktop-first** cleanup app for developer machines, with a **CLI** f
 
 Goals: **safe defaults** (scan → review → quarantine-first cleanup → restore/purge), **low learning curve**, and **broad dev-artifact** coverage—not a general-purpose “every file” browser.
 
+**Role:** convenient **cleanup and space management** first; on Windows, **listed tool storage migration** (Cursor, Chrome, …) is a reliable adjunct. **Game data and arbitrary folders** are manual — often via Windows **Documents** relocation or junction guides, not Deco automation.
+
+**Honest limits:** There is **no perfect solution** for custom migration on Windows. Deco states what it commits to and what it does not — [capabilities and limits](docs/product/capabilities-and-limits.md) · [positioning](docs/product/positioning.md).
+
 **v1.0 (shipped)** — GA cleanup on Windows, macOS, and Linux. Windows **tool storage migration** remains a labeled Settings feature — see [v1.0 roadmap](docs/product/v1.0-roadmap.md).
 
 **v0.8.5 (Windows):** Optional **NTFS USN journal probe** in Settings → Experimental adds informational scan warnings on drive-letter volumes; candidate discovery remains a full directory walk ([details](docs/experiments/windows-ntfs-usn-inventory.md)).

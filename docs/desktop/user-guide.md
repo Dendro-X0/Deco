@@ -1,6 +1,8 @@
 # Desktop user guide
 
-Deco **1.0** focuses on the **cleanup core loop**: scan developer artifact folders → review risk tiers → quarantine-first cleanup → restore or purge. **Tool storage migration** (Windows · NTFS junctions) is a separate Settings feature — see below.
+Deco **1.0** is a **cleanup and space-management** app first: scan developer artifact folders → review risk tiers → quarantine-first cleanup → restore or purge. On Windows, **listed tool storage migration** (Cursor, Chrome, …) is a reliable Settings adjunct; **game saves and custom paths** stay manual — often via Windows **Documents** relocation (e.g. The Sims 4 under `Documents\Electronic Arts`) or junction guides.
+
+**Honest limits:** There is no perfect custom migration on Windows. Read [capabilities-and-limits.md](../product/capabilities-and-limits.md) and [positioning.md](../product/positioning.md).
 
 ## Main areas
 
@@ -85,6 +87,8 @@ When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small
 **Your migrations** (below the tool picker) lists junctions Deco recorded or detected — use **Open source** / **Open destination** to verify, or follow rollback steps linked from each row.
 
 Plan-only profiles (Docker Desktop, npm cache, etc.) show sizing and guidance only — use their settings or the manual guide.
+
+**Games and Documents (manual):** Large game trees (mods, saves) often live under **Documents**, not AppData. Moving the whole **Documents** folder via **Properties → Location**, or relocating a subfolder like `Documents\Electronic Arts\The Sims 4` with `robocopy` + `mklink /J`, is a well-trodden path that does not require a game-specific tool. Deco does not automate that; **Custom folder** can copy a chosen subfolder only — you finish the junction yourself.
 
 The manual guide remains for rollback steps and tools Deco does not run automatically:
 

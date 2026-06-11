@@ -76,9 +76,17 @@ Implementation: `apps/cli/src/tool-migration-profiles.ts` and `apps/desktop/src-
 ## Custom folder migration (v0.9.8+)
 
 **Desktop:** Settings → Tool storage migration → **Custom folder** toggle  
-**CLI:** `--source` and `--dest` (unchanged)
+**CLI:** `--source` and `--dest` with tool `custom`
 
-Use when no profile matches — e.g. `Documents\Electronic Arts\The Sims 4\Mods` → `G:\Games\Sims4\Mods`.
+**Policy:** **Copy-assist only** — no automated rename or junction. There is **no perfect custom migration** on Windows; see [capabilities-and-limits.md](capabilities-and-limits.md) and [custom-folder-migration-policy.md](custom-folder-migration-policy.md).
+
+Use when no **listed** profile matches and you will finish `ren` + `mklink /J` manually — e.g. copy assist for `AppData\Local\SomeGame` → `G:\Games\SomeGame`.
+
+**Prefer instead when applicable:**
+
+- **Listed profile** (Chrome, Discord, …)
+- **Documents → Properties → Location** for game trees under Documents (e.g. The Sims 4)
+- Manual [ide-storage-off-os-drive.md](../desktop/ide-storage-off-os-drive.md) without Deco Run
 
 **Blocked (blocklist):** drive roots; `Windows`, `Program Files`, `ProgramData`; entire `%USERPROFILE%`, `Documents`, `AppData`, `Desktop`, etc.  
 **Allowed:** specific subfolders under those paths.
@@ -87,11 +95,14 @@ Use when no profile matches — e.g. `Documents\Electronic Arts\The Sims 4\Mods`
 
 ## Custom paths (CLI advanced)
 
-Always supported:
+Plan and **copy-only** run (same policy as desktop custom mode):
 
 ```bash
-deco migrate-tool-dir plan --source "C:\Users\me\AppData\Roaming\Spotify" --dest "G:\AppData\Spotify"
+deco migrate-tool-dir plan --source "C:\Users\me\AppData\Local\StateOfDecay2" --dest "G:\GamesData\StateOfDecay2"
+deco migrate-tool-dir run --source "..." --dest "..."   # copy assist; junction manual
 ```
+
+Not a product guarantee for full junction automation on arbitrary paths.
 
 ---
 

@@ -40,8 +40,14 @@ describe('migrate-tool-dir', () => {
     await mkdir(source, { recursive: true });
     await writeFile(path.join(source, 'a.txt'), 'hello', 'utf8');
 
-    const plan = await planToolDirMigration({ source, dest, includeSize: false });
+    const plan = await planToolDirMigration({
+      tool: 'vscode',
+      source,
+      dest,
+      includeSize: false,
+    });
     expect(plan.ok, plan.errors.join('; ')).toBe(process.platform === 'win32');
+    expect(plan.customMode).toBeFalsy();
     const result = await runToolDirMigration(plan, { copyOnly: true });
     expect(result.ok, result.errors.join('; ')).toBe(process.platform === 'win32');
   });
@@ -57,8 +63,14 @@ describe('migrate-tool-dir', () => {
     await mkdir(path.join(source, 'sub'), { recursive: true });
     await writeFile(path.join(source, 'sub', 'a.txt'), 'hello', 'utf8');
 
-    const plan = await planToolDirMigration({ source, dest, includeSize: false });
+    const plan = await planToolDirMigration({
+      tool: 'vscode',
+      source,
+      dest,
+      includeSize: false,
+    });
     expect(plan.ok, plan.errors.join('; ')).toBe(true);
+    expect(plan.customMode).toBeFalsy();
 
     const result = await runToolDirMigration(plan);
     expect(result.ok).toBe(true);

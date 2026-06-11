@@ -28,7 +28,7 @@ Current implementation progress and handoff details: [status.md](status.md).
 - Free-space planner (`Free X GB`) with safe-first selection and optional review inclusion.
 - **Workspace summary** card on the dashboard (monorepos with 2+ projects) — reclaim totals per detected project root with safe/review/blocked subtotals; checkbox per workspace selects that project’s safe-tier rows only (no double-counting).
 - Results table **Group by project** — collapsible project sections (same grouping as workspace rollups).
-- **Tool storage migration (Windows, v0.9.4)** — Settings Plan UI to move tool directories off the OS drive; junction left at original path; see [v0.9.4-manifest.md](v0.9.4-manifest.md) and [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
+- **Tool storage migration (Windows, v0.9.4)** — listed profiles (IDEs, browsers, utilities): Plan + Run with junction at original path; **custom folder = copy-assist only**; game/Documents data = manual. See [positioning.md](positioning.md), [v0.9.4-manifest.md](v0.9.4-manifest.md), [migrate-tool-dir.md](../cli/migrate-tool-dir.md).
 
 ## Safety
 

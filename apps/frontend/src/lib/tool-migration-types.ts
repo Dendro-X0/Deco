@@ -65,4 +65,7 @@ export type ToolMigrationResult = {
   errors: string[];
   legs?: ToolMigrationResultLeg[];
   pending_backups?: ToolMigrationBackupEntry[];
+  /** Copy finished but rename/junction did not (Windows handle locks). */
+  copy_completed?: boolean;
+  manual_finish_steps?: string[];
 };

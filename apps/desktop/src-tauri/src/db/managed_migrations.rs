@@ -233,6 +233,8 @@ mod tests {
             errors: vec![],
             legs: None,
             pending_backups: None,
+            copy_completed: None,
+            manual_finish_steps: None,
         };
         record_from_result(&conn, &result).expect("record");
         let rows = list(&conn).expect("list");

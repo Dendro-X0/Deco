@@ -6,6 +6,8 @@ A safety-first cleanup tool for **developer machines** with many local repositor
 
 Deco is **not** a general-purpose disk browser. It competes on **developer-specific waste** (dependencies, build outputs, caches) with **explicit policy**: what we touch, why, and how reversible the action is. Prefer **under-detecting** with clear explanations over aggressive heuristics that erode trust.
 
+**Honest commitments:** As lightweight OSS for developers, Deco documents what it does and does **not** guarantee — especially that there is **no perfect solution** for custom Windows folder migration. See [`docs/product/capabilities-and-limits.md`](docs/product/capabilities-and-limits.md).
+
 ## Goals
 
 - **Safety-first**
@@ -47,6 +49,7 @@ Deco is **not** a general-purpose disk browser. It competes on **developer-speci
 - Deleting arbitrary user data directories (e.g. `Documents`, `Desktop`, `Downloads`).
 - Automatically modifying system settings.
 - Mixing unrelated domains (e.g. Docker image pruning) into the same mental model as file quarantine—unless explicitly framed as a separate profile or future scope.
+- **Perfect or one-click relocation** of arbitrary `C:` data (custom game saves, bulk `AppData`, opaque profile trees). Listed Windows migration profiles are **best-effort**; custom paths are **copy-assist only** ([capabilities-and-limits.md](docs/product/capabilities-and-limits.md)).
 
 ## Safety model
 
