@@ -116,8 +116,11 @@ mod tests {
     fn docker_vhdx_candidates_include_known_paths() {
         let root = PathBuf::from(r"C:\Users\me\AppData\Local\Docker");
         let candidates = docker_vhdx_candidates(&root);
-        assert!(candidates.iter().any(|p| p.ends_with("wsl\\data\\ext4.vhdx")));
-        assert!(candidates.iter().any(|p| p.ends_with("wsl\\disk\\ext4.vhdx")));
+        // Path components, not a Windows string — `\` is not a separator on macOS/Linux CI.
+        let data_vhdx = PathBuf::from("wsl").join("data").join("ext4.vhdx");
+        let disk_vhdx = PathBuf::from("wsl").join("disk").join("ext4.vhdx");
+        assert!(candidates.iter().any(|p| p.ends_with(&data_vhdx)));
+        assert!(candidates.iter().any(|p| p.ends_with(&disk_vhdx)));
     }
 
     #[test]

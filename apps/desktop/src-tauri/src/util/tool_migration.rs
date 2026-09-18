@@ -2149,9 +2149,24 @@ mod tests {
             false,
             false,
         );
-        assert!(plan.ok);
+        assert!(
+            !plan.errors.iter().any(|e| e.contains("profiles.ini")),
+            "profiles.ini should satisfy layout checks, errors: {:?}",
+            plan.errors
+        );
         assert!(!plan.plan_only);
         assert!(plan.warnings.iter().any(|w| w.contains("Firefox")));
+        // Junction Plan is Windows-only; unix CI always records that error.
+        if cfg!(windows) {
+            assert!(plan.ok, "errors: {:?}", plan.errors);
+        } else {
+            assert!(!plan.ok);
+            assert!(
+                plan.errors.iter().any(|e| e.contains("Windows-only")),
+                "errors: {:?}",
+                plan.errors
+            );
+        }
         let _ = fs::remove_dir_all(&base);
     }
 }

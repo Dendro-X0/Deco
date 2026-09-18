@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Unix CI Rust tests** — Docker VHDX candidate checks compare path components (backslashes are not separators on macOS/Linux). Firefox Plan acceptance no longer requires `plan.ok` off Windows, where junction migration is intentionally blocked.
+
 ## [1.3.0] - 2026-09-18
 
 ### Added
