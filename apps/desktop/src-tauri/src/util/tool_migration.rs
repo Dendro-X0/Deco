@@ -2,8 +2,6 @@ use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 #[cfg(windows)]
-use std::process::Command;
-#[cfg(windows)]
 use std::time::Duration;
 use walkdir::WalkDir;
 
@@ -1370,7 +1368,7 @@ fn copy_tree(source: &Path, dest: &Path) -> Result<Vec<String>, String> {
 fn mklink_junction(link_path: &Path, target: &Path) -> Result<(), String> {
     let link = link_path.to_string_lossy().to_string();
     let tgt = target.to_string_lossy().to_string();
-    let output = Command::new("cmd")
+    let output = crate::util::hidden_command::command("cmd")
         .args(["/C", "mklink", "/J", &link, &tgt])
         .output()
         .map_err(|e| format!("failed to start mklink: {e}"))?;
@@ -1445,7 +1443,7 @@ fn win_long_path(p: &Path) -> String {
 
 #[cfg(windows)]
 fn rename_via_cmd_move(source: &Path, dest: &Path) -> Result<(), std::io::Error> {
-    let status = Command::new("cmd")
+    let status = crate::util::hidden_command::command("cmd")
         .args([
             "/C",
             "move",

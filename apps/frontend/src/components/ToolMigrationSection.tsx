@@ -844,17 +844,36 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
                   </ul>
                 </div>
               ) : null}
-              {plan.ok && !plan.plan_only ? (
+              {plan.errors?.length ? (
+                <div className="rounded border border-destructive/40 bg-destructive/10 p-2 space-y-1 text-destructive">
+                  <p className="font-semibold">
+                    {t('settings.toolMigration.cannotMigrateTitle')}
+                  </p>
+                  <p className="text-destructive/90">
+                    {t('settings.toolMigration.cannotMigrateHint')}
+                  </p>
+                  <p className="font-semibold">
+                    {t('settings.toolMigration.errors', { count: plan.errors.length })}
+                  </p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {plan.errors.map((err, index) => (
+                      <li key={`${index}-${err.slice(0, 24)}`}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {plan &&
+              !canRun &&
+              plan.ok &&
+              !plan.plan_only &&
+              !plan.already_complete &&
+              (plan.running_processes?.length ?? 0) === 0 ? (
+                <p className="text-amber-600/90">{t('settings.toolMigration.runBlockedHint')}</p>
+              ) : null}
+              {plan.ok && !plan.plan_only && !(plan.errors?.length) ? (
                 <p className="text-muted-foreground border-t border-border/40 pt-2">
                   {t('settings.toolMigration.verifyHint')}
                 </p>
-              ) : null}
-              {plan?.errors?.length ? (
-                <ul className="list-disc pl-4 space-y-0.5 text-destructive">
-                  {plan.errors.map((err, index) => (
-                    <li key={`${index}-${err.slice(0, 24)}`}>{err}</li>
-                  ))}
-                </ul>
               ) : null}
             </div>
           ) : null}
@@ -911,6 +930,18 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
                     <li key={`${index}-${warning.slice(0, 24)}`}>{warning}</li>
                   ))}
                 </ul>
+              ) : null}
+              {result.errors?.length ? (
+                <div className="rounded border border-destructive/40 bg-destructive/10 p-2 space-y-1 text-destructive">
+                  <p className="font-semibold">
+                    {t('settings.toolMigration.errors', { count: result.errors.length })}
+                  </p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {result.errors.map((err, index) => (
+                      <li key={`${index}-${err.slice(0, 24)}`}>{err}</li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
             </div>
           ) : null}

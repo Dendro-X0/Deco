@@ -85,7 +85,7 @@ fn read_lnk_target(lnk: &Path) -> Option<PathBuf> {
         r#"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{}'); $s.TargetPath"#,
         lnk.to_string_lossy().replace('\'', "''")
     );
-    let output = std::process::Command::new("powershell")
+    let output = crate::util::hidden_command::command("powershell")
         .args([
             "-NoProfile",
             "-NonInteractive",

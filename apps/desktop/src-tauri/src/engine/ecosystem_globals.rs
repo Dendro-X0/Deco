@@ -1,7 +1,6 @@
 use super::scanner::DiscoveredTarget;
 use super::types::Kind;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 fn user_home() -> Option<PathBuf> {
     #[cfg(windows)]
@@ -76,7 +75,7 @@ fn pnpm_store_candidate_paths(warnings: &mut Vec<String>) -> Vec<PathBuf> {
         }
     }
 
-    let output = Command::new("pnpm").args(["store", "path"]).output();
+    let output = crate::util::hidden_command::command("pnpm").args(["store", "path"]).output();
     match output {
         Ok(out) if out.status.success() => {
             let value = String::from_utf8_lossy(&out.stdout).trim().to_string();
@@ -156,7 +155,7 @@ pub fn discover_pnpm_global_store() -> (Vec<DiscoveredTarget>, Vec<String>) {
 }
 
 fn command_stdout_path(bin: &str, args: &[&str]) -> Option<PathBuf> {
-    let out = Command::new(bin).args(args).output().ok()?;
+    let out = crate::util::hidden_command::command(bin).args(args).output().ok()?;
     if !out.status.success() {
         return None;
     }

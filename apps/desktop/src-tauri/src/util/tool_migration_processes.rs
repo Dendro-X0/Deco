@@ -2,8 +2,7 @@ use super::tool_migration::ToolId;
 
 #[cfg(windows)]
 fn is_process_running(image_name: &str) -> bool {
-    use std::process::Command;
-    let output = Command::new("tasklist")
+    let output = crate::util::hidden_command::command("tasklist")
         .args(["/FI", &format!("IMAGENAME eq {image_name}"), "/NH"])
         .output();
     let Ok(output) = output else {

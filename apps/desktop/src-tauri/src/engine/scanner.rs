@@ -19,7 +19,6 @@ use super::types::{EcosystemScanOptions, Kind};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use walkdir::WalkDir;
@@ -832,7 +831,7 @@ fn discover_go_cache_targets() -> (Vec<DiscoveredTarget>, Vec<String>) {
     let mut seen_paths: HashSet<String> = HashSet::new();
 
     for key in ["GOCACHE", "GOMODCACHE"] {
-        let output = Command::new("go").args(["env", key]).output();
+        let output = crate::util::hidden_command::command("go").args(["env", key]).output();
         let Ok(out) = output else {
             warnings.push(format!("`go env {key}` failed: go binary not available or not on PATH"));
             continue;

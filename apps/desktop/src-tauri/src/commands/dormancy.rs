@@ -1,6 +1,5 @@
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Serialize)]
@@ -23,7 +22,7 @@ pub fn get_git_dormancy_hint(abs_path: String) -> Result<Option<GitDormancyHint>
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|_| path.clone());
 
-    let output = Command::new("git")
+    let output = crate::util::hidden_command::command("git")
         .arg("-C")
         .arg(&repo_root)
         .arg("log")
