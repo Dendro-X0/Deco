@@ -1,3 +1,5 @@
+pub mod docker_disk_layout;
+pub mod firefox_profile_layout;
 pub mod migration_handoff;
 pub mod migration_path_policy;
 pub mod native_path;

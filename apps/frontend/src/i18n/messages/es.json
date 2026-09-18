@@ -631,6 +631,9 @@
       "dest": "Destino:",
       "size": "Tamaño estimado:",
       "totalSize": "Tamaño total estimado:",
+      "dockerBreakdownTitle": "Distribución de disco de Docker",
+      "dockerVhdxSize": "Imagen de disco WSL (ext4.vhdx):",
+      "dockerMetadataSize": "LocalAppData sin VHDX:",
       "legSkipped": "Omitido (origen no encontrado).",
       "destVerifiedSize": "Verificado en destino:",
       "alreadyCompleteTitle": "Migración ya completada",
@@ -678,9 +681,12 @@
       "configWizard": {
         "npmTitle": "Caché npm — redirección por configuración",
         "pnpmTitle": "Almacén pnpm — redirección por configuración",
+        "dockerTitle": "Docker Desktop — ubicación de la imagen de disco",
         "hint": "La configuración oficial de npm/pnpm mueve futuras escrituras de caché — sin unión. Ejecuta en una terminal tras elegir una carpeta en otra unidad.",
+        "dockerHint": "Docker guarda la mayor parte de los datos en ext4.vhdx. Usa la configuración de Docker Desktop para reubicar la imagen — Deco no migra VHDX por unión.",
         "destLabel": "Nueva ruta de caché",
-        "setupTitle": "Comandos de configuración",
+        "dockerDestLabel": "Carpeta sugerida para la imagen de disco (NTFS)",
+        "setupTitle": "Pasos de configuración",
         "verifyTitle": "Verificar",
         "copy": "Copiar comando"
       }
@@ -876,6 +882,8 @@
     "optInSkippedHint": "{{count}} elemento(s) de caché global necesitan opciones en Configuración → Descubrimiento; vuelva a escanear.",
     "blockedSkippedHint": "{{count}} elemento(s) bloqueados no se pueden eliminar. Deselecciónelos e intente de nuevo.",
     "failed": "Limpieza fallida",
+    "stopped": "Limpieza detenida",
+    "stoppedHint": "Detenida a petición suya. Aún no se movió nada.",
     "missingPaths": "{{count}} ruta(s) ya no existen en el disco.",
     "nothingMoved": "No se movió nada. Vuelva a escanear si las rutas cambiaron.",
     "deletedOnly": "{{count}} eliminados (espacio liberado de inmediato)",

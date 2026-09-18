@@ -105,14 +105,7 @@ impl ToolId {
     pub fn is_plan_only(self) -> bool {
         matches!(
             self,
-            ToolId::ClaudeDesktop
-                | ToolId::Firefox
-                | ToolId::EpicGames
-                | ToolId::SteamAppdata
-                | ToolId::BattleNet
-                | ToolId::DockerDesktop
-                | ToolId::NpmCache
-                | ToolId::PnpmStore
+            ToolId::ClaudeDesktop | ToolId::DockerDesktop | ToolId::NpmCache | ToolId::PnpmStore
         )
     }
 
@@ -164,6 +157,8 @@ pub struct MigrationPlan {
     pub running_processes: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pending_backups: Option<Vec<MigrationBackupEntry>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub docker_disk_breakdown: Option<crate::util::docker_disk_layout::DockerDiskBreakdown>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -609,6 +604,65 @@ fn attach_running_process_warning(plan: &mut MigrationPlan, tool: ToolId) {
     }
 }
 
+fn tool_plan_warnings(tool: ToolId) -> Vec<String> {
+    match tool {
+        ToolId::EpicGames => vec![
+            "Launcher data only: migrates %LOCALAPPDATA%\\EpicGamesLauncher. Game installs may live on other drives — change install location in Epic Games settings if needed.".to_string(),
+        ],
+        ToolId::SteamAppdata => vec![
+            "LocalAppData\\Steam cache only — not your Steam library (steamapps). Set library folders in Steam → Settings → Storage.".to_string(),
+        ],
+        ToolId::BattleNet => vec![
+            "Launcher LocalAppData only — game files may be on other drives. This profile does not move Blizzard game installs.".to_string(),
+        ],
+        ToolId::GoogleChrome => vec![
+            "Migrates %LOCALAPPDATA%\\Google\\Chrome\\User Data (profiles, cache, extensions). Quit Chrome completely (Task Manager + tray) before Run — large trees often take several GB and need free space on both C: (during swap) and the destination.".to_string(),
+        ],
+        _ => Vec::new(),
+    }
+}
+
+fn attach_tool_plan_warnings(plan: &mut MigrationPlan, tool: ToolId) {
+    for msg in tool_plan_warnings(tool) {
+        if !plan.warnings.iter().any(|w| w == &msg) {
+            plan.warnings.push(msg);
+        }
+    }
+}
+
+fn attach_firefox_layout_validation(plan: &mut MigrationPlan, tool: ToolId, source: &Path) {
+    if !matches!(tool, ToolId::Firefox) {
+        return;
+    }
+    let check = crate::util::firefox_profile_layout::validate_firefox_profile_layout(source);
+    let has_errors = !check.errors.is_empty();
+    for msg in check.warnings {
+        if !plan.warnings.iter().any(|w| w == &msg) {
+            plan.warnings.push(msg);
+        }
+    }
+    for msg in check.errors {
+        if !plan.errors.iter().any(|e| e == &msg) {
+            plan.errors.push(msg);
+        }
+    }
+    if has_errors && !plan.already_complete {
+        plan.ok = false;
+    }
+}
+fn attach_docker_disk_breakdown(plan: &mut MigrationPlan, tool: ToolId, source: &Path, include_size: bool) {
+    if !matches!(tool, ToolId::DockerDesktop) || !include_size || !source.is_dir() {
+        return;
+    }
+    let breakdown = crate::util::docker_disk_layout::analyze_docker_disk(source, plan.bytes);
+    for msg in crate::util::docker_disk_layout::docker_breakdown_warnings(&breakdown) {
+        if !plan.warnings.iter().any(|w| w == &msg) {
+            plan.warnings.push(msg);
+        }
+    }
+    plan.docker_disk_breakdown = Some(breakdown);
+}
+
 fn format_bytes_hint(bytes: u64) -> String {
     const GB: f64 = 1024.0 * 1024.0 * 1024.0;
     const MB: f64 = 1024.0 * 1024.0;
@@ -618,6 +672,110 @@ fn format_bytes_hint(bytes: u64) -> String {
         format!("{:.0} MB", bytes as f64 / MB)
     } else {
         format!("{bytes} bytes")
+    }
+}
+
+/// Destination must have at least source × 1.2 free (v1.3 X1).
+const DEST_FREE_SPACE_NUM: u64 = 12;
+const DEST_FREE_SPACE_DEN: u64 = 10;
+const SOURCE_LOW_ABS_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+const SOURCE_LOW_PCT: f64 = 5.0;
+
+pub(crate) fn required_dest_free_bytes(source_bytes: u64) -> u64 {
+    source_bytes
+        .saturating_mul(DEST_FREE_SPACE_NUM)
+        .saturating_div(DEST_FREE_SPACE_DEN)
+}
+
+/// Plan error when destination free space is below the 1.2× safety margin.
+pub(crate) fn dest_insufficient_free_space_error(
+    source_bytes: u64,
+    available_bytes: u64,
+    mount: &str,
+) -> Option<String> {
+    if source_bytes == 0 {
+        return None;
+    }
+    let required = required_dest_free_bytes(source_bytes);
+    if available_bytes >= required {
+        return None;
+    }
+    Some(format!(
+        "Destination volume {mount} has insufficient free space (need at least {} for a 1.2× safety margin; {} available).",
+        format_bytes_hint(required),
+        format_bytes_hint(available_bytes),
+    ))
+}
+
+/// Warning when the source volume is critically low on free space (does not block Run alone).
+pub(crate) fn source_low_free_space_warning(
+    available_bytes: u64,
+    total_bytes: u64,
+    mount: &str,
+) -> Option<String> {
+    if total_bytes == 0 {
+        return None;
+    }
+    let pct = (available_bytes as f64 / total_bytes as f64) * 100.0;
+    if available_bytes >= SOURCE_LOW_ABS_BYTES && pct >= SOURCE_LOW_PCT {
+        return None;
+    }
+    Some(format!(
+        "Source volume {mount} is low on free space ({} available). Migration may fail during rename/junction; free several GB on the OS drive before Run.",
+        format_bytes_hint(available_bytes),
+    ))
+}
+
+fn volume_for_path(path: &Path) -> Option<crate::util::storage_volumes::StorageVolume> {
+    let mount = drive_mount_for_path(path)?;
+    let key = mount
+        .to_string_lossy()
+        .trim_end_matches(['\\', '/'])
+        .to_ascii_lowercase();
+    crate::util::storage_volumes::list_storage_volumes()
+        .into_iter()
+        .find(|v| {
+            v.mount_point
+                .trim_end_matches(['\\', '/'])
+                .eq_ignore_ascii_case(&key)
+        })
+}
+
+/// Attach dest ×1.2 free-space error and source low-space warning when volumes are readable.
+fn attach_free_space_checks(plan: &mut MigrationPlan) {
+    if plan.already_complete {
+        return;
+    }
+
+    let needed = plan.bytes.unwrap_or(0);
+    if needed > 0 {
+        match volume_for_path(Path::new(&plan.dest)) {
+            Some(vol) => {
+                if let Some(err) =
+                    dest_insufficient_free_space_error(needed, vol.available_bytes, &vol.mount_point)
+                {
+                    plan.errors.push(err);
+                }
+            }
+            None => {
+                plan.warnings.push(
+                    "Could not read destination volume free space; verify enough free space before Run."
+                        .to_string(),
+                );
+            }
+        }
+    }
+
+    if let Some(vol) = volume_for_path(Path::new(&plan.source)) {
+        if let Some(w) =
+            source_low_free_space_warning(vol.available_bytes, vol.total_bytes, &vol.mount_point)
+        {
+            plan.warnings.push(w);
+        }
+    }
+
+    if !plan.errors.is_empty() {
+        plan.ok = false;
     }
 }
 
@@ -1008,9 +1166,11 @@ fn plan_bundle(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationP
         legs: Some(plan_legs),
         running_processes: None,
         pending_backups: None,
+        docker_disk_breakdown: None,
     };
     attach_running_process_warning(&mut plan, tool);
     attach_pending_backups(&mut plan, include_size);
+    attach_free_space_checks(&mut plan);
     plan
 }
 
@@ -1043,6 +1203,7 @@ pub fn plan(tool: ToolId, dest_root: &Path, include_size: bool) -> MigrationPlan
                 legs: None,
                 running_processes: None,
                 pending_backups: None,
+                docker_disk_breakdown: None,
             };
         }
     };
@@ -1165,11 +1326,16 @@ pub fn plan_paths(
         legs: None,
         running_processes: None,
         pending_backups: None,
+        docker_disk_breakdown: None,
     };
     if let Ok(id) = ToolId::parse(tool_wire) {
+        attach_firefox_layout_validation(&mut plan, id, &source);
+        attach_docker_disk_breakdown(&mut plan, id, &source, include_size);
         attach_running_process_warning(&mut plan, id);
+        attach_tool_plan_warnings(&mut plan, id);
     }
     attach_pending_backups(&mut plan, include_size);
+    attach_free_space_checks(&mut plan);
     plan
 }
 
@@ -1795,6 +1961,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dest_insufficient_free_space_errors_under_1_2x() {
+        let needed = 10 * 1024 * 1024 * 1024u64; // 10 GB
+        let required = required_dest_free_bytes(needed);
+        assert_eq!(required, 12 * 1024 * 1024 * 1024);
+        let err = dest_insufficient_free_space_error(needed, required - 1, r"G:\");
+        assert!(err.expect("error").contains("1.2"));
+        assert!(dest_insufficient_free_space_error(needed, required, r"G:\").is_none());
+        assert!(dest_insufficient_free_space_error(0, 0, r"G:\").is_none());
+    }
+
+    #[test]
+    fn source_low_free_space_warns_under_2gb_or_5pct() {
+        let two_gb = 2 * 1024 * 1024 * 1024u64;
+        let total = 100 * 1024 * 1024 * 1024u64;
+        assert!(source_low_free_space_warning(two_gb - 1, total, r"C:\")
+            .expect("warn")
+            .contains("low on free space"));
+        // 4% of 100 GB = 4 GB (>= 2 GB abs) but under 5% → warn
+        let four_pct = total * 4 / 100;
+        assert!(source_low_free_space_warning(four_pct, total, r"C:\").is_some());
+        // Comfortable headroom
+        assert!(source_low_free_space_warning(10 * 1024 * 1024 * 1024, total, r"C:\").is_none());
+    }
+
+    #[test]
     fn is_under_detects_nested_dest() {
         let parent = PathBuf::from(r"C:\Users\me\AppData\Roaming\Cursor");
         let child = parent.join("nested");
@@ -1864,11 +2055,104 @@ mod tests {
             legs: None,
             running_processes: None,
             pending_backups: None,
+            docker_disk_breakdown: None,
         };
         assert!(effective_copy_only(&plan, false));
         assert!(effective_copy_only(&plan, true));
         plan.custom_mode = false;
         assert!(!effective_copy_only(&plan, false));
+    }
+
+    #[test]
+    fn plan_includes_game_launcher_scope_warnings() {
+        let plan = plan_paths(
+            "steam-appdata",
+            PathBuf::from(r"C:\Users\me\AppData\Local\Steam"),
+            PathBuf::from(r"G:\AppData\Steam-Local"),
+            false,
+            false,
+        );
+        assert!(!plan.plan_only);
+        assert!(
+            plan.warnings
+                .iter()
+                .any(|w| w.contains("steamapps")),
+            "expected steam library warning, got: {:?}",
+            plan.warnings
+        );
+    }
+
+    #[test]
+    fn plan_includes_docker_disk_breakdown_when_sized() {
+        let base = std::env::temp_dir().join(format!("deco-docker-plan-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        let docker_root = base.join("Docker");
+        let vhdx_dir = docker_root.join("wsl").join("data");
+        fs::create_dir_all(&vhdx_dir).expect("mkdir");
+        let vhdx_path = vhdx_dir.join("ext4.vhdx");
+        let mut f = fs::File::create(&vhdx_path).expect("create vhdx");
+        use std::io::Write;
+        f.write_all(&[0u8; 4096]).expect("write");
+
+        let plan = plan_paths(
+            "docker-desktop",
+            docker_root.clone(),
+            PathBuf::from(r"G:\AppData\Docker"),
+            true,
+            true,
+        );
+        assert!(plan.plan_only);
+        assert!(plan.docker_disk_breakdown.is_some());
+        let breakdown = plan.docker_disk_breakdown.as_ref().expect("breakdown");
+        assert_eq!(breakdown.vhdx_bytes, Some(4096));
+        assert!(
+            plan.warnings.iter().any(|w| w.contains("ext4.vhdx")),
+            "warnings: {:?}",
+            plan.warnings
+        );
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn plan_rejects_firefox_without_profiles_ini() {
+        let base = std::env::temp_dir().join(format!("deco-firefox-plan-bad-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(&base).expect("mkdir");
+
+        let plan = plan_paths(
+            "firefox",
+            base.clone(),
+            PathBuf::from(r"G:\AppData\Firefox"),
+            false,
+            false,
+        );
+        assert!(!plan.ok);
+        assert!(plan.errors.iter().any(|e| e.contains("profiles.ini")));
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn plan_accepts_firefox_with_profiles_ini() {
+        let base = std::env::temp_dir().join(format!("deco-firefox-plan-ok-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(base.join("Profiles").join("abc.default")).expect("mkdir");
+        fs::write(
+            base.join("profiles.ini"),
+            "[Install4F96D1932A9F858E]\nDefault=Profiles/abc.default\n",
+        )
+        .expect("write ini");
+
+        let plan = plan_paths(
+            "firefox",
+            base.clone(),
+            PathBuf::from(r"G:\AppData\Firefox"),
+            false,
+            false,
+        );
+        assert!(plan.ok);
+        assert!(!plan.plan_only);
+        assert!(plan.warnings.iter().any(|w| w.contains("Firefox")));
+        let _ = fs::remove_dir_all(&base);
     }
 }
 

@@ -10,30 +10,32 @@ Failures can destroy profiles. Prefer manual steps in the guide when reliability
 
 - **Windows only (v0.9.0)**: migration uses NTFS directory junctions.
 - **Plan first**: always run `plan` to validate paths and estimate size.
+- **Free space (v1.3)**: Plan errors when destination free space is less than **source size × 1.2**. Plan warns when the source volume is critically low (&lt; 2 GB or &lt; 5% free) — free headroom on `C:` before Run.
 - **Rollbackable**: `run` copies to destination, renames the original as a backup, then creates the junction. If anything fails, it attempts to restore the original directory.
 - **Explicit confirmation**: `run` requires `--yes`.
 
 ### Common usage (Cursor)
 
+Quit Cursor completely (Task Manager + tray). Prefer a dest root on a roomy NTFS drive (e.g. `G:/AppData`), not the drive letter alone.
+
 Plan the migration:
 
 ```bash
-deco migrate-tool-dir plan --tool cursor --dest-root "D:/DevToolData"
+deco migrate-tool-dir plan --tool cursor --dest-root "G:/AppData"
 ```
 
 Run the migration:
 
 ```bash
-deco migrate-tool-dir run --tool cursor --dest-root "D:/DevToolData" --yes
+deco migrate-tool-dir run --tool cursor --dest-root "G:/AppData" --yes
 ```
 
 JSON output:
 
 ```bash
-deco migrate-tool-dir plan --tool cursor --dest-root "D:/DevToolData" --json
-deco migrate-tool-dir run  --tool cursor --dest-root "D:/DevToolData" --yes --json
+deco migrate-tool-dir plan --tool cursor --dest-root "G:/AppData" --json
+deco migrate-tool-dir run  --tool cursor --dest-root "G:/AppData" --yes --json
 ```
-
 ### Supported tool IDs
 
 See [tool-migration-profiles.md](../product/tool-migration-profiles.md) for the full table.
@@ -41,7 +43,8 @@ See [tool-migration-profiles.md](../product/tool-migration-profiles.md) for the 
 - `cursor`: **bundle** — `%APPDATA%\Cursor` + `%LOCALAPPDATA%\Cursor` in one Plan/Run (dest: `…/Cursor` and `…/Cursor-Local`)
 - `cursor-roaming` / `cursor-local`: single-leg (advanced)
 - `vscode`, `claude-code`, `codex-cli`: run supported
-- `docker-desktop`, `npm-cache`, `pnpm-store`, `claude-desktop`: **plan-only**
+- `docker-desktop`, `npm-cache`, `pnpm-store`, `claude-desktop`: **plan-only** (Docker Plan reports `ext4.vhdx` vs LocalAppData split; use Settings config wizard for disk image location)
+- `epic-games`, `steam-appdata`, `battle-net`, `firefox`: **run** supported (quit the app before Run; Firefox Plan checks `profiles.ini`)
 
 ### Advanced usage (custom paths)
 

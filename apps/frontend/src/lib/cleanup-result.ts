@@ -3,6 +3,24 @@ import type { ExecuteResponse } from '@/types';
 import type { ToastVariant } from '@/lib/toast';
 import { formatDurationMs } from '@/lib/format';
 
+const USER_CANCEL_RE = /cleanup canceled by user/i;
+
+/** True when the engine reported an intentional user stop (pause → cancel or Cancel). */
+export function isUserCanceledCleanup(result: { errors?: string[] }): boolean {
+  return (result.errors ?? []).some((e) => USER_CANCEL_RE.test(e));
+}
+
+/** True when cleanup should raise the global error banner (hard failure, nothing moved). */
+export function shouldRaiseGlobalCleanupError(result: {
+  quarantined_count?: number;
+  deleted_count?: number;
+  errors?: string[];
+}): boolean {
+  if (isUserCanceledCleanup(result)) return false;
+  const moved = (result.quarantined_count ?? 0) + (result.deleted_count ?? 0);
+  return moved === 0 && (result.errors?.length ?? 0) > 0;
+}
+
 export function formatCleanupResultSummary(
   t: TranslateFn,
   result: ExecuteResponse,
@@ -20,7 +38,30 @@ export function formatCleanupResultSummary(
   const skippedMissing = result.skipped_not_found_count ?? 0;
   const skippedOptIn = result.skipped_opt_in_count ?? 0;
   const skippedBlocked = result.skipped_blocked_count ?? 0;
-  const errorCount = result.errors?.length ?? 0;
+  const nonCancelErrors = (result.errors ?? []).filter((e) => !USER_CANCEL_RE.test(e));
+  const errorCount = nonCancelErrors.length;
+  const userCanceled = isUserCanceledCleanup(result);
+
+  if (userCanceled) {
+    if (moved > 0) {
+      const main =
+        deleted > 0 && quarantined === 0
+          ? t('cleanupResult.deletedOnly', { count: deleted })
+          : quarantined > 0 && deleted === 0
+            ? t('cleanupResult.quarantinedOnly', { count: quarantined })
+            : t('cleanupResult.mixed', { quarantined, deleted });
+      return {
+        title: t('cleanupResult.stopped'),
+        description: `${main}${timeSuffix}`,
+        variant: 'info',
+      };
+    }
+    return {
+      title: t('cleanupResult.stopped'),
+      description: `${t('cleanupResult.stoppedHint')}${timeSuffix}`,
+      variant: 'info',
+    };
+  }
 
   if (moved > 0) {
     const main =
@@ -44,6 +85,7 @@ export function formatCleanupResultSummary(
     return {
       title: t('cleanupResult.complete'),
       description: body ? `${body}${timeSuffix}` : timeSuffix.trim() || body,
+      // Soft path failures are informational when reclaim succeeded — not a hard failure toast.
       variant: skippedParts.length > 0 || errorCount > 0 ? 'info' : 'default',
     };
   }
@@ -81,7 +123,7 @@ export function formatCleanupResultSummary(
   }
 
   if (errorCount > 0) {
-    const first = result.errors?.[0] ?? 'Unknown error';
+    const first = nonCancelErrors[0] ?? 'Unknown error';
     return {
       title: t('cleanupResult.failed'),
       description: first,

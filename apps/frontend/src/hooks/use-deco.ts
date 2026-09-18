@@ -28,7 +28,11 @@ import { normalizeSettings, readSelectedVolumes } from '../lib/settings-normaliz
 import { formatBytes, formatDurationMs } from '../lib/format';
 import { volumeMountsFromPaths } from '../lib/volume-from-path';
 import { toast } from '../lib/toast';
-import { formatCleanupResultSummary } from '../lib/cleanup-result';
+import {
+    formatCleanupResultSummary,
+    isUserCanceledCleanup,
+    shouldRaiseGlobalCleanupError,
+  } from '../lib/cleanup-result';
 import { computeScanProgressPercent, idleProgress, type ScanProgress } from '../lib/scan-progress';
 import { readPhaseTimings, type ScanRunMetrics } from '../lib/scan-statistics';
 import { useI18n } from '@/i18n';
@@ -441,8 +445,12 @@ export function useDeco() {
         description: summaryMsg.description,
         variant: summaryMsg.variant,
       });
-      if (result.errors?.length) {
+      const userCanceled = isUserCanceledCleanup(result);
+      // Soft per-path failures / intentional stop must not paint a global error banner.
+      if (shouldRaiseGlobalCleanupError(result)) {
         setError(result.errors.slice(0, 3).join(' · '));
+      } else if (moved > 0 || userCanceled) {
+        setError(null);
       }
       setProgress({
         percent: 100,
@@ -458,14 +466,19 @@ export function useDeco() {
           : moved > 0
             ? 'Cleanup complete'
             : '';
+      const softErrorHint =
+        moved > 0 &&
+        (result.errors ?? []).some((e) => !/cleanup canceled by user/i.test(e))
+          ? ` · ${result.errors!.filter((e) => !/cleanup canceled by user/i.test(e)).length} path warning(s)`
+          : '';
       setStatus({
         text:
           moved > 0
             ? result.deleted_count > 0
-              ? `${freedLabel} · ${result.deleted_count} deleted${timeHint}`
-              : `${result.quarantined_count} in quarantine — open Quarantine tab to restore${timeHint}`
+              ? `${freedLabel} · ${result.deleted_count} deleted${timeHint}${softErrorHint}`
+              : `${result.quarantined_count} in quarantine — open Quarantine tab to restore${timeHint}${softErrorHint}`
             : summaryMsg.description,
-        type: moved > 0 ? 'done' : 'error',
+        type: moved > 0 || userCanceled ? 'done' : 'error',
       });
     },
     [refreshQuarantine, refreshHistory, bumpStorageRefresh, t],

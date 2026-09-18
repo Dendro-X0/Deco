@@ -14,6 +14,14 @@ import {
   type MigrateToolId,
 } from './tool-migration-profiles.js';
 import { detectRunningToolProcesses, enrichPlanWithRunningProcesses, runningProcessWarning } from './tool-migration-processes.js';
+import { toolMigrationProfileWarnings } from './tool-migration-profile-warnings.js';
+import {
+  analyzeDockerDisk,
+  dockerBreakdownWarnings,
+  type DockerDiskBreakdown,
+} from './tool-migration-docker-breakdown.js';
+import { validateFirefoxProfileLayout } from './firefox-profile-layout.js';
+import { applyFreeSpaceChecks } from './tool-migration-free-space.js';
 
 export type { MigrateToolId } from './tool-migration-profiles.js';
 export type MigrationAction = 'plan' | 'run';
@@ -43,6 +51,7 @@ export type MigrationPlan = {
   readonly planOnly?: boolean;
   readonly legs?: readonly MigrationPlanLeg[];
   readonly running_processes?: readonly string[];
+  readonly dockerDiskBreakdown?: DockerDiskBreakdown;
 };
 
 export type MigrationResultLeg = {
@@ -316,19 +325,26 @@ async function planToolBundle(
     });
   }
 
-  const ok = activeLegs > 0 && errors.length === 0;
+  const firstActive = planLegs.find((l) => !l.skipped);
+  const source = firstActive?.source ?? planLegs[0]?.source ?? '';
+  const dest = firstActive?.dest ?? planLegs[0]?.dest ?? '';
+  const bytes = hasSize ? totalBytes : undefined;
+  if (isWindows()) {
+    const free = applyFreeSpaceChecks({ source, dest, bytes });
+    errors.push(...free.errors);
+    warnings.push(...free.warnings);
+  }
   if (activeLegs === 0 && errors.length === 0) {
     errors.push('No bundle legs had an existing source directory to migrate.');
   }
 
-  const firstActive = planLegs.find((l) => !l.skipped);
   return {
-    ok,
+    ok: activeLegs > 0 && errors.length === 0,
     tool,
-    source: firstActive?.source ?? planLegs[0]?.source ?? '',
-    dest: firstActive?.dest ?? planLegs[0]?.dest ?? '',
+    source,
+    dest,
     destRoot,
-    bytes: hasSize ? totalBytes : undefined,
+    bytes,
     fileCount: hasSize ? totalFiles : undefined,
     warnings,
     errors,
@@ -376,6 +392,10 @@ export async function planToolDirMigration(args: {
     if (leafWarn) warnings.push(leafWarn);
   }
 
+  if (tool) {
+    warnings.push(...toolMigrationProfileWarnings(tool));
+  }
+
   if (errors.length > 0) {
     return {
       ok: false,
@@ -408,18 +428,43 @@ export async function planToolDirMigration(args: {
     toolLabel: tool,
   });
 
+  let dockerDiskBreakdown: DockerDiskBreakdown | undefined;
+  if (tool === 'docker-desktop' && args.includeSize && isWindows()) {
+    dockerDiskBreakdown = await analyzeDockerDisk(path.resolve(source!), single.bytes);
+    warnings.push(...dockerBreakdownWarnings(dockerDiskBreakdown));
+  }
+
+  if (tool === 'firefox' && isWindows()) {
+    const layout = await validateFirefoxProfileLayout(path.resolve(source!));
+    warnings.push(...layout.warnings);
+    errors.push(...layout.errors);
+  }
+
+  const resolvedSource = path.resolve(source!);
+  const resolvedDest = path.resolve(dest!);
+  if (isWindows()) {
+    const free = applyFreeSpaceChecks({
+      source: resolvedSource,
+      dest: resolvedDest,
+      bytes: single.bytes,
+    });
+    errors.push(...free.errors);
+    warnings.push(...free.warnings);
+  }
+
   return enrichPlanWithRunningProcesses(tool, {
-    ok: single.ok,
+    ok: single.ok && errors.length === 0,
     tool,
     customMode,
-    source: path.resolve(source!),
-    dest: path.resolve(dest!),
+    source: resolvedSource,
+    dest: resolvedDest,
     destRoot: args.destRoot,
     bytes: single.bytes,
     fileCount: single.fileCount,
     warnings: [...warnings, ...single.warnings],
     errors: [...errors, ...single.errors],
     planOnly,
+    dockerDiskBreakdown,
   });
 }
 

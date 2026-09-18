@@ -19,6 +19,7 @@ Project encyclopedia for **Deco** (desktop + CLI disk cleanup for developer mach
 | [Features](product/features.md) | Desktop UX, engine capabilities, commands |
 | [Project status](product/status.md) | Handoff snapshot, next manifest, quick commands |
 | [Roadmap to 1.0](product/v1.0-roadmap.md) | v0.9.10 → v0.9.11 → v1.0.0 release train |
+| [v1.3 manifest](product/v1.3-manifest.md) | Profile Run graduation (game launchers, Docker depth) |
 | [Version roadmap](product/version-roadmap.md) | Full history: v0.4.x–v1.0 (UX, ecosystems, engine, trust, platform reach) |
 | [v0.7.x roadmap](product/v0.7.x-roadmap.md) | Phase D version queue (`v0.7.5`–`v0.7.7`) |
 | [v0.8.x roadmap](product/v0.8.x-roadmap.md) | Phase E — Win/macOS/Linux releases, winget, i18n, demos |

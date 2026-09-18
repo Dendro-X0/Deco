@@ -212,7 +212,8 @@ type BusyKind = 'plan' | 'run';
 
 type Props = {
   disabled?: boolean;
-  onError?: (message: string) => void;
+  /** Pass `null` to clear a prior global error after a successful / copy-assist result. */
+  onError?: (message: string | null) => void;
   initialTool?: ToolMigrationUiId;
   focusKey?: number;
 };
@@ -318,7 +319,8 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
           includeSize: true,
         })) as ToolMigrationPlan;
         setPlan(next);
-        if (!next.ok) onError?.(next.errors?.[0] ?? 'Migration plan failed.');
+        if (next.ok) onError?.(null);
+        else onError?.(next.errors?.[0] ?? 'Migration plan failed.');
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         onError?.(msg);
@@ -343,7 +345,8 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
         includeSize: true,
       })) as ToolMigrationPlan;
       setPlan(next);
-      if (!next.ok) onError?.(next.errors?.[0] ?? 'Migration plan failed.');
+      if (next.ok) onError?.(null);
+      else onError?.(next.errors?.[0] ?? 'Migration plan failed.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       onError?.(msg);
@@ -377,7 +380,10 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
       })) as ToolMigrationResult;
       setResult(next);
       if (next.ok) setManagedRefreshKey((k) => k + 1);
-      if (!next.ok && !next.copy_completed) {
+      // Copy-assist / partial success is expected (ok=false + copy_completed) — not a failure banner.
+      if (next.ok || next.copy_completed) {
+        onError?.(null);
+      } else {
         onError?.(next.errors?.[0] ?? 'Migration failed.');
       }
     } catch (err: unknown) {
@@ -767,6 +773,35 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
                   <span className="text-muted-foreground">{t('settings.toolMigration.totalSize')}</span>{' '}
                   <span className="font-mono">{formatBytes(plan.bytes)}</span>
                 </p>
+              ) : null}
+              {plan.docker_disk_breakdown ? (
+                <div className="rounded border border-border/50 bg-muted/30 p-2 space-y-1">
+                  <p className="font-semibold">{t('settings.toolMigration.dockerBreakdownTitle')}</p>
+                  {plan.docker_disk_breakdown.vhdx_bytes != null &&
+                  plan.docker_disk_breakdown.vhdx_path ? (
+                    <p>
+                      <span className="text-muted-foreground">
+                        {t('settings.toolMigration.dockerVhdxSize')}
+                      </span>{' '}
+                      <span className="font-mono">
+                        {formatBytes(plan.docker_disk_breakdown.vhdx_bytes)}
+                      </span>
+                      <span className="block font-mono text-[10px] break-all text-muted-foreground mt-0.5">
+                        {plan.docker_disk_breakdown.vhdx_path}
+                      </span>
+                    </p>
+                  ) : null}
+                  {plan.docker_disk_breakdown.appdata_excluding_vhdx_bytes != null ? (
+                    <p>
+                      <span className="text-muted-foreground">
+                        {t('settings.toolMigration.dockerMetadataSize')}
+                      </span>{' '}
+                      <span className="font-mono">
+                        {formatBytes(plan.docker_disk_breakdown.appdata_excluding_vhdx_bytes)}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
               ) : null}
               {plan.already_complete ? (
                 <div className="rounded border border-emerald-500/40 bg-emerald-500/10 p-2 space-y-1 text-emerald-700 dark:text-emerald-400">

@@ -32,6 +32,15 @@ export type ToolMigrationPlan = {
   legs?: ToolMigrationPlanLeg[];
   running_processes?: string[];
   pending_backups?: ToolMigrationBackupEntry[];
+  docker_disk_breakdown?: DockerDiskBreakdown;
+};
+
+export type DockerDiskBreakdown = {
+  docker_root: string;
+  total_bytes?: number;
+  vhdx_path?: string;
+  vhdx_bytes?: number;
+  appdata_excluding_vhdx_bytes?: number;
 };
 
 export type ToolMigrationResultLeg = {

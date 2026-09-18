@@ -631,6 +631,9 @@
       "dest": "Dest:",
       "size": "Estimated size:",
       "totalSize": "Total estimated size:",
+      "dockerBreakdownTitle": "Docker disk layout",
+      "dockerVhdxSize": "WSL disk image (ext4.vhdx):",
+      "dockerMetadataSize": "LocalAppData excluding VHDX:",
       "legSkipped": "Skipped (source not found).",
       "destVerifiedSize": "Verified on destination:",
       "alreadyCompleteTitle": "Migration already complete",
@@ -678,9 +681,12 @@
       "configWizard": {
         "npmTitle": "npm cache — config redirect",
         "pnpmTitle": "pnpm store — config redirect",
+        "dockerTitle": "Docker Desktop — disk image location",
         "hint": "Official npm/pnpm settings move future cache writes — no junction. Run these in a terminal after picking a folder on another drive.",
+        "dockerHint": "Docker stores most data in ext4.vhdx. Use Docker Desktop settings to relocate the disk image — Deco does not junction-migrate VHDX.",
         "destLabel": "New cache path",
-        "setupTitle": "Setup commands",
+        "dockerDestLabel": "Suggested disk image folder (NTFS)",
+        "setupTitle": "Setup steps",
         "verifyTitle": "Verify",
         "copy": "Copy command"
       }
@@ -876,6 +882,8 @@
     "optInSkippedHint": "{{count}} global-cache item(s) need matching toggles under Settings → Discovery, then re-scan.",
     "blockedSkippedHint": "{{count}} blocked item(s) cannot be removed. Deselect them and try again.",
     "failed": "Cleanup failed",
+    "stopped": "Cleanup stopped",
+    "stoppedHint": "Stopped at your request. Nothing was moved yet.",
     "missingPaths": "{{count}} path(s) no longer exist on disk.",
     "nothingMoved": "Nothing was moved. Re-run the scan if paths changed.",
     "deletedOnly": "{{count}} deleted (freed space immediately)",

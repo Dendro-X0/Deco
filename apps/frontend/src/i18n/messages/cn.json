@@ -631,6 +631,9 @@
       "dest": "目标：",
       "size": "估算大小：",
       "totalSize": "合计估算大小：",
+      "dockerBreakdownTitle": "Docker 磁盘布局",
+      "dockerVhdxSize": "WSL 磁盘镜像 (ext4.vhdx)：",
+      "dockerMetadataSize": "不含 VHDX 的 LocalAppData：",
       "legSkipped": "已跳过（未找到源目录）。",
       "destVerifiedSize": "目标路径已验证大小：",
       "alreadyCompleteTitle": "迁移已完成",
@@ -678,9 +681,12 @@
       "configWizard": {
         "npmTitle": "npm 缓存 — 配置重定向",
         "pnpmTitle": "pnpm 存储 — 配置重定向",
+        "dockerTitle": "Docker Desktop — 磁盘镜像位置",
         "hint": "使用 npm/pnpm 官方设置将未来缓存写入新路径 — 无需联接。请在另一驱动器上选好文件夹后在终端运行。",
+        "dockerHint": "Docker 的大部分数据在 ext4.vhdx 中。请用 Docker Desktop 设置迁移磁盘镜像 — Deco 不会通过 junction 迁移 VHDX。",
         "destLabel": "新缓存路径",
-        "setupTitle": "设置命令",
+        "dockerDestLabel": "建议的磁盘镜像文件夹（NTFS）",
+        "setupTitle": "设置步骤",
         "verifyTitle": "验证",
         "copy": "复制命令"
       }
@@ -876,6 +882,8 @@
     "optInSkippedHint": "{{count}} 个全局缓存项目需要在设置 → 发现中启用相应选项，然后重新扫描。",
     "blockedSkippedHint": "{{count}} 个被阻止的项目无法删除。请取消选择后重试。",
     "failed": "清理失败",
+    "stopped": "清理已停止",
+    "stoppedHint": "已按你的请求停止。尚未移动任何内容。",
     "missingPaths": "{{count}} 个路径在磁盘上已不存在。",
     "nothingMoved": "未移动任何内容。如果路径已更改，请重新扫描。",
     "deletedOnly": "已删除 {{count}} 个（立即释放空间）",

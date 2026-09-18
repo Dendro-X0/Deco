@@ -1,7 +1,7 @@
 # Capabilities and limits (honest commitments)
 
 **Audience:** Developers evaluating or using Deco as lightweight OSS  
-**Last updated:** 2026-06-11
+**Last updated:** 2026-09-18
 
 Deco is a **safety-first cleanup and space-management** tool for developer machines. This document states what the project **commits to**, what it **does not promise**, and why — so expectations stay aligned with how Windows and real apps behave.
 
@@ -34,7 +34,7 @@ Deco is a **safety-first cleanup and space-management** tool for developer machi
 | Commitment | Detail |
 |------------|--------|
 | **Tested paths** | Known profiles (Cursor, VS Code, Chrome, Discord, …) use fixed source layouts documented in [tool-migration-profiles.md](tool-migration-profiles.md). |
-| **Plan before Run** | Size, paths, process checks, and warnings are shown before any copy. |
+| **Plan before Run** | Size, paths, process checks, free-space gate (dest ≥ source × 1.2), and warnings are shown before any copy. |
 | **Audit trail** | Run writes a JSON audit log under Deco app data `migrations/`. |
 | **Backup on success** | Original folder is renamed to `.deco-backup-*` on disk until you delete it after verification. |
 | **Best-effort junction** | Listed profiles attempt copy → rename → `mklink /J` at the original path — the same model as a careful manual guide. |

@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-05-29 · **Latest shipped:** `v1.1.0` · **In progress:** `v1.2` ([post-v1.0-direction.md](post-v1.0-direction.md))
+**Last updated:** 2026-09-18 · **Latest shipped:** `v1.3.0` · **Queued:** `v1.2` ([post-v1.0-direction.md](post-v1.0-direction.md)) · **Deferred:** v1.3 X2 dest-root hint
 
 ---
 
@@ -17,31 +17,33 @@
 | Item | Location |
 |------|----------|
 | **Positioning** | Honest OSS commitments — [capabilities-and-limits.md](capabilities-and-limits.md), [positioning.md](positioning.md) |
-| **In progress** | `v1.2` — U3 regeneration hints in preview; U4 CLI profile flags; M5 expand config wizards |
-| **Shipped** | `v1.1.0` — [manifest](v1.1-manifest.md): persona onboarding, rollback helper, npm/pnpm wizard |
+| **Shipped** | `v1.3.0` — [manifest](v1.3-manifest.md): game/Firefox Run, Docker depth, free-space gate, stop-cleanup UX |
+| **Queued** | `v1.2` — U3 regeneration hints; U4 CLI profile flags; M5 config wizards |
+| **Prior** | `v1.1.0` — [manifest](v1.1-manifest.md): persona onboarding, rollback helper, npm/pnpm wizard |
 | **Prior** | `v1.0.2` — honesty release + U1 low-yield scan insight |
-| **Prior** | `v1.0.1` / `v1.0.0` — custom migration fixes; GA cleanup |
 | **Post-1.0** | [post-v1.0-direction.md](post-v1.0-direction.md) |
 
-### v1.1 highlights
+### v1.3 highlights
 
-- Persona onboarding: project drives + cleanup profile on first launch.
-- Guided migration rollback steps (listed profiles; manual, not one-click).
-- npm/pnpm config-redirect wizard for plan-only profiles.
-- Listed IDE migration (VS Code, Cursor, etc.) remains the reliable Windows path.
+- Game launcher Run: Epic / Steam AppData / Battle.net (launcher LocalAppData only).
+- Docker Plan depth + config wizard (no VHDX junction Run).
+- Firefox Run with `profiles.ini` validation.
+- Plan free-space gate (dest × 1.2) + source low-space warning.
+- User-stopped cleanup is informational, not a hard failure banner.
 
 ### Quick commands
 
 ```bash
 pnpm install
 pnpm check
-node scripts/sync-package-manifests.mjs v1.1.0   # after Release assets publish
+node scripts/sync-package-manifests.mjs v1.3.0   # after Release assets publish
 ```
 
 ### Shipped recently
 
 | Version | Highlights |
 |---------|------------|
+| **v1.3.0** | Profile Run graduation; free-space Plan gate; stop-cleanup UX | Shipped |
 | **v1.1.0** | U2 persona; M6 rollback; M5 npm/pnpm wizard; parity fixtures | Shipped |
 | **v1.0.2** | Honesty release; custom copy-assist; U1 scan insight | Shipped |
 | **v1.0.1** | Custom migration lock-file fix | Shipped |

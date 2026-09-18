@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-09-18
+
+### Added
+
+- **v1.3 Profile Run graduation** — [manifest](docs/product/v1.3-manifest.md): game launcher Run, Docker depth, Firefox Run, free-space Plan gate.
+- **Epic Games Launcher migration Run** — `epic-games` profile supports Plan + Run (launcher LocalAppData only); Plan warns that game installs may live elsewhere.
+- **Steam / Battle.net launcher Run** — `steam-appdata` and `battle-net` profiles support Plan + Run (LocalAppData launcher data only; not game libraries).
+- **Docker disk depth (M9)** — Plan splits `ext4.vhdx` vs LocalAppData metadata; dominant-VHDX warnings; Settings config wizard for official disk image relocation (plan-only, no VHDX junction Run).
+- **Firefox migration Run (M10)** — `firefox` profile supports Plan + Run with `profiles.ini` layout validation.
+- **Chrome Plan guidance** — `google-chrome` Plan warns about full User Data size and quitting Chrome before Run (already a listed Run profile).
+- **Migration free-space gate (X1)** — Plan errors when destination free space is below source size × 1.2; Plan warns when the source volume is critically low (&lt; 2 GB or &lt; 5% free).
+
+### Fixed
+
+- **Cleanup success UX** — after quarantine/delete that reclaims space, soft per-path failures no longer raise the global red error banner; status stays `done` with an optional path-warning hint.
+- **User-stopped cleanup UX** — Pause → Cancel (or Cancel before the first folder finishes) no longer raises a hard failure banner/toast; shows an informational “Cleanup stopped” result instead.
+- **Migration success UX** — successful Run and custom copy-assist clear the global error banner instead of leaving a prior failure message visible.
+
 ## [1.1.0] - 2026-05-29
 
 ### Added

@@ -63,7 +63,7 @@ type Props = {
   scanning: boolean;
   onSave: (settings: Settings) => Promise<void>;
   onDiscard: () => void;
-  onError?: (message: string) => void;
+  onError?: (message: string | null) => void;
   migrationFocusTool?: string | null;
   migrationFocusKey?: number;
 };

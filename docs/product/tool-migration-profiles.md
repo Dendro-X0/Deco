@@ -28,7 +28,7 @@ Implementation: `apps/cli/src/tool-migration-profiles.ts` and `apps/desktop/src-
 | `google-chrome` | browser | `%LOCALAPPDATA%\Google\Chrome\User Data` | Yes | Quit Chrome fully |
 | `microsoft-edge` | browser | `%LOCALAPPDATA%\Microsoft\Edge\User Data` | Yes | Quit Edge fully |
 | `brave` | browser | `%LOCALAPPDATA%\BraveSoftware\Brave-Browser\User Data` | Yes | Quit Brave fully |
-| `firefox` | browser | `%APPDATA%\Mozilla\Firefox` | Plan only | Profile layout varies |
+| `firefox` | browser | `%APPDATA%\Mozilla\Firefox` | Yes | Plan validates profiles.ini; quit Firefox before Run |
 
 ### Utilities (AppData)
 
@@ -45,15 +45,15 @@ Implementation: `apps/cli/src/tool-migration-profiles.ts` and `apps/desktop/src-
 
 | ID | Category | Default source | Run | Notes |
 |----|----------|----------------|-----|-------|
-| `epic-games` | game | `%LOCALAPPDATA%\EpicGamesLauncher` | Plan only | Game installs may live elsewhere |
-| `steam-appdata` | game | `%LOCALAPPDATA%\Steam` | Plan only | Not the Steam library under Program Files |
-| `battle-net` | game | `%LOCALAPPDATA%\Battle.net` | Plan only | Game files may be on other drives |
+| `epic-games` | game | `%LOCALAPPDATA%\EpicGamesLauncher` | Yes | Quit launcher; game installs may live elsewhere |
+| `steam-appdata` | game | `%LOCALAPPDATA%\Steam` | Yes | LocalAppData cache only — not steamapps library; quit Steam |
+| `battle-net` | game | `%LOCALAPPDATA%\Battle.net` | Yes | Launcher LocalAppData; game files may be elsewhere |
 
 ### Containers & package managers
 
 | ID | Category | Default source | Run | Notes |
 |----|----------|----------------|-----|-------|
-| `docker-desktop` | container | `%LOCALAPPDATA%\Docker` | Plan only | WSL2 VHDX / ProgramData separate |
+| `docker-desktop` | container | `%LOCALAPPDATA%\Docker` | Plan only | Plan splits VHDX vs metadata; use config wizard for disk image location |
 | `npm-cache` | package-manager | `%LOCALAPPDATA%\npm-cache` | Plan only | Regenerable |
 | `pnpm-store` | package-manager | `%LOCALAPPDATA%\pnpm\store` | Plan only | Custom `store-dir` → `--source`/`--dest` |
 
@@ -108,8 +108,18 @@ Not a product guarantee for full junction automation on arbitrary paths.
 
 ## Safety
 
-- Quit the target app before **Run** (browsers, Discord, games, etc.).
+- Quit the target app before **Run** (browsers, Discord, games, Cursor, etc.).
 - Destination must be on **NTFS**; use a **parent** folder (e.g. `G:\AppData`), not `G:\AppData\Spotify` — Deco appends the profile leaf name.
+- **Free space:** Plan fails if destination free space &lt; source size × **1.2**. Plan warns if the source volume is critically low (&lt; 2 GB or &lt; 5% free). Free several GB on the OS drive before migrating large profiles.
 - Refuse migrating junction/symlink sources without `--force` (not in v0.9.x).
 - **Plan only** profiles: sizing and path validation only — verify layout before manual or CLI `--source`/`--dest` run.
 - Audit logs under Deco app data `migrations/` (desktop) or temp (CLI).
+
+### Cursor C: → G: checklist
+
+1. Free several GB on **C:** (scan regenerable caches, empty Recycle Bin) — do not Run with ~1–2 GB free.
+2. Quit **Cursor.exe** (Task Manager + tray).
+3. Settings → Tool storage migration → **Cursor** → dest root `G:\AppData` (or similar).
+4. **Plan** — confirm size, idle processes, free-space gate; fix plan errors.
+5. **Run** — wait for junction success; reopen Cursor; verify settings/history.
+6. After stable use, delete `.deco-backup-*` on C: to reclaim space.

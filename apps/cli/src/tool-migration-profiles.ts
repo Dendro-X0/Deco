@@ -118,8 +118,8 @@ export const TOOL_MIGRATION_PROFILES: readonly ToolMigrationProfile[] = [
     label: 'Mozilla Firefox',
     category: 'browser',
     destLeaf: 'Firefox',
-    planOnly: true,
-    docNote: 'Profiles live under Roaming\\Mozilla\\Firefox; verify layout before run.',
+    planOnly: false,
+    docNote: 'Roaming %APPDATA%\\Mozilla\\Firefox. Quit Firefox before Run; Plan validates profiles.ini.',
   },
   // --- Utilities (AppData) ---
   {
@@ -196,24 +196,24 @@ export const TOOL_MIGRATION_PROFILES: readonly ToolMigrationProfile[] = [
     label: 'Epic Games Launcher',
     category: 'game',
     destLeaf: 'EpicGamesLauncher',
-    planOnly: true,
-    docNote: 'LocalAppData only; game installs may live elsewhere.',
+    planOnly: false,
+    docNote: 'LocalAppData only; game installs may live elsewhere. Quit Epic Games Launcher before Run.',
   },
   {
     id: 'steam-appdata',
     label: 'Steam (AppData cache)',
     category: 'game',
     destLeaf: 'Steam-Local',
-    planOnly: true,
-    docNote: 'LocalAppData\\Steam — not the full Steam library under Program Files.',
+    planOnly: false,
+    docNote: 'LocalAppData\\Steam — not the full Steam library. Quit Steam before Run.',
   },
   {
     id: 'battle-net',
     label: 'Battle.net',
     category: 'game',
     destLeaf: 'Battle-net',
-    planOnly: true,
-    docNote: 'LocalAppData\\Battle.net — game files may be on other drives.',
+    planOnly: false,
+    docNote: 'LocalAppData\\Battle.net — game files may be on other drives. Quit Battle.net before Run.',
   },
   // --- Containers & package managers ---
   {
@@ -222,6 +222,7 @@ export const TOOL_MIGRATION_PROFILES: readonly ToolMigrationProfile[] = [
     category: 'container',
     destLeaf: 'Docker',
     planOnly: true,
+    docNote: 'Plan-only: splits ext4.vhdx vs LocalAppData. Use Settings config wizard for disk image location.',
   },
   {
     id: 'npm-cache',

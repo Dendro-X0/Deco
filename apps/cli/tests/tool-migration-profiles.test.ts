@@ -37,14 +37,14 @@ describe('tool-migration-profiles', () => {
     expect(legs[1]?.dest).toMatch(/Cursor-Local$/);
   });
 
-  it('marks package managers, games, and docker as plan-only', () => {
+  it('marks package managers and docker as plan-only; browsers and game launchers support Run', () => {
     expect(isToolMigrationPlanOnly('docker-desktop')).toBe(true);
     expect(isToolMigrationPlanOnly('npm-cache')).toBe(true);
     expect(isToolMigrationPlanOnly('pnpm-store')).toBe(true);
-    expect(isToolMigrationPlanOnly('firefox')).toBe(true);
-    expect(isToolMigrationPlanOnly('epic-games')).toBe(true);
-    expect(isToolMigrationPlanOnly('steam-appdata')).toBe(true);
-    expect(isToolMigrationPlanOnly('battle-net')).toBe(true);
+    expect(isToolMigrationPlanOnly('firefox')).toBe(false);
+    expect(isToolMigrationPlanOnly('epic-games')).toBe(false);
+    expect(isToolMigrationPlanOnly('steam-appdata')).toBe(false);
+    expect(isToolMigrationPlanOnly('battle-net')).toBe(false);
     expect(isToolMigrationPlanOnly('claude-code')).toBe(false);
     expect(isToolMigrationPlanOnly('google-chrome')).toBe(false);
     expect(isToolMigrationPlanOnly('discord')).toBe(false);

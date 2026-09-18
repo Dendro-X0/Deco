@@ -5,9 +5,10 @@ import {
 } from '../../frontend/src/lib/config-redirect-wizards';
 
 describe('config-redirect-wizards', () => {
-  it('recognizes npm and pnpm redirect tools', () => {
+  it('recognizes npm, pnpm, and docker redirect tools', () => {
     expect(isConfigRedirectTool('npm-cache')).toBe(true);
     expect(isConfigRedirectTool('pnpm-store')).toBe(true);
+    expect(isConfigRedirectTool('docker-desktop')).toBe(true);
     expect(isConfigRedirectTool('cursor')).toBe(false);
   });
 
@@ -25,5 +26,12 @@ describe('config-redirect-wizards', () => {
 
   it('returns empty commands for blank dest', () => {
     expect(configRedirectCommands('npm-cache', '  ')).toEqual({ setup: [], verify: [] });
+  });
+
+  it('builds docker disk relocation checklist', () => {
+    const { setup, verify } = configRedirectCommands('docker-desktop', 'G:\\DockerData');
+    expect(setup.some((s) => s.includes('wsl --shutdown'))).toBe(true);
+    expect(setup.some((s) => s.includes('G:\\DockerData'))).toBe(true);
+    expect(verify.some((s) => s.includes('docker info'))).toBe(true);
   });
 });

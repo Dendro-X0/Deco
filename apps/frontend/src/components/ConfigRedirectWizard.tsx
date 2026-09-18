@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/i18n';
 import {
-  configRedirectCommands,
+  configRedirectSteps,
   defaultConfigRedirectDest,
   type ConfigRedirectToolId,
 } from '@/lib/config-redirect-wizards';
@@ -43,64 +43,89 @@ function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
   );
 }
 
+function StepList({
+  steps,
+  disabled,
+  ordered,
+}: {
+  steps: ReturnType<typeof configRedirectSteps>['setup'];
+  disabled?: boolean;
+  ordered?: boolean;
+}) {
+  const ListTag = ordered ? 'ol' : 'ul';
+  const listClass = ordered ? 'list-decimal pl-4 space-y-1' : 'space-y-1';
+
+  return (
+    <ListTag className={listClass}>
+      {steps.map((step, index) => (
+        <li key={`${index}-${step.command ?? step.text?.slice(0, 24) ?? 'step'}`} className="flex items-start gap-1">
+          {step.command ? (
+            <>
+              {step.text ? <span className="flex-1 leading-relaxed">{step.text}</span> : null}
+              <code className="flex-1 font-mono text-[11px] break-all">{step.command}</code>
+              <CopyButton text={step.command} disabled={disabled} />
+            </>
+          ) : (
+            <span className="flex-1 leading-relaxed">{step.text ?? ''}</span>
+          )}
+        </li>
+      ))}
+    </ListTag>
+  );
+}
+
 export function ConfigRedirectWizard({ toolId, disabled }: Props) {
   const { t } = useI18n();
   const [dest, setDest] = useState(() => defaultConfigRedirectDest(toolId));
 
-  const { setup, verify } = useMemo(
-    () => configRedirectCommands(toolId, dest),
-    [toolId, dest],
-  );
+  const { setup, verify } = useMemo(() => configRedirectSteps(toolId, dest), [toolId, dest]);
 
   const toolLabel =
     toolId === 'npm-cache'
       ? t('settings.toolMigration.configWizard.npmTitle')
-      : t('settings.toolMigration.configWizard.pnpmTitle');
+      : toolId === 'pnpm-store'
+        ? t('settings.toolMigration.configWizard.pnpmTitle')
+        : t('settings.toolMigration.configWizard.dockerTitle');
+
+  const hint =
+    toolId === 'docker-desktop'
+      ? t('settings.toolMigration.configWizard.dockerHint')
+      : t('settings.toolMigration.configWizard.hint');
+
+  const showDestInput = true;
 
   return (
     <div className="rounded-lg border border-sky-500/30 bg-sky-500/5 p-3 space-y-3 text-xs">
       <div>
         <p className="font-semibold text-sky-950 dark:text-sky-100">{toolLabel}</p>
-        <p className="mt-1 text-muted-foreground leading-relaxed">
-          {t('settings.toolMigration.configWizard.hint')}
-        </p>
+        <p className="mt-1 text-muted-foreground leading-relaxed">{hint}</p>
       </div>
-      <div className="space-y-1.5">
-        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-          {t('settings.toolMigration.configWizard.destLabel')}
-        </label>
-        <Input
-          value={dest}
-          onChange={(e) => setDest(e.target.value)}
-          disabled={disabled}
-          className="font-mono text-xs h-8"
-          placeholder={defaultConfigRedirectDest(toolId)}
-        />
-      </div>
+      {showDestInput ? (
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+            {toolId === 'docker-desktop'
+              ? t('settings.toolMigration.configWizard.dockerDestLabel')
+              : t('settings.toolMigration.configWizard.destLabel')}
+          </label>
+          <Input
+            value={dest}
+            onChange={(e) => setDest(e.target.value)}
+            disabled={disabled}
+            className="font-mono text-xs h-8"
+            placeholder={defaultConfigRedirectDest(toolId)}
+          />
+        </div>
+      ) : null}
       {setup.length > 0 ? (
         <div className="space-y-1">
           <p className="font-semibold">{t('settings.toolMigration.configWizard.setupTitle')}</p>
-          <ol className="list-decimal pl-4 space-y-1">
-            {setup.map((cmd) => (
-              <li key={cmd} className="flex items-start gap-1">
-                <code className="flex-1 font-mono text-[11px] break-all">{cmd}</code>
-                <CopyButton text={cmd} disabled={disabled} />
-              </li>
-            ))}
-          </ol>
+          <StepList steps={setup} disabled={disabled} ordered={toolId === 'docker-desktop'} />
         </div>
       ) : null}
       {verify.length > 0 ? (
         <div className="space-y-1">
           <p className="font-semibold">{t('settings.toolMigration.configWizard.verifyTitle')}</p>
-          <ul className="space-y-1">
-            {verify.map((cmd) => (
-              <li key={cmd} className="flex items-start gap-1">
-                <code className="flex-1 font-mono text-[11px] break-all">{cmd}</code>
-                <CopyButton text={cmd} disabled={disabled} />
-              </li>
-            ))}
-          </ul>
+          <StepList steps={verify} disabled={disabled} ordered={toolId === 'docker-desktop'} />
         </div>
       ) : null}
     </div>
