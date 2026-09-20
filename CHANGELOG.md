@@ -2,11 +2,13 @@
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-09-20
+
 ### Fixed
 
+- **Full C: drive no longer fails a finished migration** — if the junction succeeds but Deco's database cannot record it (`database or disk is full`), Run stays successful and the reason is a warning.
 - **Quiet Windows helpers** — `tasklist`, `mklink`, `cmd move`, PowerShell shortcut reads, and `go`/`pnpm`/`git` probes spawn with `CREATE_NO_WINDOW` so Plan/Run no longer flash console windows.
 - **Migration cannot-migrate feedback** — Plan blockers show a titled reason panel; failed Run surfaces `errors` in the migration section (not only the global banner).
-- **Unix CI Rust tests** — Docker VHDX candidate checks compare path components (backslashes are not separators on macOS/Linux). Firefox Plan acceptance no longer requires `plan.ok` off Windows, where junction migration is intentionally blocked.
 
 ## [1.3.0] - 2026-09-18
 

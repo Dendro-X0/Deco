@@ -84,14 +84,19 @@ pub async fn migrate_tool_dir_run(
 
     tauri::async_runtime::spawn_blocking(move || -> Result<MigrationResult, String> {
         let plan = resolve_plan(tool, dest_root, source, dest, false)?;
-        let result = tool_migration::run_from_plan(plan, copy_only, &audit_dir);
+        let mut result = tool_migration::run_from_plan(plan, copy_only, &audit_dir);
         // Custom folder assist only copies — junction is manual; do not register as managed migration.
         if result.ok && result.tool != "custom" {
             let conn = state
                 .db
                 .lock()
                 .map_err(|e| format!("db lock poisoned: {e}"))?;
-            managed_migrations::record_from_result(&conn, &result)?;
+            // The junction can succeed while C: is too full for SQLite. Do not turn that into a hard failure.
+            if let Err(err) = managed_migrations::record_from_result(&conn, &result) {
+                result.warnings.push(format!(
+                    "{err}. The folder move was not undone. If the original path is already a junction, migration succeeded and only Deco's database on C: could not be updated. Free a little space on C: (delete the .deco-backup folder only after the app works), then open Settings again."
+                ));
+            }
         }
         Ok(result)
     })
