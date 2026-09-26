@@ -89,7 +89,66 @@ export function detectRunningToolProcesses(id: MigrateToolId): string[] {
 
 export function runningProcessWarning(running: readonly string[]): string | null {
   if (running.length === 0) return null;
-  return `Close these processes before Run migration: ${running.join(', ')} (check Task Manager and the tray icon).`;
+  return `Deco will close these processes when you Run migration: ${running.join(', ')}.`;
+}
+
+export type CloseProcessesOutcome = {
+  readonly closed: readonly string[];
+  readonly still_running: readonly string[];
+};
+
+/** Force-close tool processes (CCleaner-style) so rename/junction can proceed. */
+export function closeRunningToolProcesses(id: MigrateToolId): CloseProcessesOutcome {
+  if (process.platform !== 'win32') {
+    return { closed: [], still_running: detectRunningToolProcesses(id) };
+  }
+  const targets = detectRunningToolProcesses(id);
+  if (targets.length === 0) {
+    return { closed: [], still_running: [] };
+  }
+
+  const closed: string[] = [];
+  for (const image of targets) {
+    try {
+      execSync(`taskkill /F /T /IM "${image}"`, {
+        encoding: 'utf8',
+        timeout: 30_000,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
+      });
+    } catch {
+      // taskkill exits non-zero when the process already exited — continue.
+    }
+    closed.push(image);
+  }
+
+  const sleep = (ms: number) => {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      /* busy wait — CLI has no async requirement here */
+    }
+  };
+
+  for (let i = 0; i < 10; i++) {
+    sleep(500);
+    const still = detectRunningToolProcesses(id);
+    if (still.length === 0) break;
+    for (const image of still) {
+      try {
+        execSync(`taskkill /F /T /IM "${image}"`, {
+          encoding: 'utf8',
+          timeout: 30_000,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          windowsHide: true,
+        });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  sleep(1500);
+  return { closed, still_running: detectRunningToolProcesses(id) };
 }
 
 export function enrichPlanWithRunningProcesses<

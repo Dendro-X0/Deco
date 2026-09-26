@@ -596,7 +596,7 @@ fn attach_running_process_warning(plan: &mut MigrationPlan, tool: ToolId) {
     }
     plan.running_processes = Some(running.clone());
     if let Some(msg) = crate::util::tool_migration_processes::running_process_warning(tool) {
-        if !plan.warnings.iter().any(|w| w.contains("Close these processes")) {
+        if !plan.warnings.iter().any(|w| w.contains("will close these processes")) {
             plan.warnings.push(msg);
         }
     }
@@ -1845,24 +1845,33 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
     if let Ok(id) = ToolId::parse(&plan.tool) {
         let running = crate::util::tool_migration_processes::detect_running_processes(id);
         if !running.is_empty() {
-            errors.push(format!(
-                "Cannot run migration while these processes are running: {}. Close them and try Plan again.",
-                running.join(", ")
-            ));
-            return MigrationResult {
-                ok: false,
-                tool: plan.tool,
-                source: plan.source,
-                dest: plan.dest,
-                audit_log_path: None,
-                backup_path: None,
-                warnings,
-                errors,
-                legs: None,
-                pending_backups: None,
-                copy_completed: None,
-                manual_finish_steps: None,
-            };
+            let close = crate::util::tool_migration_processes::close_running_processes(id);
+            if !close.closed.is_empty() {
+                warnings.push(format!(
+                    "Closed tool processes before migration: {}.",
+                    close.closed.join(", ")
+                ));
+            }
+            if !close.still_running.is_empty() {
+                errors.push(format!(
+                    "Could not close these processes (Access denied or protected): {}. Quit them from Task Manager / tray, then Run again.",
+                    close.still_running.join(", ")
+                ));
+                return MigrationResult {
+                    ok: false,
+                    tool: plan.tool,
+                    source: plan.source,
+                    dest: plan.dest,
+                    audit_log_path: None,
+                    backup_path: None,
+                    warnings,
+                    errors,
+                    legs: None,
+                    pending_backups: None,
+                    copy_completed: None,
+                    manual_finish_steps: None,
+                };
+            }
         }
     }
 

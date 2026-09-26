@@ -80,7 +80,7 @@ When `%APPDATA%` / `%LOCALAPPDATA%` folders (Cursor, VS Code, etc.) fill a small
 1. On the **Dashboard**, if the OS drive is low on space, a **migration handoff** banner may suggest tools with data on that drive — click **Open Tool storage migration**.
 2. Open **Settings → Tool storage migration (Windows)** (or use the banner link).
 3. Pick a **tool** profile (e.g. Cursor Roaming + Local) and a **destination root** on NTFS (e.g. `D:\DevToolData`).
-4. Click **Plan** — review source/dest paths, estimated size, and warnings. Close the tool if running processes are reported.
+4. Click **Plan** — review source/dest paths, estimated size, and warnings. If the tool is still running, Plan lists those processes; **Run** will close them after you confirm (save work first).
 5. Click **Run migration** — read the confirm dialog, then wait for the busy overlay to finish.
 6. Restart the tool; confirm settings and history. The audit log path is shown in Settings.
 

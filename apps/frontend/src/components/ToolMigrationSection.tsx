@@ -357,15 +357,6 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
 
   const runMigration = async () => {
     if (!plan?.ok || plan.plan_only) return;
-    const running = plan.running_processes ?? [];
-    if (running.length > 0) {
-      onError?.(
-        t('settings.toolMigration.processesRunningDetail', {
-          processes: running.join(', '),
-        }),
-      );
-      return;
-    }
     setRunConfirmOpen(false);
     beginBusy('run');
     setResult(null);
@@ -399,8 +390,15 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
     const base = t('settings.toolMigration.runConfirmDescription');
     const bundle =
       plan?.legs && plan.legs.length > 1 ? `\n\n${t('settings.toolMigration.runConfirmBundleNote')}` : '';
-    return `${base}${bundle}`;
-  }, [isCustom, plan?.legs, t]);
+    const processes = plan?.running_processes ?? [];
+    const closeNote =
+      processes.length > 0
+        ? `\n\n${t('settings.toolMigration.runConfirmCloseProcesses', {
+            processes: processes.join(', '),
+          })}`
+        : '';
+    return `${base}${bundle}${closeNote}`;
+  }, [isCustom, plan?.legs, plan?.running_processes, t]);
 
   const visibleBackups = useMemo(() => {
     const source = result?.pending_backups ?? plan?.pending_backups ?? [];
@@ -423,7 +421,6 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
     plan?.ok &&
     !plan.plan_only &&
     !plan.already_complete &&
-    (plan.running_processes?.length ?? 0) === 0 &&
     (isCustom ? customSource.trim().length > 0 && customDest.trim().length > 0 : destRoot.trim().length > 0);
 
   const canPlan = isCustom
@@ -866,8 +863,7 @@ export function ToolMigrationSection({ disabled, onError, initialTool, focusKey 
               !canRun &&
               plan.ok &&
               !plan.plan_only &&
-              !plan.already_complete &&
-              (plan.running_processes?.length ?? 0) === 0 ? (
+              !plan.already_complete ? (
                 <p className="text-amber-600/90">{t('settings.toolMigration.runBlockedHint')}</p>
               ) : null}
               {plan.ok && !plan.plan_only && !(plan.errors?.length) ? (

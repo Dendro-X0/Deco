@@ -63,7 +63,7 @@ deco migrate-tool-dir run --tool cursor --dest-root "D:/DevToolData" --yes --cop
 
 ### Troubleshooting
 
-- If the tool is running, files may be locked. Close the tool and re-run `run`.
+- If the tool is running, `run` force-closes its processes (like a cleaner), waits briefly, then migrates. Save work before confirming.
 - If `run` fails, check the printed **audit log** path for details.
 - Docker Desktop migration is intentionally plan-only in v0.9.0; use `plan` to identify where the bytes are and follow Docker’s official guidance for moving its data.
 

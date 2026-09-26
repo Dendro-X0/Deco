@@ -1,6 +1,6 @@
 # Project Status (Handoff)
 
-**Last updated:** 2026-09-26 · **Latest shipped:** `v1.3.2` · **Queued:** `v1.2` ([post-v1.0-direction.md](post-v1.0-direction.md)) · **Deferred:** v1.3 X2 dest-root hint
+**Last updated:** 2026-09-26 · **Latest shipped:** `v1.3.3` · **Queued:** `v1.2` ([post-v1.0-direction.md](post-v1.0-direction.md)) · **Deferred:** v1.3 X2 dest-root hint
 
 ---
 
@@ -17,7 +17,8 @@
 | Item | Location |
 |------|----------|
 | **Positioning** | Honest OSS commitments — [capabilities-and-limits.md](capabilities-and-limits.md), [positioning.md](positioning.md) |
-| **Shipped** | `v1.3.2` — resume non-empty dest after partial migration; portable Cursor process detection |
+| **Shipped** | `v1.3.3` — Run closes tool processes (CCleaner-style) before migration |
+| **Prior** | `v1.3.2` — resume non-empty dest after partial migration; portable Cursor process detection |
 | **Prior** | `v1.3.1` — quiet helpers, migration block reasons, full-disk registry warning |
 | **Prior** | `v1.3.0` — [manifest](v1.3-manifest.md): game/Firefox Run, Docker depth, free-space gate, stop-cleanup UX |
 | **Queued** | `v1.2` — U3 regeneration hints; U4 CLI profile flags; M5 config wizards |

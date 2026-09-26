@@ -13,7 +13,7 @@ import {
   resolveToolDestLeaf,
   type MigrateToolId,
 } from './tool-migration-profiles.js';
-import { detectRunningToolProcesses, enrichPlanWithRunningProcesses, runningProcessWarning } from './tool-migration-processes.js';
+import { detectRunningToolProcesses, enrichPlanWithRunningProcesses, closeRunningToolProcesses } from './tool-migration-processes.js';
 import { toolMigrationProfileWarnings } from './tool-migration-profile-warnings.js';
 import {
   analyzeDockerDisk,
@@ -625,11 +625,22 @@ export async function runToolDirMigration(plan: MigrationPlan, opts?: { readonly
   const running =
     plan.running_processes ??
     (plan.tool ? detectRunningToolProcesses(plan.tool) : []);
-  if (running.length > 0) {
-    const msg =
-      runningProcessWarning(running) ??
-      `Close these processes before Run migration: ${running.join(', ')}`;
-    return { ok: false, source: plan.source, dest: plan.dest, warnings, errors: [msg] };
+  if (running.length > 0 && plan.tool) {
+    const close = closeRunningToolProcesses(plan.tool);
+    if (close.closed.length > 0) {
+      warnings.push(`Closed tool processes before migration: ${close.closed.join(', ')}.`);
+    }
+    if (close.still_running.length > 0) {
+      return {
+        ok: false,
+        source: plan.source,
+        dest: plan.dest,
+        warnings,
+        errors: [
+          `Could not close these processes (Access denied or protected): ${close.still_running.join(', ')}. Quit them from Task Manager / tray, then Run again.`,
+        ],
+      };
+    }
   }
 
   const customCopyAssist = Boolean(plan.customMode);

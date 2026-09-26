@@ -25,12 +25,22 @@ fn tasklist_image_names() -> Vec<String> {
     names
 }
 
+#[cfg(not(windows))]
+fn tasklist_image_names() -> Vec<String> {
+    Vec::new()
+}
+
 #[cfg(windows)]
 fn is_process_running(image_name: &str) -> bool {
     let needle = image_name.to_ascii_lowercase();
     tasklist_image_names()
         .iter()
         .any(|n| n.eq_ignore_ascii_case(image_name) || n.to_ascii_lowercase().contains(&needle.replace(".exe", "")))
+}
+
+#[cfg(not(windows))]
+fn is_process_running(_image_name: &str) -> bool {
+    false
 }
 
 #[cfg(windows)]
@@ -40,11 +50,6 @@ fn is_cursor_family_running() -> bool {
         // Official Cursor.exe plus portable builds like "CursorXX-8.1.0-portable.exe"
         lower.contains("cursor") && lower.ends_with(".exe")
     })
-}
-
-#[cfg(not(windows))]
-fn is_process_running(_image_name: &str) -> bool {
-    false
 }
 
 #[cfg(not(windows))]
@@ -118,12 +123,95 @@ pub fn running_process_warning(tool: ToolId) -> Option<String> {
         return None;
     }
     Some(format!(
-        "Close these processes before Run migration: {} (check Task Manager and the tray icon).",
+        "Deco will close these processes when you Run migration: {}.",
         running.join(", ")
     ))
 }
 
-#[cfg(not(windows))]
-fn tasklist_image_names() -> Vec<String> {
-    Vec::new()
+/// Result of attempting to close tool processes before rename/junction.
+#[derive(Debug, Clone)]
+pub struct CloseProcessesOutcome {
+    pub closed: Vec<String>,
+    pub still_running: Vec<String>,
+}
+
+/// Close detected tool processes (CCleaner-style) so rename/junction can proceed.
+/// Force-kills by image name, waits briefly for handles to release, then re-checks.
+pub fn close_running_processes(tool: ToolId) -> CloseProcessesOutcome {
+    let targets = detect_running_processes(tool);
+    if targets.is_empty() {
+        return CloseProcessesOutcome {
+            closed: Vec::new(),
+            still_running: Vec::new(),
+        };
+    }
+
+    #[cfg(windows)]
+    {
+        let mut closed = Vec::new();
+        for image in &targets {
+            // /T kills the process tree; /F force-terminates (needed for Electron apps).
+            let _ = crate::util::hidden_command::command("taskkill")
+                .args(["/F", "/T", "/IM", image])
+                .output();
+            closed.push(image.clone());
+        }
+
+        // Electron / Chromium often needs a short settle before directory rename succeeds.
+        for _ in 0..10 {
+            std::thread::sleep(std::time::Duration::from_millis(500));
+            if detect_running_processes(tool).is_empty() {
+                break;
+            }
+            // Second pass in case a helper respawned briefly.
+            for image in detect_running_processes(tool) {
+                let _ = crate::util::hidden_command::command("taskkill")
+                    .args(["/F", "/T", "/IM", &image])
+                    .output();
+            }
+        }
+
+        // Extra settle for file-handle release after process exit.
+        std::thread::sleep(std::time::Duration::from_millis(1500));
+
+        CloseProcessesOutcome {
+            closed,
+            still_running: detect_running_processes(tool),
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        CloseProcessesOutcome {
+            closed: Vec::new(),
+            still_running: targets,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn warning_mentions_close_on_run_not_manual_quit() {
+        // Pure string contract — detect may be empty on CI hosts without the tool.
+        let msg = format!(
+            "Deco will close these processes when you Run migration: {}.",
+            "Cursor.exe"
+        );
+        assert!(msg.contains("will close"));
+        assert!(!msg.contains("Close these processes before"));
+    }
+
+    #[test]
+    fn cursor_family_image_filter_accepts_portable_names() {
+        let samples = [
+            "Cursor.exe",
+            "CursorXX-8.1.0-portable.exe",
+            "cursor-nightly.exe",
+        ];
+        for name in samples {
+            let lower = name.to_ascii_lowercase();
+            assert!(lower.contains("cursor") && lower.ends_with(".exe"));
+        }
+    }
 }

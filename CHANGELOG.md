@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.3.3] - 2026-09-26
+
+### Changed
+
+- **Migration closes the tool on Run (CCleaner-style)** — when Plan detects Cursor/Chrome/etc. still running, Run no longer refuses and tells you to quit manually. Confirm → Deco force-closes those processes, waits for handles to settle, then copies / renames / junctions. Plan and confirm copy say Deco will close the listed processes; save work before confirming.
+
 ## [1.3.2] - 2026-09-26
 
 ### Fixed
