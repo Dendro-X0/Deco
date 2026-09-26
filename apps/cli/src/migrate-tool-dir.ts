@@ -505,14 +505,19 @@ async function runSinglePath(
     if (await existsDir(destAbs)) {
       const entries = await readdir(destAbs);
       if (entries.length > 0) {
-        throw new Error(`Destination exists and is not empty: ${destAbs}`);
+        if (copyOnly) {
+          throw new Error(`Destination exists and is not empty: ${destAbs}`);
+        }
+        warnings.push(
+          `${prefix}Destination ${destAbs} already had files (likely a prior partial migration). Deco will refresh it from the source and continue with rename + junction.`,
+        );
       }
     } else {
       await mkdir(destAbs, { recursive: true });
     }
 
     const { cp } = await import('node:fs/promises');
-    await cp(sourceAbs, destAbs, { recursive: true, force: false, errorOnExist: false });
+    await cp(sourceAbs, destAbs, { recursive: true, force: true, errorOnExist: false });
 
     if (copyOnly) {
       warnings.push(`${prefix}Copy-only: source was not replaced by a junction.`);

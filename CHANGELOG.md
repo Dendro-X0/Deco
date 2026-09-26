@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **Resume after partial Cursor/Chrome migration** — listed-profile Run no longer hard-fails with "Destination exists and is not empty" when `G:\…` already has a prior copy. Deco refreshes the destination and retries rename + junction (custom copy-assist still refuses a non-empty dest).
+- **Cursor process detection** — Plan/Run detects portable Cursor builds (any `*cursor*.exe`), not only `Cursor.exe`.
+
 ## [1.3.1] - 2026-09-20
 
 ### Fixed

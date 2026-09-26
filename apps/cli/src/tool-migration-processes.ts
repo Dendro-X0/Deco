@@ -45,22 +45,45 @@ export function processImageNamesForTool(id: MigrateToolId): readonly string[] {
   return TOOL_PROCESS_IMAGE_NAMES[id] ?? [];
 }
 
-function isWindowsProcessRunning(imageName: string): boolean {
+function listTasklistImageNames(): string[] {
   try {
-    const out = execSync(`tasklist /FI "IMAGENAME eq ${imageName}" /NH`, {
-      encoding: 'utf8',
-      timeout: 15_000,
-    });
-    if (/INFO:\s*No tasks are running/i.test(out)) return false;
-    return out.toLowerCase().includes(imageName.toLowerCase());
+    const out = execSync('tasklist /FO CSV /NH', { encoding: 'utf8', timeout: 15_000 });
+    const names: string[] = [];
+    for (const line of out.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('"')) continue;
+      const end = trimmed.indexOf('"', 1);
+      if (end > 1) names.push(trimmed.slice(1, end));
+    }
+    return names;
   } catch {
-    return false;
+    return [];
   }
+}
+
+function isWindowsProcessRunning(imageName: string): boolean {
+  const needle = imageName.toLowerCase().replace(/\.exe$/i, '');
+  return listTasklistImageNames().some((n) => {
+    const lower = n.toLowerCase();
+    return lower === imageName.toLowerCase() || lower.includes(needle);
+  });
+}
+
+function detectCursorFamilyProcesses(): string[] {
+  const found = listTasklistImageNames().filter((n) => {
+    const lower = n.toLowerCase();
+    return lower.includes('cursor') && lower.endsWith('.exe');
+  });
+  const uniq = [...new Set(found.map((n) => n))];
+  return uniq;
 }
 
 /** Image names currently running for this tool profile (Windows only). */
 export function detectRunningToolProcesses(id: MigrateToolId): string[] {
   if (process.platform !== 'win32') return [];
+  if (id === 'cursor' || id === 'cursor-roaming' || id === 'cursor-local') {
+    return detectCursorFamilyProcesses();
+  }
   return processImageNamesForTool(id).filter((name) => isWindowsProcessRunning(name));
 }
 

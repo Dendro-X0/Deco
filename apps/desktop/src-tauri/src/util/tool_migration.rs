@@ -1552,7 +1552,7 @@ fn execute_migration_leg(
     source: &Path,
     dest: &Path,
     copy_only: bool,
-) -> Result<Option<PathBuf>, MigrationLegError> {
+) -> Result<(Option<PathBuf>, Vec<String>), MigrationLegError> {
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent).map_err(|e| MigrationLegError {
             message: format!("failed creating dest parent: {} ({e})", parent.display()),
@@ -1560,6 +1560,7 @@ fn execute_migration_leg(
             manual_finish_steps: Vec::new(),
         })?;
     }
+    let mut resumed_nonempty_dest = false;
     if dest.exists() {
         let empty = fs::read_dir(dest)
             .map_err(|e| MigrationLegError {
@@ -1570,11 +1571,16 @@ fn execute_migration_leg(
             .next()
             .is_none();
         if !empty {
-            return Err(MigrationLegError {
-                message: format!("Destination exists and is not empty: {}", dest.display()),
-                copy_completed_at_dest: false,
-                manual_finish_steps: Vec::new(),
-            });
+            if copy_only {
+                return Err(MigrationLegError {
+                    message: format!("Destination exists and is not empty: {}", dest.display()),
+                    copy_completed_at_dest: false,
+                    manual_finish_steps: Vec::new(),
+                });
+            }
+            // Listed junction Run: prior attempt often left a full copy after rename failed.
+            // Refresh dest from source, then retry rename + mklink — do not force delete+recopy.
+            resumed_nonempty_dest = true;
         }
     } else {
         fs::create_dir_all(dest).map_err(|e| MigrationLegError {
@@ -1584,15 +1590,20 @@ fn execute_migration_leg(
         })?;
     }
 
-    let copy_warnings = copy_tree(source, dest).map_err(|e| MigrationLegError {
+    let mut copy_warnings = copy_tree(source, dest).map_err(|e| MigrationLegError {
         message: e,
         copy_completed_at_dest: false,
         manual_finish_steps: Vec::new(),
     })?;
-    let _ = copy_warnings;
+    if resumed_nonempty_dest {
+        copy_warnings.push(format!(
+            "Destination {} already had files (likely a prior partial migration). Deco refreshed it from the source and will continue with rename + junction.",
+            dest.display()
+        ));
+    }
 
     if copy_only {
-        return Ok(None);
+        return Ok((None, copy_warnings));
     }
 
     let backup = match rename_source_to_backup(source) {
@@ -1635,7 +1646,7 @@ fn execute_migration_leg(
     }
 
     // Keep backup on disk until the user removes it from Settings after verifying the tool.
-    Ok(Some(backup))
+    Ok((Some(backup), copy_warnings))
 }
 
 fn effective_copy_only(plan: &MigrationPlan, requested: bool) -> bool {
@@ -1712,7 +1723,8 @@ fn run_bundle_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) 
         let dest = PathBuf::from(&leg.dest);
         let run_result = execute_migration_leg(&source, &dest, copy_only);
         match run_result {
-            Ok(backup) => {
+            Ok((backup, leg_warnings)) => {
+                warnings.extend(leg_warnings);
                 result_legs.push(MigrationResultLeg {
                     leg: leg.leg.clone(),
                     ok: true,
@@ -1886,11 +1898,12 @@ pub fn run_from_plan(plan: MigrationPlan, copy_only: bool, audit_dir: &Path) -> 
     backup_path_out = exec
         .as_ref()
         .ok()
-        .and_then(|b| b.as_ref())
+        .and_then(|(b, _)| b.as_ref())
         .map(|p| p.to_string_lossy().to_string());
 
     match exec {
-        Ok(_) => {
+        Ok((_, leg_warnings)) => {
+            warnings.extend(leg_warnings);
             if plan.custom_mode {
                 finish_custom_copy_assist(
                     &source,
