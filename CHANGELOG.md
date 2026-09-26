@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-09-26
+
 ### Fixed
 
 - **Resume after partial Cursor/Chrome migration** — listed-profile Run no longer hard-fails with "Destination exists and is not empty" when `G:\…` already has a prior copy. Deco refreshes the destination and retries rename + junction (custom copy-assist still refuses a non-empty dest).
